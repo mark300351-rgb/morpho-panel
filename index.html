@@ -482,16 +482,14 @@ function switchTab(name) {
 (function() {
   try {
     const saved = sessionStorage.getItem('_mt');
-    if (saved) {
+    if (saved && saved.startsWith('ghp_')) {
       document.getElementById('login-token').value = saved;
-      doLogin();
+      // Don't auto-login, just pre-fill. User clicks the button.
     }
   } catch {}
 })();
 
-// Save token to sessionStorage on successful login (survives tab reload within session)
-const _origLogin = doLogin;
-// Patch: after successful login, persist token in sessionStorage
+// After successful login, persist token in sessionStorage
 const __observer = new MutationObserver(() => {
   if (!document.getElementById('screen-main').classList.contains('hide') && TOKEN) {
     try { sessionStorage.setItem('_mt', TOKEN); } catch {}
