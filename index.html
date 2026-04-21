@@ -2,7 +2,12 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Morpho Monitor">
+<meta name="theme-color" content="#fffcfa">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>🔥</text></svg>">
 <title>Morpho Vault Monitor · ML</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
@@ -1370,8 +1375,244 @@ select option { background: var(--bg-2); }
 }
 
 /* ===========================
-   Donut Hover Tooltip
+   iPhone / Mobile — Full Optimization
+   Targets: iPhone SE (375px), iPhone 14/15 (390px), Pro Max (430px)
 =========================== */
+@media (max-width: 480px) {
+  /* ── Safe area for notch / Dynamic Island ── */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* ── Header: compact for small screens ── */
+  .header {
+    padding: 0 16px;
+    height: 56px;
+  }
+  .logo-icon { width: 32px; height: 32px; border-radius: 8px; }
+  .logo-icon svg, .logo-icon img { width: 32px; height: 32px; }
+  .logo { gap: 10px; }
+  .logo-name { font-size: 14px; }
+  .logo-sub { font-size: 10px; }
+  .header-right { gap: 6px; }
+  .lang-switcher { padding: 2px; }
+  .lang-btn { font-size: 10px; padding: 2px 6px; }
+  .monitor-status { font-size: 11px; padding: 3px 8px; }
+  .countdown { font-size: 11px; }
+
+  /* ── Main content area ── */
+  .main-content { padding: 12px; }
+
+  /* ── Input bar: stack everything vertically ── */
+  .input-bar { padding: 14px 14px; margin-bottom: 14px; border-radius: 14px; gap: 10px; }
+  .input-row { flex-direction: column; gap: 10px; }
+  .field-group, .field-group.narrow, .field-group.wide {
+    min-width: 100% !important; flex: none !important;
+  }
+  input, select {
+    padding: 10px 12px; font-size: 14px; border-radius: 8px;
+    /* Prevent iOS zoom on focus */
+    font-size: 16px !important;
+  }
+  .btn { padding: 10px 14px; font-size: 13px; border-radius: 8px; }
+  .btn-primary { box-shadow: 0 3px 10px rgba(194,65,12,0.25); }
+
+  /* ── Config section ── */
+  .config-row { flex-direction: column; gap: 10px; }
+  .config-toggle { font-size: 11px; }
+  .tg-section { padding: 10px 12px; margin-top: 10px; }
+  .tg-section-title { font-size: 11px; }
+
+  /* ── Stats grid: 2x2 ── */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-card { padding: 10px 0 10px 10px; }
+  .stat-icon { font-size: 18px; margin-bottom: 6px; }
+  .stat-value { font-size: 20px; }
+  .stat-label { font-size: 10px; letter-spacing: 0.5px; }
+  .stat-sub { font-size: 10px; }
+
+  /* ── Tabs: scrollable, full width ── */
+  .tabs {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border-radius: 12px;
+    padding: 2px;
+    margin-bottom: 14px;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 7px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tab-badge { font-size: 9px; padding: 1px 5px; min-width: 16px; }
+
+  /* ── Vault cards: tighter spacing ── */
+  .vault-card-header {
+    padding: 14px 14px 10px;
+    gap: 10px;
+  }
+  .vault-info { gap: 10px; }
+  .vault-icon { width: 36px; height: 36px; border-radius: 10px; font-size: 17px; }
+  .vault-name { font-size: 14px; margin-bottom: 2px; }
+  .vault-meta { gap: 5px; }
+  .badge { font-size: 10px; padding: 1px 6px; border-radius: 5px; }
+
+  .position-usd { font-size: 16px; }
+  .position-label { font-size: 10px; }
+
+  /* ── Vault metrics: 2 columns ── */
+  .vault-body { flex-direction: column; gap: 0; }
+  .vault-body .vault-metrics {
+    grid-template-columns: 1fr 1fr;
+    padding: 0 14px 10px;
+    gap: 10px;
+  }
+  .vault-metrics {
+    padding: 0 14px 10px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .metric-label { font-size: 10px; letter-spacing: 0.4px; }
+  .metric-value { font-size: 14px; }
+  .alert-chip { font-size: 9px; padding: 1px 5px; }
+
+  /* ── Allocation sidebar → below metrics on mobile ── */
+  .allocation-bar-wrap {
+    width: 100% !important;
+    border-left: none !important;
+    border-top: 1px solid var(--border);
+    margin-left: 0 !important;
+    padding: 10px 14px 0 !important;
+  }
+  .alloc-donut-wrap { gap: 10px; }
+  .alloc-item { font-size: 11px; }
+  .alloc-name { font-size: 11px; }
+  .alloc-pct { font-size: 11px; }
+  .allocation-title { font-size: 10px; padding: 8px 0 6px; }
+
+  /* ── Warnings ── */
+  .vault-warnings { margin: 0 14px 10px; }
+  .warning-item { padding: 6px 10px; font-size: 11px; }
+
+  /* ── Risk stars ── */
+  .risk-stars { gap: 1px; }
+  .star { font-size: 12px; }
+
+  /* ── Recommendation cards ── */
+  .rec-grid { grid-template-columns: 1fr !important; gap: 10px; }
+  .rec-card { padding: 14px; border-radius: 12px; }
+  .rec-name { font-size: 13px; }
+  .rec-header { margin-bottom: 8px; }
+  .rec-metrics { gap: 8px; margin-top: 10px; padding-top: 10px; }
+  .rec-metric-label { font-size: 9px; }
+  .rec-metric-value { font-size: 14px; }
+  .rec-badge-why { font-size: 9px; padding: 2px 6px; }
+
+  /* ── Chart section ── */
+  .chart-section { padding: 14px; border-radius: 14px; }
+  .chart-filter-row { gap: 4px; margin-bottom: 12px; }
+  .chart-filter-btn { padding: 4px 10px; font-size: 11px; border-radius: 6px; }
+  .chart-canvas-wrap { height: 220px; }
+  .chart-summary-row { gap: 12px; margin-top: 10px; }
+  .chart-summary-label { font-size: 10px; }
+  .chart-summary-value { font-size: 15px; }
+  .chart-custom-range { margin-left: 0; margin-top: 6px; }
+  .chart-custom-range input[type=date] { padding: 4px 8px; font-size: 11px; }
+
+  /* ── PnL Transaction Table ── */
+  .pnl-tx-header, .pnl-tx-row {
+    grid-template-columns: 1fr 1fr !important;
+    font-size: 11px;
+  }
+  .pnl-summary-bar {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px;
+  }
+
+  /* ── Alert panel ── */
+  .alert-item { padding: 10px 12px; border-radius: 10px; gap: 8px; }
+  .alert-icon { width: 20px; height: 20px; font-size: 11px; }
+  .alert-title { font-size: 12px; }
+  .alert-desc { font-size: 11px; }
+  .alert-time { font-size: 10px; }
+
+  /* ── Toast notifications ── */
+  .toast-container {
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    right: 12px;
+    left: 12px;
+  }
+  .toast {
+    max-width: 100%;
+    font-size: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+  }
+
+  /* ── Empty / Error states ── */
+  .empty-state { padding: 40px 16px; }
+  .empty-icon { font-size: 36px; }
+  .empty-title { font-size: 14px; }
+  .empty-desc { font-size: 12px; max-width: 100%; }
+  .error-box { font-size: 12px; padding: 10px 12px; }
+
+  /* ── CORS error box ── */
+  .empty-state div[style*="max-width:780px"] { max-width: 100% !important; padding: 16px !important; }
+
+  /* ── Donut tooltip: fixed bottom sheet on mobile ── */
+  #donut-tooltip {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+    top: auto !important;
+    max-width: none;
+    min-width: 0;
+    width: auto;
+    border-radius: 14px;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+  }
+
+  /* ── Section titles ── */
+  .section-title { font-size: 13px; margin-top: 16px !important; }
+
+  /* ── Loader ── */
+  .loader-wrap { padding: 40px 16px; }
+
+  /* ── Smooth touch scrolling ── */
+  * { -webkit-tap-highlight-color: transparent; }
+  button, .tab, .lang-btn, .rec-card {
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+  }
+
+  /* ── Market position cards (direct market) ── */
+  .vault-card-header .vault-position-value { text-align: left; flex-shrink: 1; }
+}
+
+/* ── Extra small (iPhone SE, 375px) ── */
+@media (max-width: 375px) {
+  .header { padding: 0 12px; height: 50px; }
+  .logo-name { font-size: 13px; }
+  .logo-sub { display: none; }
+  .main-content { padding: 10px; }
+  .stat-value { font-size: 18px; }
+  .tab { padding: 6px 10px; font-size: 11px; }
+  .vault-icon { width: 32px; height: 32px; font-size: 15px; }
+  .vault-name { font-size: 13px; }
+  .position-usd { font-size: 15px; }
+  .chart-canvas-wrap { height: 180px; }
+}
 #donut-tooltip {
   position: fixed;
   z-index: 9999;
