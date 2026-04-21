@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Morpho">
+<meta name="theme-color" content="#c2410c">
+<title>Morpho Monitor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>🔥</text></svg>">
+<style>
+:root{
+  --bg:#FFFCF9;--card:#fff;--inp:#fdf7f0;--warm:#faf1e4;
+  --bdr:#e8d5be;--bdr2:#d4b896;
+  --t1:#1a0a00;--t2:#7c4820;--t3:#b07848;
+  --fire:#c2410c;--fire2:#ea580c;--fire3:#f97316;
+  --green:#059669;--red:#dc2626;--yellow:#d97706;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--bg);color:var(--t1);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;
+  font-size:14px;line-height:1.5;min-height:100vh;min-height:100dvh;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+
+.header{
+  background:linear-gradient(135deg,#c2410c 0%,#ea580c 40%,#f97316 100%);
+  padding:20px 20px 24px;color:#fff;
+  padding-top:calc(20px + env(safe-area-inset-top));
+}
+.h-top{display:flex;justify-content:space-between;align-items:flex-start}
+.h-sub{font-size:11px;opacity:.7;letter-spacing:1px;text-transform:uppercase}
+.h-main{font-size:20px;font-weight:600;margin-top:2px}
+.h-status{display:flex;gap:8px;align-items:center;font-size:12px;opacity:.9}
+.dot-live{width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80}
+.dot-off{width:8px;height:8px;border-radius:50%;background:#94a3b8}
+
+.btn-go{
+  margin-top:14px;width:100%;padding:11px 0;border-radius:10px;font-size:14px;font-weight:500;
+  color:#fff;cursor:pointer;font-family:inherit;border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.15);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  transition:opacity .15s;
+}
+.btn-go:active{opacity:.7}.btn-go:disabled{opacity:.5}
+
+.tabs{
+  display:flex;gap:3px;margin:14px 16px;background:var(--inp);border-radius:12px;
+  padding:3px;border:1px solid var(--bdr);
+}
+.tab{
+  flex:1;text-align:center;padding:9px 0;font-size:13px;border-radius:10px;cursor:pointer;
+  border:none;font-family:inherit;background:transparent;color:var(--t3);font-weight:400;
+  transition:all .2s;
+}
+.tab.on{
+  background:linear-gradient(135deg,#c2410c,#f97316);color:#fff;font-weight:500;
+  box-shadow:0 2px 8px rgba(194,65,12,.3);
+}
+
+.card{
+  background:var(--card);border-radius:16px;border:1px solid var(--bdr);
+  margin:0 16px 14px;padding:18px 16px;box-shadow:0 1px 4px rgba(146,64,14,.06);
+}
+.card-t{font-size:14px;font-weight:500;color:var(--t1);margin-bottom:14px}
+.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+
+.lbl{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;display:block}
+.inp,.sel{
+  width:100%;padding:10px 12px;font-size:14px;border-radius:10px;
+  border:1px solid var(--bdr);background:var(--inp);color:var(--t1);
+  outline:none;font-family:inherit;-webkit-appearance:none;transition:border-color .2s;
+}
+.inp:focus,.sel:focus{border-color:var(--fire3)}
+.inp.mono{font-family:'SF Mono',Menlo,monospace;font-size:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.btn-p{
+  width:100%;padding:12px 0;border-radius:10px;font-size:14px;font-weight:500;border:none;
+  background:linear-gradient(135deg,#c2410c,#f97316);color:#fff;cursor:pointer;
+  font-family:inherit;box-shadow:0 4px 14px rgba(194,65,12,.3);transition:opacity .15s;
+}
+.btn-p:active{opacity:.8}.btn-p:disabled{opacity:.5}
+.btn-s{
+  background:var(--inp);border:1px solid var(--bdr);border-radius:8px;
+  padding:4px 10px;font-size:12px;color:var(--fire);cursor:pointer;font-family:inherit;
+}
+.btn-x{
+  background:none;border:1px solid #fca5a5;border-radius:8px;color:var(--red);
+  padding:0 10px;cursor:pointer;font-size:16px;line-height:38px;flex-shrink:0;
+}
+
+.wrow{margin-bottom:12px}.wrow:last-child{margin-bottom:0}
+.wlabel{display:flex;gap:8px;margin-bottom:6px}
+.wlabel input{flex:1}
+
+.chk{margin-top:14px;display:flex;align-items:center;gap:8px}
+.chk input{width:16px;height:16px;accent-color:var(--fire)}
+.chk label{font-size:13px;color:var(--t2)}
+
+.run{padding:10px 0;border-bottom:1px solid var(--bdr)}
+.run:last-child{border-bottom:none}
+.run-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.rdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rdot.g{background:var(--green)}.rdot.r{background:var(--red)}.rdot.y{background:var(--yellow)}.rdot.x{background:#94a3b8}
+.run-t{font-size:13px;font-weight:500;color:var(--t1);flex:1}
+.run-e{font-size:11px;color:var(--t3)}
+.run-d{font-size:12px;color:var(--t2)}
+.run-l{font-size:11px;color:var(--fire);margin-top:3px;display:inline-block}
+
+.tg-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
+.tg-row{display:flex;align-items:center;gap:8px}
+.tg-on{font-size:13px;color:var(--green)}
+.tg-hint{font-size:11px;color:var(--t3);margin-top:8px;line-height:1.6}
+
+.toast{
+  position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-80px);
+  padding:10px 20px;border-radius:12px;font-size:13px;font-weight:500;color:#fff;
+  z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.25);max-width:88vw;text-align:center;
+  transition:transform .3s ease;pointer-events:none;white-space:nowrap;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--green)}.toast.err{background:var(--red)}.toast.warn{background:var(--yellow)}
+
+.foot{text-align:center;font-size:11px;color:var(--t3);padding:10px 16px 24px;opacity:.6}
+
+.login-hint{font-size:11px;color:var(--t3);margin-top:6px;line-height:1.5}
+.login-hint code{background:var(--inp);padding:1px 4px;border-radius:3px;font-size:11px}
+.login-desc{font-size:12px;opacity:.8;margin-top:6px}
+
+.hide{display:none!important}
+
+.updated{text-align:center;font-size:11px;color:var(--t3);margin-top:8px}
+.pane{padding:0}
+.px{padding:0 16px 20px}
+
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#0f0a06;--card:#1a1208;--inp:#231a0e;--warm:#2a1e10;
+    --bdr:#3d2e1a;--bdr2:#5a4020;
+    --t1:#f5ebe0;--t2:#c8a878;--t3:#8a6840;
+  }
+  .header{background:linear-gradient(135deg,#7c2d12 0%,#9a3412 40%,#c2410c 100%)}
+  .tab.on{box-shadow:0 2px 8px rgba(194,65,12,.5)}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ Toast ═══════════ -->
+<div id="toast" class="toast"></div>
+
+<!-- ═══════════ Login Screen ═══════════ -->
+<div id="screen-login">
+  <div class="header">
+    <div class="h-sub">Morpho Vault</div>
+    <div class="h-main">Monitor Panel</div>
+    <div class="login-desc">连接 GitHub 以管理你的监控配置</div>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <div class="lbl">GitHub Personal Access Token</div>
+    <input class="inp" id="login-token" type="password" placeholder="ghp_..." autocomplete="off">
+    <div class="login-hint">
+      需要 <code>repo</code> + <code>workflow</code> 权限。Token 仅在当前会话使用，刷新即失效。
+    </div>
+    <button class="btn-p" style="margin-top:14px" id="btn-login" onclick="doLogin()">🔗 连接 GitHub</button>
+  </div>
+  <div class="foot">Morpho Vault Monitor · GitHub Actions Edition</div>
+</div>
+
+<!-- ═══════════ Main Panel ═══════════ -->
+<div id="screen-main" class="hide">
+
+  <div class="header">
+    <div class="h-top">
+      <div>
+        <div class="h-sub">Morpho Vault</div>
+        <div class="h-main">Monitor Panel</div>
+      </div>
+      <div class="h-status">
+        <div class="dot-live" id="conn-dot"></div>
+        <span id="conn-text">已连接</span>
+      </div>
+    </div>
+    <button class="btn-go" id="btn-trigger" onclick="doTrigger()">🚀 立即运行监控</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab on" id="tab-config" onclick="switchTab('config')">⚙️ 配置</button>
+    <button class="tab"    id="tab-runs"   onclick="switchTab('runs')">📋 运行记录</button>
+  </div>
+
+  <!-- ── Config Pane ── -->
+  <div id="pane-config" class="pane">
+
+    <!-- Wallets -->
+    <div class="card">
+      <div class="card-head">
+        <span style="font-size:14px;font-weight:500">💼 监控钱包</span>
+        <button class="btn-s" onclick="addWallet()">+ 添加</button>
+      </div>
+      <div id="wallets-list"></div>
+    </div>
+
+    <!-- Thresholds -->
+    <div class="card">
+      <div class="card-t">🎯 警报阈值</div>
+      <div class="grid2">
+        <div><div class="lbl">⚠️ 流动性 (USD)</div><input class="inp" id="th-liq" type="number" value="200000"></div>
+        <div><div class="lbl">📉 APY (%)</div><input class="inp" id="th-apy" type="number" step="0.1" value="5"></div>
+        <div><div class="lbl">💔 健康因子</div><input class="inp" id="th-hf" type="number" step="0.1" value="1.2"></div>
+        <div>
+          <div class="lbl">⏱ 间隔 (分钟)</div>
+          <select class="sel" id="sch-interval">
+            <option value="5">5 分钟</option>
+            <option value="10">10 分钟</option>
+            <option value="15">15 分钟</option>
+            <option value="30">30 分钟</option>
+            <option value="60">1 小时</option>
+          </select>
+        </div>
+      </div>
+      <div class="chk">
+        <input type="checkbox" id="sch-always">
+        <label for="sch-always">无警报时也发送定时报告</label>
+      </div>
+    </div>
+
+    <!-- Telegram -->
+    <div class="card">
+      <div class="card-t">📬 Telegram 通知</div>
+      <div class="tg-row">
+        <div class="tg-dot"></div>
+        <span class="tg-on">已配置（Token 存储在 GitHub Secrets 中）</span>
+      </div>
+      <div class="tg-hint">如需修改 Telegram Bot Token 或 Chat ID，前往 GitHub 仓库 → Settings → Secrets 更新。此面板不处理敏感凭证。</div>
+    </div>
+
+    <!-- Save -->
+    <div class="px">
+      <button class="btn-p" id="btn-save" onclick="doSave()">💾 保存配置到 GitHub</button>
+      <div class="updated" id="updated-at"></div>
+    </div>
+  </div>
+
+  <!-- ── Runs Pane ── -->
+  <div id="pane-runs" class="pane hide">
+    <div style="padding:0 16px 10px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;color:var(--t2)">最近 5 次运行</span>
+      <button class="btn-s" id="btn-refresh" onclick="loadRuns()">🔄 刷新</button>
+    </div>
+    <div class="card" id="runs-list">
+      <div style="text-align:center;color:var(--t3);font-size:13px;padding:20px">加载中...</div>
+    </div>
+  </div>
+
+  <div class="foot">Morpho Vault Monitor · Mark Li · GitHub Actions Edition</div>
+</div>
+
+<script>
+// ─── Constants ───────────────────────────────────────────────────
+const REPO = 'mark300351-rgb/morpho-monitor';
+const CFG_PATH = 'config.json';
+const API = 'https://api.github.com';
+
+let TOKEN = '';
+let CFG_SHA = '';
+let CONFIG = {
+  wallets: [{ address: '', label: '默认钱包' }],
+  thresholds: { liquidity: 200000, apy: 5, healthFactor: 1.2 },
+  telegram: { enabled: true },
+  schedule: { intervalMinutes: 5, alwaysReport: false },
+  updatedAt: ''
+};
+
+// ─── Toast ───────────────────────────────────────────────────────
+let _toastTimer = null;
+function toast(type, msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  requestAnimationFrame(() => el.classList.add('show'));
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ─── GitHub API ──────────────────────────────────────────────────
+async function gh(path, opts = {}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: {
+      Authorization: 'token ' + TOKEN,
+      Accept: 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+      ...(opts.headers || {})
+    }
+  });
+  if (res.status === 204) return {}; // dispatches return 204
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.message || 'HTTP ' + res.status);
+  }
+  return res.json();
+}
+
+// ─── Login ───────────────────────────────────────────────────────
+async function doLogin() {
+  const btn = document.getElementById('btn-login');
+  const t = document.getElementById('login-token').value.trim();
+  if (!t) return toast('err', '请输入 Token');
+  btn.disabled = true; btn.textContent = '连接中...';
+  try {
+    const data = await gh('/repos/' + REPO + '/contents/' + CFG_PATH);
+    CONFIG = { ...CONFIG, ...JSON.parse(atob(data.content)) };
+    CFG_SHA = data.sha;
+    TOKEN = t;
+    applyConfigToUI();
+    document.getElementById('screen-login').classList.add('hide');
+    document.getElementById('screen-main').classList.remove('hide');
+    toast('ok', '✅ 已连接，配置已加载');
+    loadRuns();
+  } catch (e) {
+    toast('err', '连接失败: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = '🔗 连接 GitHub';
+}
+
+// ─── Config ↔ UI ─────────────────────────────────────────────────
+function applyConfigToUI() {
+  renderWallets();
+  document.getElementById('th-liq').value = CONFIG.thresholds.liquidity;
+  document.getElementById('th-apy').value = CONFIG.thresholds.apy;
+  document.getElementById('th-hf').value = CONFIG.thresholds.healthFactor;
+  document.getElementById('sch-interval').value = CONFIG.schedule.intervalMinutes;
+  document.getElementById('sch-always').checked = CONFIG.schedule.alwaysReport;
+  if (CONFIG.updatedAt) {
+    document.getElementById('updated-at').textContent = '上次更新: ' + new Date(CONFIG.updatedAt).toLocaleString('zh-CN');
+  }
+}
+
+function readConfigFromUI() {
+  CONFIG.wallets = [];
+  document.querySelectorAll('.wrow').forEach(row => {
+    CONFIG.wallets.push({
+      label: row.querySelector('.w-label').value.trim(),
+      address: row.querySelector('.w-addr').value.trim()
+    });
+  });
+  if (CONFIG.wallets.length === 0) CONFIG.wallets = [{ address: '', label: '' }];
+  CONFIG.thresholds.liquidity = Number(document.getElementById('th-liq').value) || 200000;
+  CONFIG.thresholds.apy = Number(document.getElementById('th-apy').value) || 5;
+  CONFIG.thresholds.healthFactor = Number(document.getElementById('th-hf').value) || 1.2;
+  CONFIG.schedule.intervalMinutes = Number(document.getElementById('sch-interval').value) || 5;
+  CONFIG.schedule.alwaysReport = document.getElementById('sch-always').checked;
+}
+
+// ─── Wallets ─────────────────────────────────────────────────────
+function renderWallets() {
+  const list = document.getElementById('wallets-list');
+  list.innerHTML = '';
+  CONFIG.wallets.forEach((w, i) => {
+    const div = document.createElement('div');
+    div.className = 'wrow';
+    const showX = CONFIG.wallets.length > 1;
+    div.innerHTML = `
+      <div class="wlabel">
+        <input class="inp w-label" placeholder="标签（可选）" value="${esc(w.label || '')}">
+        ${showX ? `<button class="btn-x" onclick="removeWallet(${i})">×</button>` : ''}
+      </div>
+      <input class="inp mono w-addr" placeholder="0x..." value="${esc(w.address || '')}">
+    `;
+    list.appendChild(div);
+  });
+}
+
+function addWallet() {
+  readConfigFromUI();
+  CONFIG.wallets.push({ address: '', label: '' });
+  renderWallets();
+}
+
+function removeWallet(i) {
+  readConfigFromUI();
+  CONFIG.wallets.splice(i, 1);
+  if (CONFIG.wallets.length === 0) CONFIG.wallets = [{ address: '', label: '' }];
+  renderWallets();
+}
+
+function esc(s) { return s.replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+// ─── Save ────────────────────────────────────────────────────────
+async function doSave() {
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = '保存中...';
+  readConfigFromUI();
+  CONFIG.updatedAt = new Date().toISOString();
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(CONFIG, null, 2))));
+    const res = await gh('/repos/' + REPO + '/contents/' + CFG_PATH, {
+      method: 'PUT',
+      body: JSON.stringify({
+        message: 'config: update from panel @ ' + CONFIG.updatedAt.slice(0, 16),
+        content: encoded,
+        sha: CFG_SHA
+      })
+    });
+    CFG_SHA = res.content.sha;
+    document.getElementById('updated-at').textContent = '上次更新: ' + new Date(CONFIG.updatedAt).toLocaleString('zh-CN');
+    toast('ok', '✅ 配置已保存到 GitHub');
+  } catch (e) {
+    toast('err', '保存失败: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = '💾 保存配置到 GitHub';
+}
+
+// ─── Trigger ─────────────────────────────────────────────────────
+async function doTrigger() {
+  const btn = document.getElementById('btn-trigger');
+  btn.disabled = true; btn.textContent = '⏳ 触发中...';
+  try {
+    readConfigFromUI();
+    const addr = (CONFIG.wallets.find(w => /^0x[0-9a-fA-F]{40}$/.test(w.address)) || {}).address || '';
+    await gh('/repos/' + REPO + '/actions/workflows/monitor.yml/dispatches', {
+      method: 'POST',
+      body: JSON.stringify({
+        ref: 'main',
+        inputs: { wallet_address: addr, always_report: 'true' }
+      })
+    });
+    toast('ok', '🚀 已触发，Telegram 稍后收到报告');
+    setTimeout(loadRuns, 6000);
+  } catch (e) {
+    toast('err', '触发失败: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = '🚀 立即运行监控';
+}
+
+// ─── Runs ────────────────────────────────────────────────────────
+async function loadRuns() {
+  const btn = document.getElementById('btn-refresh');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const data = await gh('/repos/' + REPO + '/actions/runs?per_page=5');
+    const runs = data.workflow_runs || [];
+    const list = document.getElementById('runs-list');
+    if (runs.length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:var(--t3);font-size:13px;padding:20px">暂无运行记录</div>';
+    } else {
+      list.innerHTML = runs.map(r => {
+        const c = r.conclusion || r.status;
+        const dotCls = c === 'success' ? 'g' : c === 'failure' ? 'r' : (c === 'in_progress' || c === 'queued') ? 'y' : 'x';
+        const label = c === 'success' ? '✅ 成功' : c === 'failure' ? '❌ 失败' : c === 'in_progress' ? '⏳ 运行中' : c === 'queued' ? '⏳ 排队中' : c;
+        const evt = r.event === 'schedule' ? '⏰ 定时' : r.event === 'workflow_dispatch' ? '🖐 手动' : r.event;
+        const time = new Date(r.created_at).toLocaleString('zh-CN');
+        const link = c === 'failure' ? `<a class="run-l" href="${r.html_url}" target="_blank">查看日志 →</a>` : '';
+        return `<div class="run">
+          <div class="run-top"><div class="rdot ${dotCls}"></div><span class="run-t">${label}</span><span class="run-e">${evt}</span></div>
+          <div class="run-d">${time}</div>${link}
+        </div>`;
+      }).join('');
+    }
+  } catch (e) {
+    document.getElementById('runs-list').innerHTML = '<div style="text-align:center;color:var(--t3);padding:20px">加载失败</div>';
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '🔄 刷新'; }
+}
+
+// ─── Tabs ────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.getElementById('tab-config').classList.toggle('on', name === 'config');
+  document.getElementById('tab-runs').classList.toggle('on', name === 'runs');
+  document.getElementById('pane-config').classList.toggle('hide', name !== 'config');
+  document.getElementById('pane-runs').classList.toggle('hide', name !== 'runs');
+  if (name === 'runs') loadRuns();
+}
+
+// ─── Auto-login from sessionStorage ──────────────────────────────
+(function() {
+  try {
+    const saved = sessionStorage.getItem('_mt');
+    if (saved) {
+      document.getElementById('login-token').value = saved;
+      doLogin();
+    }
+  } catch {}
+})();
+
+// Save token to sessionStorage on successful login (survives tab reload within session)
+const _origLogin = doLogin;
+// Patch: after successful login, persist token in sessionStorage
+const __observer = new MutationObserver(() => {
+  if (!document.getElementById('screen-main').classList.contains('hide') && TOKEN) {
+    try { sessionStorage.setItem('_mt', TOKEN); } catch {}
+    __observer.disconnect();
+  }
+});
+__observer.observe(document.getElementById('screen-main'), { attributes: true, attributeFilter: ['class'] });
+</script>
+</body>
+</html>
