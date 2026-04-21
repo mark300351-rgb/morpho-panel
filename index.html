@@ -1800,6 +1800,43 @@ select option { background: var(--bg-2); }
             <span id="tg-howto-end" data-i18n="tgHowToEnd"> 获取你的 Chat ID（群组 ID 以 -100 开头）</span>
           </div>
         </div>
+
+        <!-- ── Background Monitor (Cloudflare Worker) ── -->
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:13px;font-weight:400;color:var(--text-1)" data-i18n="bgmTitle">⏰ 后台持续监控</span>
+              <div id="bgm-status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text-3)"></div>
+              <span id="bgm-status-text" style="font-size:11px;color:var(--text-3)" data-i18n="bgmStatusInactive">未启用</span>
+            </div>
+            <span id="bgm-last-check" style="font-size:10px;color:var(--text-3)"></span>
+          </div>
+
+          <div style="font-size:11px;color:var(--text-3);margin-bottom:12px;line-height:1.6" data-i18n="bgmDesc">
+            即使关闭浏览器、锁屏或关机，后台每 5 分钟自动检查持仓，警报通过上方 Telegram 推送。复用上方配置的钱包地址、Telegram 和流动性/APY 阈值。
+          </div>
+
+          <div style="margin-bottom:10px">
+            <label style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px" data-i18n="bgmThHf">💔 健康因子警戒线</label>
+            <input id="bgm-th-hf" type="number" step="0.1" value="1.2" style="width:140px;padding:8px 10px;font-size:13px;border-radius:8px;border:1px solid var(--border);background:var(--bg-1);color:var(--text-1);outline:none;margin-top:3px">
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-success" id="bgm-btn-start" onclick="bgmSubscribe()" style="padding:8px 16px;font-size:12px">
+              ▶ <span data-i18n="bgmStart">启动后台监控</span>
+            </button>
+            <button class="btn btn-danger" id="bgm-btn-stop" onclick="bgmUnsubscribe()" style="padding:8px 16px;font-size:12px;display:none">
+              ⏹ <span data-i18n="bgmStop">停止</span>
+            </button>
+            <button class="btn btn-secondary" id="bgm-btn-trigger" onclick="bgmTrigger()" style="padding:8px 16px;font-size:12px;display:none">
+              🔍 <span data-i18n="bgmTrigger">立即检查</span>
+            </button>
+          </div>
+
+          <div style="font-size:10px;color:var(--text-3);margin-top:8px;line-height:1.5" data-i18n="bgmNote">
+            ⓘ 凭证仅发送到 Cloudflare Worker 并加密存储，不经过第三方。每个钱包独立监控，多人可同时使用。
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1831,7 +1868,6 @@ select option { background: var(--bg-2); }
         警报 <span class="tab-badge" id="alert-badge" style="display:none">0</span>
       </div>
       <div class="tab" onclick="switchTab('recommendations')" id="tab-recommendations">推荐 Vault</div>
-      <div class="tab" onclick="switchTab('bgmonitor')" id="tab-bgmonitor">⏰ 后台监控</div>
     </div>
 
     <!-- Tab: Positions -->
@@ -1912,85 +1948,6 @@ select option { background: var(--bg-2); }
       </div>
     </div>
 
-    <!-- Tab: Background Monitor -->
-    <div class="tab-content" id="tab-content-bgmonitor">
-      <div style="max-width:600px">
-
-        <!-- Status card -->
-        <div id="bgm-status-card" style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:16px">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <div id="bgm-status-dot" style="width:10px;height:10px;border-radius:50%;background:var(--text-3)"></div>
-            <span id="bgm-status-text" style="font-size:14px;font-weight:400;color:var(--text-2)" data-i18n="bgmStatusInactive">未启用后台监控</span>
-          </div>
-          <div id="bgm-last-check" style="font-size:11px;color:var(--text-3)"></div>
-        </div>
-
-        <!-- Description -->
-        <div style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.7;padding:0 2px" data-i18n="bgmDesc">
-          后台监控由 Cloudflare Worker 驱动，每 5 分钟自动检查你的 Morpho 持仓。即使关闭浏览器、锁屏或关机，监控不会中断。警报通过 Telegram 实时推送。
-        </div>
-
-        <!-- Wallet -->
-        <div style="margin-bottom:14px">
-          <label class="field-label" style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.7px" data-i18n="bgmWallet">监控钱包地址</label>
-          <input id="bgm-wallet" class="field-input" style="width:100%;padding:10px 12px;font-size:14px;border-radius:10px;border:1px solid var(--border);background:var(--bg-2);color:var(--text-1);font-family:monospace;outline:none" placeholder="0x...">
-          <div style="font-size:11px;color:var(--text-3);margin-top:4px" data-i18n="bgmWalletHint">输入后点击上方「查询持仓」可同步使用</div>
-        </div>
-
-        <!-- Telegram config -->
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px">
-          <div style="font-size:12px;font-weight:400;color:var(--text-2);margin-bottom:10px;display:flex;align-items:center;gap:6px">
-            📬 Telegram <span data-i18n="bgmTgConfig">配置</span>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <div>
-              <label style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.7px">Bot Token</label>
-              <input id="bgm-tg-token" type="password" style="width:100%;padding:8px 10px;font-size:13px;border-radius:8px;border:1px solid var(--border);background:var(--bg-1);color:var(--text-1);font-family:monospace;outline:none" placeholder="123456:ABC-DEF...">
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.7px">Chat ID</label>
-              <input id="bgm-tg-chat" style="width:100%;padding:8px 10px;font-size:13px;border-radius:8px;border:1px solid var(--border);background:var(--bg-1);color:var(--text-1);font-family:monospace;outline:none" placeholder="-100123456789">
-            </div>
-          </div>
-        </div>
-
-        <!-- Thresholds -->
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px">
-          <div style="font-size:12px;font-weight:400;color:var(--text-2);margin-bottom:10px" data-i18n="bgmThresholds">🎯 警报阈值</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-            <div>
-              <label style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px" data-i18n="bgmThLiq">流动性 (USD)</label>
-              <input id="bgm-th-liq" type="number" value="200000" style="width:100%;padding:8px 10px;font-size:13px;border-radius:8px;border:1px solid var(--border);background:var(--bg-1);color:var(--text-1);outline:none">
-            </div>
-            <div>
-              <label style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px" data-i18n="bgmThApy">APY (%)</label>
-              <input id="bgm-th-apy" type="number" step="0.1" value="5" style="width:100%;padding:8px 10px;font-size:13px;border-radius:8px;border:1px solid var(--border);background:var(--bg-1);color:var(--text-1);outline:none">
-            </div>
-            <div>
-              <label style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px" data-i18n="bgmThHf">健康因子</label>
-              <input id="bgm-th-hf" type="number" step="0.1" value="1.2" style="width:100%;padding:8px 10px;font-size:13px;border-radius:8px;border:1px solid var(--border);background:var(--bg-1);color:var(--text-1);outline:none">
-            </div>
-          </div>
-        </div>
-
-        <!-- Action buttons -->
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-success" id="bgm-btn-start" onclick="bgmSubscribe()" style="flex:1;min-width:140px">
-            ▶ <span data-i18n="bgmStart">启动后台监控</span>
-          </button>
-          <button class="btn btn-danger" id="bgm-btn-stop" onclick="bgmUnsubscribe()" style="flex:1;min-width:140px;display:none">
-            ⏹ <span data-i18n="bgmStop">停止后台监控</span>
-          </button>
-          <button class="btn btn-primary" id="bgm-btn-trigger" onclick="bgmTrigger()" style="flex:1;min-width:140px;display:none">
-            🔍 <span data-i18n="bgmTrigger">立即检查一次</span>
-          </button>
-        </div>
-
-        <div style="font-size:11px;color:var(--text-3);margin-top:14px;line-height:1.6;padding:0 2px" data-i18n="bgmNote">
-          ⓘ 你的 Telegram 凭证仅发送到 Cloudflare Worker 并加密存储在 KV 中，不经过任何第三方。每个钱包地址独立监控，多人可同时使用。
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -2335,7 +2292,7 @@ function switchLang(lang) {
   const stText = document.getElementById('status-text');
   if (stText && !APP.isMonitoring) stText.textContent = t('statusIdle');
   // Update tab labels
-  const tabs = { positions:'tabPositions', yield:'tabYield', pnl:'tabPnl', alerts:'tabAlerts', recommendations:'tabRecs', bgmonitor:'tabBgm' };
+  const tabs = { positions:'tabPositions', yield:'tabYield', pnl:'tabPnl', alerts:'tabAlerts', recommendations:'tabRecs' };
   Object.entries(tabs).forEach(([id, key]) => {
     const el = document.getElementById(`tab-${id}`);
     if (el) {
@@ -5663,7 +5620,7 @@ setTimeout(() => {
     }
   }
   // Apply tab labels
-  const tabs = { positions:'tabPositions', yield:'tabYield', pnl:'tabPnl', alerts:'tabAlerts', recommendations:'tabRecs', bgmonitor:'tabBgm' };
+  const tabs = { positions:'tabPositions', yield:'tabYield', pnl:'tabPnl', alerts:'tabAlerts', recommendations:'tabRecs' };
   Object.entries(tabs).forEach(([id, key]) => {
     const el = document.getElementById(`tab-${id}`);
     if (el) {
@@ -5683,33 +5640,12 @@ setTimeout(() => {
 // ────────────────────────────────────────────
 const BGM_API = 'https://morpho-monitor.markli-mcgrp.workers.dev';
 
-// Auto-fill wallet from main input
-(function syncBgmWallet() {
-  const mainInput = document.getElementById('wallet-input');
-  const bgmInput = document.getElementById('bgm-wallet');
-  if (mainInput && bgmInput) {
-    mainInput.addEventListener('change', () => { if (!bgmInput.value) bgmInput.value = mainInput.value; });
-    // Also sync on fetch
-    const origFetch = window.fetchPositions;
-    if (origFetch) {
-      window.fetchPositions = function() {
-        if (!bgmInput.value && mainInput.value) bgmInput.value = mainInput.value;
-        return origFetch.apply(this, arguments);
-      };
-    }
-  }
-})();
-
-// Load saved bgm config from localStorage
+// Load saved bgm health factor from localStorage, and check status if wallet known
 (function loadBgmConfig() {
   try {
     const s = JSON.parse(localStorage.getItem('morpho_bgm_config') || '{}');
-    if (s.wallet) document.getElementById('bgm-wallet').value = s.wallet;
-    if (s.tgToken) document.getElementById('bgm-tg-token').value = s.tgToken;
-    if (s.tgChatId) document.getElementById('bgm-tg-chat').value = s.tgChatId;
-    if (s.thLiq) document.getElementById('bgm-th-liq').value = s.thLiq;
-    if (s.thApy) document.getElementById('bgm-th-apy').value = s.thApy;
     if (s.thHf) document.getElementById('bgm-th-hf').value = s.thHf;
+    // Auto-check status if we have a saved wallet
     if (s.wallet) bgmCheckStatus(s.wallet);
   } catch {}
 })();
@@ -5717,11 +5653,7 @@ const BGM_API = 'https://morpho-monitor.markli-mcgrp.workers.dev';
 function saveBgmConfig() {
   try {
     localStorage.setItem('morpho_bgm_config', JSON.stringify({
-      wallet: document.getElementById('bgm-wallet').value.trim(),
-      tgToken: document.getElementById('bgm-tg-token').value.trim(),
-      tgChatId: document.getElementById('bgm-tg-chat').value.trim(),
-      thLiq: document.getElementById('bgm-th-liq').value,
-      thApy: document.getElementById('bgm-th-apy').value,
+      wallet: document.getElementById('wallet-input').value.trim(),
       thHf: document.getElementById('bgm-th-hf').value,
     }));
   } catch {}
@@ -5729,12 +5661,12 @@ function saveBgmConfig() {
 
 function bgmGetConfig() {
   return {
-    wallet: document.getElementById('bgm-wallet').value.trim(),
-    tgToken: document.getElementById('bgm-tg-token').value.trim(),
-    tgChatId: document.getElementById('bgm-tg-chat').value.trim(),
+    wallet: document.getElementById('wallet-input').value.trim(),
+    tgToken: document.getElementById('tg-token').value.trim(),
+    tgChatId: document.getElementById('tg-chat').value.trim(),
     thresholds: {
-      liquidity: parseFloat(document.getElementById('bgm-th-liq').value) || 200000,
-      apy: parseFloat(document.getElementById('bgm-th-apy').value) || 5,
+      liquidity: parseFloat(document.getElementById('liq-threshold').value) || 200000,
+      apy: parseFloat(document.getElementById('apy-threshold').value) || 5,
       healthFactor: parseFloat(document.getElementById('bgm-th-hf').value) || 1.2,
     }
   };
@@ -5816,7 +5748,7 @@ async function bgmSubscribe() {
 }
 
 async function bgmUnsubscribe() {
-  const wallet = document.getElementById('bgm-wallet').value.trim();
+  const wallet = document.getElementById('wallet-input').value.trim();
   if (!wallet) return;
   const btn = document.getElementById('bgm-btn-stop');
   btn.disabled = true;
@@ -5840,7 +5772,7 @@ async function bgmUnsubscribe() {
 }
 
 async function bgmTrigger() {
-  const wallet = document.getElementById('bgm-wallet').value.trim();
+  const wallet = document.getElementById('wallet-input').value.trim();
   if (!wallet) return;
   const btn = document.getElementById('bgm-btn-trigger');
   btn.disabled = true;
