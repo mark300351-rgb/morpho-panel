@@ -312,17 +312,18 @@ async function doLogin() {
   const t = document.getElementById('login-token').value.trim();
   if (!t) return toast('err', '请输入 Token');
   btn.disabled = true; btn.textContent = '连接中...';
+  TOKEN = t; // must set BEFORE calling gh()
   try {
     const data = await gh('/repos/' + REPO + '/contents/' + CFG_PATH);
     CONFIG = { ...CONFIG, ...JSON.parse(atob(data.content)) };
     CFG_SHA = data.sha;
-    TOKEN = t;
     applyConfigToUI();
     document.getElementById('screen-login').classList.add('hide');
     document.getElementById('screen-main').classList.remove('hide');
     toast('ok', '✅ 已连接，配置已加载');
     loadRuns();
   } catch (e) {
+    TOKEN = ''; // reset on failure
     toast('err', '连接失败: ' + e.message);
   }
   btn.disabled = false; btn.textContent = '🔗 连接 GitHub';
