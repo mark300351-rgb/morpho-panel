@@ -1301,7 +1301,7 @@ select option { background: var(--bg-2); }
 }
 .pnl-tx-header {
   display: grid;
-  grid-template-columns: 130px 80px 1fr 110px 110px 110px 100px;
+  grid-template-columns: 130px 80px 1fr 160px 100px;
   padding: 10px 18px;
   background: var(--bg-2);
   border-bottom: 1px solid var(--border);
@@ -1314,7 +1314,7 @@ select option { background: var(--bg-2); }
 }
 .pnl-tx-row {
   display: grid;
-  grid-template-columns: 130px 80px 1fr 110px 110px 110px 100px;
+  grid-template-columns: 130px 80px 1fr 160px 100px;
   padding: 12px 18px;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
@@ -1553,42 +1553,43 @@ select option { background: var(--bg-2); }
   .pnl-summary-value { font-size: 16px; }
   .pnl-summary-sub { font-size: 10px; }
 
-  /* ── PnL Transaction Table → card layout ── */
+  /* ── PnL Transaction List → clean card style ── */
   .pnl-tx-header { display: none !important; }
   .pnl-tx-row {
     display: flex !important;
-    flex-wrap: wrap;
-    gap: 4px 12px;
-    padding: 10px 12px;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 14px;
     font-size: 12px;
     grid-template-columns: none !important;
   }
-  .pnl-tx-date { order: 1; font-size: 11px; }
-  .pnl-tx-type { order: 2; font-size: 11px; }
+  /* Row 1: date + type side by side */
+  .pnl-tx-row .pnl-tx-date,
+  .pnl-tx-row .pnl-tx-type {
+    display: inline;
+  }
+  /* Row 2: vault name full width */
   .pnl-tx-vault {
-    order: 3; width: 100%;
     white-space: normal;
     font-size: 13px;
+    line-height: 1.4;
   }
   .pnl-tx-vault small { display: inline; font-size: 11px; }
+  /* Row 3: amount — prominent */
   .pnl-tx-amount {
-    order: 4;
-    text-align: left;
-    font-size: 13px;
+    text-align: left !important;
+    font-size: 14px;
     font-weight: 500;
   }
-  .pnl-tx-hash { order: 5; }
-  /* Hide columns that don't fit well on mobile */
-  .pnl-tx-row > :nth-child(5),
-  .pnl-tx-row > :nth-child(6) {
-    font-size: 11px;
-    color: var(--text-3);
-  }
-  .pnl-group-header { padding: 6px 12px; font-size: 10px; }
-  .pnl-loading { padding: 32px 16px; }
+  /* Row 4: tx hash */
+  .pnl-tx-hash { font-size: 11px; }
 
-  /* ── PnL range buttons ── */
+  .pnl-group-header { padding: 6px 14px; font-size: 10px; }
+  .pnl-loading { padding: 32px 16px; }
   .pnl-range-btn { padding: 4px 10px; font-size: 11px; }
+
+  /* ── PnL Toolbar ── */
+  .pnl-toolbar { flex-wrap: wrap; gap: 6px; padding: 10px 14px; }
 
   /* ── Alert panel ── */
   .alert-item { padding: 10px 12px; border-radius: 10px; gap: 8px; }
@@ -5248,9 +5249,7 @@ function renderPnlContent() {
       <div class="pnl-tx-date">${dateStr}</div>
       <div class="pnl-tx-type">${isDeposit ? (isEn ? 'Deposit' : '存入') : (isEn ? 'Withdraw' : '取出')}</div>
       <div class="pnl-tx-vault">${tx.vaultName}${v2Badge}<small>${tx.assetSymbol} · ${networkLabel(tx.chainNetwork)}</small></div>
-      <div class="pnl-tx-amount ${amtClass}">${amtSign}${fmtUSD(tx.assetsUsd)}</div>
-      <div class="pnl-tx-amount" style="color:var(--text-3);text-align:right">${fmtUSD(tx.assetsUsd)}</div>
-      <div class="pnl-tx-amount" style="color:var(--text-3);text-align:right">${isDeposit ? fmtUSD(tx.assetsUsd) : '—'}</div>
+      <div class="pnl-tx-amount ${amtClass}">${amtSign}${(parseFloat(tx.assetsRaw) / Math.pow(10, tx.decimals)).toLocaleString('en-US', {maximumFractionDigits: 4})} ${tx.assetSymbol}</div>
       <div class="pnl-tx-hash">${shortHash ? `<a href="${explorerBase}${tx.hash}" target="_blank" title="${tx.hash}">${shortHash}</a>` : ''}</div>
     </div>`;
   }
@@ -5371,9 +5370,7 @@ function renderPnlContent() {
       <div>${isEn ? 'Date' : '时间'}</div>
       <div>${isEn ? 'Type' : '类型'}</div>
       <div>${isEn ? 'Vault' : 'Vault'}</div>
-      <div style="text-align:right">${isEn ? 'Amount' : '金额'}</div>
-      <div style="text-align:right">${isEn ? 'Value (USD)' : '价值（USD）'}</div>
-      <div style="text-align:right">${isEn ? 'Cost Basis' : '成本'}</div>
+      <div style="text-align:right">${isEn ? 'Amount' : '数量'}</div>
       <div>${isEn ? 'Tx Hash' : '交易哈希'}</div>
     </div>
     ${txRowsHTML}
