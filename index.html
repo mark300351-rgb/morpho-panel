@@ -1387,21 +1387,27 @@ select option { background: var(--bg-2); }
     -webkit-text-size-adjust: 100%;
   }
 
-  /* ── Header: compact for small screens ── */
+  /* ── Header: two-row layout to avoid cramping ── */
   .header {
-    padding: 0 16px;
-    height: 56px;
+    padding: 8px 12px;
+    height: auto;
+    flex-wrap: wrap;
+    gap: 6px;
   }
-  .logo-icon { width: 32px; height: 32px; border-radius: 8px; }
-  .logo-icon svg, .logo-icon img { width: 32px; height: 32px; }
-  .logo { gap: 10px; }
-  .logo-name { font-size: 14px; }
-  .logo-sub { font-size: 10px; }
-  .header-right { gap: 6px; }
+  .logo { gap: 8px; flex-shrink: 1; min-width: 0; }
+  .logo-icon { width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0; }
+  .logo-icon svg, .logo-icon img { width: 28px; height: 28px; }
+  .logo-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .logo-sub { display: none; }
+  .header-right {
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
   .lang-switcher { padding: 2px; }
-  .lang-btn { font-size: 10px; padding: 2px 6px; }
-  .monitor-status { font-size: 11px; padding: 3px 8px; }
-  .countdown { font-size: 11px; }
+  .lang-btn { font-size: 9px; padding: 2px 5px; }
+  .monitor-status { font-size: 10px; padding: 2px 6px; }
+  .countdown { font-size: 10px; }
 
   /* ── Main content area ── */
   .main-content { padding: 12px; }
@@ -1531,15 +1537,58 @@ select option { background: var(--bg-2); }
   .chart-custom-range { margin-left: 0; margin-top: 6px; }
   .chart-custom-range input[type=date] { padding: 4px 8px; font-size: 11px; }
 
-  /* ── PnL Transaction Table ── */
-  .pnl-tx-header, .pnl-tx-row {
-    grid-template-columns: 1fr 1fr !important;
-    font-size: 11px;
-  }
+  /* ── PnL Summary Bar ── */
   .pnl-summary-bar {
     grid-template-columns: 1fr 1fr !important;
-    gap: 8px;
+    gap: 0;
   }
+  .pnl-summary-item {
+    padding: 10px 12px;
+    min-height: auto;
+  }
+  .pnl-summary-item:nth-child(odd) { border-right: 1px solid var(--border); }
+  .pnl-summary-item:nth-child(even) { border-right: none; }
+  .pnl-summary-item:nth-child(n+3) { border-top: 1px solid var(--border); }
+  .pnl-summary-label { font-size: 9px; letter-spacing: 0.4px; }
+  .pnl-summary-value { font-size: 16px; }
+  .pnl-summary-sub { font-size: 10px; }
+
+  /* ── PnL Transaction Table → card layout ── */
+  .pnl-tx-header { display: none !important; }
+  .pnl-tx-row {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding: 10px 12px;
+    font-size: 12px;
+    grid-template-columns: none !important;
+  }
+  .pnl-tx-date { order: 1; font-size: 11px; }
+  .pnl-tx-type { order: 2; font-size: 11px; }
+  .pnl-tx-vault {
+    order: 3; width: 100%;
+    white-space: normal;
+    font-size: 13px;
+  }
+  .pnl-tx-vault small { display: inline; font-size: 11px; }
+  .pnl-tx-amount {
+    order: 4;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .pnl-tx-hash { order: 5; }
+  /* Hide columns that don't fit well on mobile */
+  .pnl-tx-row > :nth-child(5),
+  .pnl-tx-row > :nth-child(6) {
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .pnl-group-header { padding: 6px 12px; font-size: 10px; }
+  .pnl-loading { padding: 32px 16px; }
+
+  /* ── PnL range buttons ── */
+  .pnl-range-btn { padding: 4px 10px; font-size: 11px; }
 
   /* ── Alert panel ── */
   .alert-item { padding: 10px 12px; border-radius: 10px; gap: 8px; }
@@ -1603,9 +1652,12 @@ select option { background: var(--bg-2); }
 
 /* ── Extra small (iPhone SE, 375px) ── */
 @media (max-width: 375px) {
-  .header { padding: 0 12px; height: 50px; }
-  .logo-name { font-size: 13px; }
-  .logo-sub { display: none; }
+  .header { padding: 6px 10px; }
+  .logo-icon { width: 24px; height: 24px; }
+  .logo-icon svg, .logo-icon img { width: 24px; height: 24px; }
+  .logo-name { font-size: 12px; }
+  .lang-btn { font-size: 8px; padding: 2px 4px; }
+  .monitor-status { font-size: 9px; padding: 2px 5px; }
   .main-content { padding: 10px; }
   .stat-value { font-size: 18px; }
   .tab { padding: 6px 10px; font-size: 11px; }
@@ -1613,6 +1665,7 @@ select option { background: var(--bg-2); }
   .vault-name { font-size: 13px; }
   .position-usd { font-size: 15px; }
   .chart-canvas-wrap { height: 180px; }
+  .pnl-summary-value { font-size: 14px; }
 }
 #donut-tooltip {
   position: fixed;
@@ -2363,6 +2416,7 @@ function saveSettings() {
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem('morpho_monitor_settings') || '{}');
+    if (s.wallet) document.getElementById('wallet-input').value = s.wallet;
     if (s.tgToken) document.getElementById('tg-token').value = s.tgToken;
     if (s.tgChat) document.getElementById('tg-chat').value = s.tgChat;
     if (s.interval) document.getElementById('interval-select').value = s.interval;
