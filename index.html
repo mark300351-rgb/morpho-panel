@@ -2066,6 +2066,8 @@ const I18N = {
     yieldPortfolioVal:'持仓总值', yieldCurrentVal:'当前持仓总值', yieldPrincipal:'估算本金（期初）',
     yieldPeriodEarnings:'周期累计收益率', yieldWeightedApy:'加权平均 APY',
     yieldV2RealPnl:'V2 实际收益率 (真实数据)', yieldPeriod:'周期', yieldDays:'天',
+    yieldCurrentApy:'当前 APY', yieldPeriodAvg:'区间均值 APY', yieldMaxApy:'最高 APY', yieldMinApy:'最低 APY', yieldPortfolio:'持仓总值', yieldVaultCount:'个持仓 · USD 加权平均 APY',
+    yieldLoading:'正在加载历史 APY 数据…', yieldNoData:'该时间段无历史 APY 数据。', yieldAnnualised:'年化净 APY',
     yieldApyBased:'基于加权', yieldTogglePortfolio:'切换：持仓总值视图', yieldToggleEarnings:'切换：收益率视图',
     yieldInitialCapital:'初始本金', yieldInitialCapitalPlaceholder:'输入初始投入金额（USD）', yieldRealEarnings:'实际收益率（期末 − 初始本金）/ 本金',
     nextRefresh:'下次刷新', statusIdle:'未启动',
@@ -2160,6 +2162,8 @@ const I18N = {
     yieldPortfolioVal:'持倉總值', yieldCurrentVal:'當前持倉總值', yieldPrincipal:'估算本金（期初）',
     yieldPeriodEarnings:'週期累計收益率', yieldWeightedApy:'加權平均 APY',
     yieldV2RealPnl:'V2 實際收益率 (真實數據)', yieldPeriod:'週期', yieldDays:'天',
+    yieldCurrentApy:'當前 APY', yieldPeriodAvg:'區間均值 APY', yieldMaxApy:'最高 APY', yieldMinApy:'最低 APY', yieldPortfolio:'持倉總值', yieldVaultCount:'個持倉 · USD 加權平均 APY',
+    yieldLoading:'正在加載歷史 APY 數據…', yieldNoData:'該時間段無歷史 APY 數據。', yieldAnnualised:'年化淨 APY',
     yieldApyBased:'基於加權', yieldTogglePortfolio:'切換：持倉總值視圖', yieldToggleEarnings:'切換：收益率視圖',
     yieldInitialCapital:'初始本金', yieldInitialCapitalPlaceholder:'輸入初始投入金額（USD）', yieldRealEarnings:'實際收益率（期末 − 初始本金）/ 本金',
     nextRefresh:'下次刷新', statusIdle:'未啟動',
@@ -2254,6 +2258,8 @@ const I18N = {
     yieldPortfolioVal:'Portfolio Value', yieldCurrentVal:'Current Portfolio Value', yieldPrincipal:'Est. Principal (period start)',
     yieldPeriodEarnings:'Period Return %', yieldWeightedApy:'Weighted Avg APY',
     yieldV2RealPnl:'V2 Actual Return % (real data)', yieldPeriod:'Period', yieldDays:'days',
+    yieldCurrentApy:'Current APY', yieldPeriodAvg:'Period Avg APY', yieldMaxApy:'Max APY', yieldMinApy:'Min APY', yieldPortfolio:'Portfolio', yieldVaultCount:'vault(s) · USD-weighted avg APY',
+    yieldLoading:'Loading APY history…', yieldNoData:'No APY history available for this period.', yieldAnnualised:'Annualised net APY',
     yieldApyBased:'Based on weighted', yieldTogglePortfolio:'Switch: Portfolio Value view', yieldToggleEarnings:'Switch: Return Rate view',
     yieldInitialCapital:'Initial Capital', yieldInitialCapitalPlaceholder:'Enter initial investment (USD)', yieldRealEarnings:'Actual Return % (final − initial) / initial',
     nextRefresh:'Next refresh', statusIdle:'Idle',
@@ -4706,7 +4712,7 @@ async function renderYieldChart() {
   const pnlSummary = document.getElementById('yield-pnl-summary');
   if (!canvas) return;
   const wrap = canvas.closest('.chart-canvas-wrap');
-  if (wrap) wrap.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--text-3)"><div class="spinner"></div><span>${CURRENT_LANG === 'en' ? 'Loading APY history…' : '正在加载历史 APY 数据…'}</span></div>`;
+  if (wrap) wrap.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--text-3)"><div class="spinner"></div><span>${t('yieldLoading')}</span></div>`;
 
   const days = getPeriodDays(_yieldPeriod);
   const d    = await buildWeightedApyData(days);
@@ -4720,7 +4726,7 @@ async function renderYieldChart() {
 
   if (!d || !d.labels.length) {
     if (summary) summary.innerHTML = '';
-    if (pnlSummary) pnlSummary.innerHTML = `<span style="font-size:12px;color:var(--text-3)">${CURRENT_LANG === 'en' ? 'No APY history available for this period.' : '该时间段无历史 APY 数据。'}</span>`;
+    if (pnlSummary) pnlSummary.innerHTML = `<span style="font-size:12px;color:var(--text-3)">${t('yieldNoData')}</span>`;
     return;
   }
 
@@ -4776,7 +4782,7 @@ async function renderYieldChart() {
               const apy = item.raw;
               return [
                 `  ${t('yieldWeightedApy')}: ${apy.toFixed(2)}%`,
-                `  ${CURRENT_LANG === 'en' ? 'Annualised net APY' : '年化净 APY'}`,
+                `  ${t('yieldAnnualised')}`,
               ];
             }
           }
@@ -4804,30 +4810,30 @@ async function renderYieldChart() {
   // ── Summary strip ──
   if (summary) summary.innerHTML = `
     <div class="chart-summary-item">
-      <div class="chart-summary-label">${CURRENT_LANG === 'en' ? 'Current APY' : '当前 APY'}</div>
+      <div class="chart-summary-label">${t('yieldCurrentApy')}</div>
       <div class="chart-summary-value" style="color:var(--morpho)">${currentApy.toFixed(2)}%</div>
     </div>
     <div class="chart-summary-item">
-      <div class="chart-summary-label">${CURRENT_LANG === 'en' ? 'Period Avg APY' : '区间均值 APY'}</div>
+      <div class="chart-summary-label">${t('yieldPeriodAvg')}</div>
       <div class="chart-summary-value" style="color:var(--text-1)">${avgApy.toFixed(2)}%</div>
     </div>
     <div class="chart-summary-item">
-      <div class="chart-summary-label">${CURRENT_LANG === 'en' ? 'Max APY' : '最高 APY'}</div>
+      <div class="chart-summary-label">${t('yieldMaxApy')}</div>
       <div class="chart-summary-value" style="color:var(--green)">${maxApy.toFixed(2)}%</div>
     </div>
     <div class="chart-summary-item">
-      <div class="chart-summary-label">${CURRENT_LANG === 'en' ? 'Min APY' : '最低 APY'}</div>
+      <div class="chart-summary-label">${t('yieldMinApy')}</div>
       <div class="chart-summary-value" style="color:var(--red)">${minApy.toFixed(2)}%</div>
     </div>
     <div class="chart-summary-item">
-      <div class="chart-summary-label">${CURRENT_LANG === 'en' ? 'Portfolio' : '持仓总值'}</div>
+      <div class="chart-summary-label">${t('yieldPortfolio')}</div>
       <div class="chart-summary-value">${fmtUSDShort(totalUsd)}</div>
     </div>
   `;
 
   if (pnlSummary) pnlSummary.innerHTML = `
     <div style="font-size:13px;color:var(--text-2)">${t('yieldPeriod')}: <span style="color:var(--fire-deep);font-weight:400">${days} ${t('yieldDays')}</span></div>
-    <div style="font-size:12px;color:var(--text-3);margin-top:2px">${vaultCount} ${CURRENT_LANG === 'en' ? 'vault(s) · USD-weighted avg APY' : '个持仓 · USD 加权平均 APY'}</div>
+    <div style="font-size:12px;color:var(--text-3);margin-top:2px">${vaultCount} ${t('yieldVaultCount')}</div>
   `;
 }
 
