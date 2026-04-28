@@ -5133,70 +5133,181 @@ function filterTxByRange(txs, range) {
 }
 
 /**
- * Compute P&L summary from filtered transactions.
- * Strategy: net flow = Σdeposit_usd − Σwithdraw_usd
- * currentValue = sum of active positions assetsUsd
- * unrealisedPnl = currentValue − netFlow
- * realisedPnl   = Σwithdraw_usd − (proportional cost basis of withdrawn shares)
- * totalPnl      = realisedPnl + unrealisedPnl
+ * Compute P&L summary from transactions.
  *
- * Simplified cost-basis method (FIFO per vault):
- *   For each vault, track deposit queue. Each withdraw consumes oldest deposits first.
+ * For "ALL" range: FIFO cost-basis method (original logic).
+ * For specific periods (30D, 90D, etc.):
+ *   Period P&L = (current value + withdrawals in period) − (start value + deposits in period)
+ *   where start value = current value + withdrawals(all before period end)
+ *                       − deposits(all before period end)
+ *                       ... approximated as: current value − net of all txs in period
+ *   More precisely:
+ *     startValue = reconstruct from all-time txs up to period start
+ *     periodPnl  = (endValue + periodWithdrawals) − (startValue + periodDeposits)
+ *
+ * @param {Array} filteredTxs - transactions in the selected period
+ * @param {Array} allTxs - ALL transactions (needed for period baseline)
+ * @param {Array} currentPositions - active vault positions
+ * @param {string} range - 'ALL' | '30D' | '90D' | '180D' | '1Y' | 'custom'
  */
-function computePnl(txs, currentPositions) {
-  // Build current position value map: vaultAddress → assetsUsd
+function computePnl(filteredTxs, allTxs, currentPositions, range) {
+  // Build current position value
   const currentVal = {};
   for (const p of (currentPositions || [])) {
     const addr = (p.vault?.address || '').toLowerCase();
     currentVal[addr] = (currentVal[addr] || 0) + (p.state?.assetsUsd || p.assetsUsd || 0);
   }
+  const totalCurrentVal = Object.values(currentVal).reduce((s, v) => s + v, 0);
 
-  // Per-vault FIFO cost basis
-  const depositQueues = {}; // vaultAddress → [{assetsUsd, remaining}]
+  // ── ALL time: use FIFO cost-basis (original) ──
+  if (range === 'ALL' || !allTxs) {
+    return computePnlFIFO(filteredTxs, totalCurrentVal);
+  }
+
+  // ── Specific period: baseline method ──
+  // Determine period cutoff timestamp
+  const cutoffMs = filteredTxs.length > 0
+    ? Math.min(...filteredTxs.map(tx => tx.ts * 1000))
+    : Date.now();
+
+  // Transactions BEFORE the period
+  const prePeriodTxs = allTxs.filter(tx => tx.ts * 1000 < cutoffMs);
+
+  // Calculate how much net capital was in the vaults at period start
+  // startValue = totalCurrentVal − netFlowDuringPeriod − netFlowAfterPeriod...
+  // Better approach: startValue = sum of all deposits before period − sum of all withdrawals before period
+  //   + any yield accrued before period (unknown)
+  // Best approach: use all-time FIFO to get remaining cost at period start,
+  //   then startValue ≈ remaining cost at period start (conservative, ignores pre-period yield)
+  // Most accurate for DeFi vaults:
+  //   startValue = totalCurrentVal − (periodDeposits − periodWithdrawals) − periodYield
+  //   periodYield = what we want to find
+  //   So: periodYield = totalCurrentVal − startValue − (periodDeposits − periodWithdrawals)
+
+  // Compute deposits/withdrawals in the period
+  const periodDeposited = filteredTxs.filter(t => t.type === 'deposit').reduce((s, t) => s + t.assetsUsd, 0);
+  const periodWithdrawn = filteredTxs.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.assetsUsd, 0);
+  const periodNetFlow = periodDeposited - periodWithdrawn;
+
+  // Compute starting value using all-time FIFO up to cutoff
+  const preChron = [...prePeriodTxs].sort((a, b) => a.ts - b.ts);
+  let preDeposited = 0, preWithdrawn = 0;
+  const preQueues = {};
+  for (const tx of preChron) {
+    const addr = tx.vaultAddress.toLowerCase();
+    if (!preQueues[addr]) preQueues[addr] = [];
+    if (tx.type === 'deposit') {
+      preDeposited += tx.assetsUsd;
+      preQueues[addr].push({ remaining: tx.assetsUsd });
+    } else {
+      preWithdrawn += tx.assetsUsd;
+      let toConsume = tx.assetsUsd;
+      const q = preQueues[addr];
+      while (toConsume > 0 && q.length > 0) {
+        const take = Math.min(q[0].remaining, toConsume);
+        q[0].remaining -= take;
+        toConsume -= take;
+        if (q[0].remaining <= 0) q.shift();
+      }
+    }
+  }
+  // Remaining cost basis at period start = capital still in vaults
+  let remainingCostAtStart = 0;
+  for (const q of Object.values(preQueues)) {
+    for (const d of q) remainingCostAtStart += d.remaining;
+  }
+
+  // Start value ≈ remaining cost at period start
+  // This is the capital that was in vaults when the period began
+  const startValue = remainingCostAtStart;
+
+  // Period P&L = (endValue + periodWithdrawals) − (startValue + periodDeposits)
+  // endValue = totalCurrentVal (what's in vaults now)
+  const periodPnl = (totalCurrentVal + periodWithdrawn) - (startValue + periodDeposited);
+
+  // For display consistency, split into realised and unrealised
+  // Realised = withdrawn during period − cost basis of those withdrawals
+  let periodRealisedPnl = 0;
+  // Use FIFO starting from period-start queues for period txs
+  const periodQueues = JSON.parse(JSON.stringify(preQueues)); // deep copy
+  const periodChron = [...filteredTxs].sort((a, b) => a.ts - b.ts);
+  for (const tx of periodChron) {
+    const addr = tx.vaultAddress.toLowerCase();
+    if (!periodQueues[addr]) periodQueues[addr] = [];
+    if (tx.type === 'deposit') {
+      periodQueues[addr].push({ remaining: tx.assetsUsd });
+    } else {
+      let toConsume = tx.assetsUsd, costBasis = 0;
+      const q = periodQueues[addr];
+      while (toConsume > 0 && q.length > 0) {
+        const take = Math.min(q[0].remaining, toConsume);
+        costBasis += take;
+        q[0].remaining -= take;
+        toConsume -= take;
+        if (q[0].remaining <= 0) q.shift();
+      }
+      periodRealisedPnl += tx.assetsUsd - costBasis;
+    }
+  }
+  const periodUnrealisedPnl = periodPnl - periodRealisedPnl;
+
+  const roi = startValue + periodDeposited > 0
+    ? (periodPnl / (startValue + periodDeposited) * 100) : 0;
+
+  return {
+    totalDeposited: periodDeposited,
+    totalWithdrawn: periodWithdrawn,
+    netFlow: periodNetFlow,
+    realisedPnl: periodRealisedPnl,
+    unrealisedPnl: periodUnrealisedPnl,
+    totalPnl: periodPnl,
+    roi,
+    totalCurrentVal,
+    // Extra fields for period display
+    startValue,
+    isPeriod: true,
+  };
+}
+
+/**
+ * Original FIFO cost-basis P&L (used for ALL time range)
+ */
+function computePnlFIFO(txs, totalCurrentVal) {
+  const depositQueues = {};
   let totalDeposited = 0, totalWithdrawn = 0, realisedPnl = 0;
-
-  // Process in chronological order for FIFO
   const chronological = [...txs].sort((a, b) => a.ts - b.ts);
 
   for (const tx of chronological) {
     const addr = tx.vaultAddress.toLowerCase();
     if (!depositQueues[addr]) depositQueues[addr] = [];
-
     if (tx.type === 'deposit') {
       totalDeposited += tx.assetsUsd;
       depositQueues[addr].push({ assetsUsd: tx.assetsUsd, remaining: tx.assetsUsd });
     } else {
       totalWithdrawn += tx.assetsUsd;
-      // FIFO: consume cost basis
-      let toConsume = tx.assetsUsd;
-      let costBasis = 0;
+      let toConsume = tx.assetsUsd, costBasis = 0;
       const q = depositQueues[addr];
       while (toConsume > 0 && q.length > 0) {
-        const front = q[0];
-        const take = Math.min(front.remaining, toConsume);
+        const take = Math.min(q[0].remaining, toConsume);
         costBasis += take;
-        front.remaining -= take;
+        q[0].remaining -= take;
         toConsume -= take;
-        if (front.remaining <= 0) q.shift();
+        if (q[0].remaining <= 0) q.shift();
       }
       realisedPnl += tx.assetsUsd - costBasis;
     }
   }
 
-  // Unrealised: current position value vs remaining cost basis
   let totalRemainingCost = 0;
   for (const q of Object.values(depositQueues)) {
     for (const d of q) totalRemainingCost += d.remaining;
   }
-  const totalCurrentVal = Object.values(currentVal).reduce((s, v) => s + v, 0);
-  // Also count vaults with deposits not yet closed that don't have current position data
   const unrealisedPnl = totalCurrentVal - totalRemainingCost;
+  const netFlow = totalDeposited - totalWithdrawn;
+  const totalPnl = realisedPnl + unrealisedPnl;
+  const roi = totalDeposited > 0 ? (totalPnl / totalDeposited * 100) : 0;
 
-  const netFlow    = totalDeposited - totalWithdrawn;
-  const totalPnl   = realisedPnl + unrealisedPnl;
-  const roi        = totalDeposited > 0 ? (totalPnl / totalDeposited * 100) : 0;
-
-  return { totalDeposited, totalWithdrawn, netFlow, realisedPnl, unrealisedPnl, totalPnl, roi, totalCurrentVal };
+  return { totalDeposited, totalWithdrawn, netFlow, realisedPnl, unrealisedPnl, totalPnl, roi, totalCurrentVal, isPeriod: false };
 }
 
 async function renderPnlTab() {
@@ -5230,7 +5341,7 @@ function renderPnlContent() {
   const allTx    = normaliseTx(PNL_STATE.txV1, PNL_STATE.txV2, APP.wallet);
   const filtered = filterTxByRange(allTx, PNL_STATE.range);
   const allPositions = [...APP.positions, ...APP.v2Positions.map(p => ({ vault: p.vault, state: p, assetsUsd: p.assetsUsd }))];
-  const pnl      = computePnl(filtered, allPositions);
+  const pnl      = computePnl(filtered, allTx, allPositions, PNL_STATE.range);
 
   const isEn     = CURRENT_LANG === 'en';
   const pnlColor = (v) => v >= 0 ? 'var(--green)' : 'var(--red)';
@@ -5349,16 +5460,32 @@ function renderPnlContent() {
 
   <!-- Summary Cards -->
   <div class="pnl-summary-bar">
+    ${pnl.isPeriod ? `
+    <div class="pnl-summary-item">
+      <div class="pnl-summary-label">${isEn ? 'Start Value' : '期初持仓价值'}</div>
+      <div class="pnl-summary-value">${fmtUSD(pnl.startValue)}</div>
+      <div class="pnl-summary-sub">${isEn ? 'Capital at period start' : '区间起始时的资产价值'}</div>
+    </div>
+    ` : `
     <div class="pnl-summary-item">
       <div class="pnl-summary-label">${isEn ? 'Total Deposited' : '累计存入'}</div>
       <div class="pnl-summary-value">${fmtUSD(pnl.totalDeposited)}</div>
       <div class="pnl-summary-sub">${filtered.filter(t => t.type === 'deposit').length} ${isEn ? 'deposits' : '笔'}</div>
     </div>
+    `}
+    ${pnl.isPeriod ? `
+    <div class="pnl-summary-item">
+      <div class="pnl-summary-label">${isEn ? 'Period Deposits' : '期间存入'}</div>
+      <div class="pnl-summary-value">${fmtUSD(pnl.totalDeposited)}</div>
+      <div class="pnl-summary-sub">${filtered.filter(t => t.type === 'deposit').length} ${isEn ? 'deposits' : '笔'}</div>
+    </div>
+    ` : `
     <div class="pnl-summary-item">
       <div class="pnl-summary-label">${isEn ? 'Total Withdrawn' : '累计取出'}</div>
       <div class="pnl-summary-value">${fmtUSD(pnl.totalWithdrawn)}</div>
       <div class="pnl-summary-sub">${filtered.filter(t => t.type === 'withdraw').length} ${isEn ? 'withdrawals' : '笔'}</div>
     </div>
+    `}
     <div class="pnl-summary-item">
       <div class="pnl-summary-label">${isEn ? 'Current Value' : '当前持仓价值'}</div>
       <div class="pnl-summary-value">${fmtUSD(pnl.totalCurrentVal)}</div>
@@ -5379,7 +5506,7 @@ function renderPnlContent() {
       </div>
     </div>
     <div class="pnl-summary-item" style="background:${pnl.totalPnl >= 0 ? 'rgba(16,185,129,0.06)' : 'rgba(220,38,38,0.06)'}">
-      <div class="pnl-summary-label">${isEn ? 'Total P&L' : '总收益'}</div>
+      <div class="pnl-summary-label">${pnl.isPeriod ? (isEn ? 'Period P&L' : '区间收益') : (isEn ? 'Total P&L' : '总收益')}</div>
       <div class="pnl-summary-value" style="color:${pnlColor(pnl.totalPnl)};font-size:22px">${pnlSign(pnl.totalPnl)}${fmtUSD(pnl.totalPnl)}</div>
       <div class="pnl-summary-sub" style="color:${pnlColor(pnl.roi)}">${pnlSign(pnl.roi)}${pnl.roi.toFixed(3)}% ROI</div>
     </div>
