@@ -1494,11 +1494,13 @@ select option { background: var(--bg-2); }
   }
   .vault-metrics .metric { min-width: 0; }
   /* 3-col alignment: left | center | right */
-  .vault-metrics .metric:nth-child(3n+1) { text-align: left; }
-  .vault-metrics .metric:nth-child(3n+2) { text-align: center; }
+  .vault-metrics .metric:nth-child(3n+1) { text-align: left; align-items: flex-start; }
+  .vault-metrics .metric:nth-child(3n+2) { text-align: center; align-items: center; }
   .vault-metrics .metric:nth-child(3n+2) .metric-value { justify-content: center; }
-  .vault-metrics .metric:nth-child(3n) { text-align: right; }
+  .vault-metrics .metric:nth-child(3n+2) .risk-stars { justify-content: center; }
+  .vault-metrics .metric:nth-child(3n) { text-align: right; align-items: flex-end; }
   .vault-metrics .metric:nth-child(3n) .metric-value { justify-content: flex-end; }
+  .vault-metrics .metric:nth-child(3n) .risk-stars { justify-content: flex-end; }
   .metric-label { font-size: 9px; letter-spacing: 0.3px; }
   .metric-value { font-size: 13px; }
   .alert-chip { font-size: 8px; padding: 1px 4px; }
