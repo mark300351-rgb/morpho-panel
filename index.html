@@ -1483,25 +1483,19 @@ select option { background: var(--bg-2); }
   .position-label { font-size: 10px; }
 
   /* ── Vault metrics: responsive grid, fill full width ── */
-  .vault-body { flex-direction: column; gap: 0; }
-  .vault-body .vault-metrics {
-    grid-template-columns: repeat(3, 1fr);
-    padding: 0 14px 12px;
-    gap: 14px 0;
-    justify-items: stretch;
-  }
+  .vault-body { flex-direction: column !important; gap: 0; }
+  .vault-body .vault-metrics,
   .vault-metrics {
-    padding: 0 14px 12px;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px 0;
-    justify-items: stretch;
+    grid-template-columns: repeat(3, 1fr) !important;
+    padding: 0 14px 12px !important;
+    gap: 14px 0 !important;
   }
-  /* Left column align left, right column align right, center stays center */
+  /* 3-col alignment: left | center | right */
   .vault-metrics .metric:nth-child(3n+1) { text-align: left; }
   .vault-metrics .metric:nth-child(3n+2) { text-align: center; }
   .vault-metrics .metric:nth-child(3n+3) { text-align: right; }
-  .vault-metrics .metric:nth-child(3n+3) .metric-value { justify-content: flex-end; }
   .vault-metrics .metric:nth-child(3n+2) .metric-value { justify-content: center; }
+  .vault-metrics .metric:nth-child(3n+3) .metric-value { justify-content: flex-end; }
   .metric-label { font-size: 9px; letter-spacing: 0.3px; }
   .metric-value { font-size: 13px; }
   .alert-chip { font-size: 8px; padding: 1px 4px; }
