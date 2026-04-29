@@ -1486,14 +1486,22 @@ select option { background: var(--bg-2); }
   .vault-body { flex-direction: column; gap: 0; }
   .vault-body .vault-metrics {
     grid-template-columns: repeat(3, 1fr);
-    padding: 0 12px 10px;
-    gap: 10px 10px;
+    padding: 0 14px 12px;
+    gap: 14px 0;
+    justify-items: stretch;
   }
   .vault-metrics {
-    padding: 0 12px 10px;
+    padding: 0 14px 12px;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px 10px;
+    gap: 14px 0;
+    justify-items: stretch;
   }
+  /* Left column align left, right column align right, center stays center */
+  .vault-metrics .metric:nth-child(3n+1) { text-align: left; }
+  .vault-metrics .metric:nth-child(3n+2) { text-align: center; }
+  .vault-metrics .metric:nth-child(3n+3) { text-align: right; }
+  .vault-metrics .metric:nth-child(3n+3) .metric-value { justify-content: flex-end; }
+  .vault-metrics .metric:nth-child(3n+2) .metric-value { justify-content: center; }
   .metric-label { font-size: 9px; letter-spacing: 0.3px; }
   .metric-value { font-size: 13px; }
   .alert-chip { font-size: 8px; padding: 1px 4px; }
@@ -3870,11 +3878,6 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
                 })()}</div>
               </div>
               <div class="metric">
-                <div class="metric-label">${t('labelCumEarnings')}</div>
-                <div class="metric-value" style="color:${pnlColor}">${pnlSign}${fmtUSD(pnlUsd)}</div>
-                <div style="font-size:11px;color:${pnlColor}">ROE ${pnlSign}${roe.toFixed(3)}%</div>
-              </div>
-              <div class="metric">
                 <div class="metric-label">${t('labelRiskRating')}</div>
                 <div class="metric-value"><span style="color:${v2Risk.color}">${v2Risk.grade}</span></div>
                 ${renderStars(v2Risk.stars, v2Risk.starClass)}
@@ -4050,11 +4053,6 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
               const row = (label, val) => `<span style="opacity:.6">${label}</span><span style="font-variant-numeric:tabular-nums">${fmtUSDShort(val)}</span>`;
               return row('Market', bd.marketLiq) + row('Idle', bd.idleLiq);
             })()}</div>
-          </div>
-          <div class="metric">
-            <div class="metric-label">${t('labelCumEarnings')}</div>
-            <div class="metric-value" style="color:${pnlColor}">${pnlSign}${fmtUSD(pnlUsd)}</div>
-            <div style="font-size:11px;color:${pnlColor}">ROE ${pnlSign}${roe.toFixed(3)}%</div>
           </div>
           <div class="metric">
             <div class="metric-label">${t('labelRiskRating')}</div>
