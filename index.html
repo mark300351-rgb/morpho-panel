@@ -1482,17 +1482,17 @@ select option { background: var(--bg-2); }
   .position-usd { font-size: 16px; }
   .position-label { font-size: 10px; }
 
-  /* ── Vault metrics: 2 columns ── */
+  /* ── Vault metrics: responsive grid, fill full width ── */
   .vault-body { flex-direction: column; gap: 0; }
   .vault-body .vault-metrics {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
     padding: 0 14px 10px;
-    gap: 10px;
+    gap: 14px 16px;
   }
   .vault-metrics {
     padding: 0 14px 10px;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 16px;
   }
   .metric-label { font-size: 10px; letter-spacing: 0.4px; }
   .metric-value { font-size: 14px; }
@@ -4014,8 +4014,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
             <div class="vault-meta">
               <span class="badge badge-gray">${assetSymbol}</span>
               <span class="badge badge-blue">${networkLabel(network)}</span>
-              ${curatorVerified ? `<span class="badge badge-green">✓ ${curatorName}</span>` : `<span class="badge badge-gray">${curatorName}</span>`}
-              <span class="badge ${risk.class}">${risk.grade} ${risk.label}</span>
+              ${warnings.some(w=>w.level==='RED') ? `<span class="badge badge-red">${t('labelHighRisk')}</span>` : warnings.some(w=>w.level==='YELLOW') ? `<span class="badge" style="background:#f59e0b22;color:#f59e0b">${t('labelCaution')}</span>` : ''}
               ${hasAlert ? `<span class="badge badge-red">⚠️ ${t('labelAlert')}</span>` : ''}
             </div>
           </div>
