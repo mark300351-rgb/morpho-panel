@@ -2432,6 +2432,7 @@ function saveSettings() {
       interval: document.getElementById('interval-select').value,
       liqThreshold: document.getElementById('liq-threshold').value,
       apyThreshold: document.getElementById('apy-threshold').value,
+      bgmThHf: document.getElementById('bgm-th-hf').value,
     }));
   } catch(e) {}
 }
@@ -2445,6 +2446,7 @@ function loadSettings() {
     if (s.interval) document.getElementById('interval-select').value = s.interval;
     if (s.liqThreshold) document.getElementById('liq-threshold').value = s.liqThreshold;
     if (s.apyThreshold) document.getElementById('apy-threshold').value = s.apyThreshold;
+    if (s.bgmThHf) document.getElementById('bgm-th-hf').value = s.bgmThHf;
   } catch(e) {}
 }
 
@@ -5839,24 +5841,13 @@ setTimeout(() => {
 // ────────────────────────────────────────────
 const BGM_API = 'https://morpho-monitor.markli-mcgrp.workers.dev';
 
-// Load saved bgm health factor from localStorage, and check status if wallet known
-(function loadBgmConfig() {
-  try {
-    const s = JSON.parse(localStorage.getItem('morpho_bgm_config') || '{}');
-    if (s.thHf) document.getElementById('bgm-th-hf').value = s.thHf;
-    // Auto-check status if we have a saved wallet
-    if (s.wallet) bgmCheckStatus(s.wallet);
-  } catch {}
+// Check bgm status on load using wallet from loadSettings
+(function initBgmStatus() {
+  setTimeout(() => {
+    const wallet = document.getElementById('wallet-input').value.trim();
+    if (wallet && /^0x[0-9a-fA-F]{40}$/.test(wallet)) bgmCheckStatus(wallet);
+  }, 500);
 })();
-
-function saveBgmConfig() {
-  try {
-    localStorage.setItem('morpho_bgm_config', JSON.stringify({
-      wallet: document.getElementById('wallet-input').value.trim(),
-      thHf: document.getElementById('bgm-th-hf').value,
-    }));
-  } catch {}
-}
 
 function bgmGetConfig() {
   return {
@@ -5934,7 +5925,7 @@ async function bgmSubscribe() {
     });
     const data = await resp.json();
     if (data.ok) {
-      saveBgmConfig();
+      saveSettings();
       bgmUpdateUI(true);
       showToast('success', t('bgmOkSubscribe'));
     } else {
