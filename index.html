@@ -1486,16 +1486,19 @@ select option { background: var(--bg-2); }
   .vault-body { flex-direction: column !important; gap: 0; }
   .vault-body .vault-metrics,
   .vault-metrics {
+    width: 100% !important;
     grid-template-columns: repeat(3, 1fr) !important;
     padding: 0 14px 12px !important;
     gap: 14px 0 !important;
+    display: grid !important;
   }
+  .vault-metrics .metric { min-width: 0; }
   /* 3-col alignment: left | center | right */
   .vault-metrics .metric:nth-child(3n+1) { text-align: left; }
   .vault-metrics .metric:nth-child(3n+2) { text-align: center; }
-  .vault-metrics .metric:nth-child(3n+3) { text-align: right; }
   .vault-metrics .metric:nth-child(3n+2) .metric-value { justify-content: center; }
-  .vault-metrics .metric:nth-child(3n+3) .metric-value { justify-content: flex-end; }
+  .vault-metrics .metric:nth-child(3n) { text-align: right; }
+  .vault-metrics .metric:nth-child(3n) .metric-value { justify-content: flex-end; }
   .metric-label { font-size: 9px; letter-spacing: 0.3px; }
   .metric-value { font-size: 13px; }
   .alert-chip { font-size: 8px; padding: 1px 4px; }
