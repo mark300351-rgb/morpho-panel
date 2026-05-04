@@ -5173,20 +5173,10 @@ function computePnl(filteredTxs, allTxs, currentPositions, range) {
     } else {
       cutoffMs = filteredTxs.length > 0 ? Math.min(...filteredTxs.map(tx => tx.ts * 1000)) : Date.now();
     }
-    // If custom range ends in the past, we can't use current portfolio as end value
-    // Fall back to FIFO on filtered txs only
+    // If custom range ends in the past, we estimate end value from post-period flows
     if (toEl?.value) {
       const toMs = new Date(toEl.value).getTime() + 86400000;
       const today = new Date(); today.setHours(0,0,0,0);
-      if (toMs < today.getTime()) {
-        // Past range: can't reliably compute period P&L without historical portfolio values
-        // Use FIFO on filtered txs — shows realised P&L only (withdrawals vs cost basis)
-        const result = computePnlFIFO(filteredTxs, 0); // 0 for current val since range is in the past
-        result.isPeriod = false;
-        result.totalCurrentVal = 0;
-        result.note = 'past_range';
-        return result;
-      }
     }
   } else {
     // Preset ranges (30D, 90D, etc.): compute cutoff from days
@@ -5196,20 +5186,45 @@ function computePnl(filteredTxs, allTxs, currentPositions, range) {
   }
 
   // ── Period baseline method ──
-  // Start value = reverse-engineer from current portfolio:
-  //   startValue = currentValue - deposits_since_start + withdrawals_since_start
-  // This accounts for all capital flows from period start to now
-  const txsSinceCutoff = allTxs.filter(tx => tx.ts * 1000 >= cutoffMs);
-  const depositsSinceStart = txsSinceCutoff.filter(t => t.type === 'deposit').reduce((s, t) => s + t.assetsUsd, 0);
-  const withdrawnSinceStart = txsSinceCutoff.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.assetsUsd, 0);
-  const startValue = totalCurrentVal - depositsSinceStart + withdrawnSinceStart;
+  // Start value = reverse-engineer from current portfolio value.
+  // All transactions from cutoff to NOW (not just within the custom date range)
+  // affect what the portfolio looks like today.
+  // startValue = currentValue - all_deposits_since_cutoff + all_withdrawals_since_cutoff
+  const allTxsSinceCutoff = allTxs.filter(tx => tx.ts * 1000 >= cutoffMs);
+  const allDepositsSinceCutoff = allTxsSinceCutoff.filter(t => t.type === 'deposit').reduce((s, t) => s + t.assetsUsd, 0);
+  const allWithdrawnSinceCutoff = allTxsSinceCutoff.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.assetsUsd, 0);
+  
+  // startValue includes yield already accrued at cutoff date
+  const startValue = totalCurrentVal - allDepositsSinceCutoff + allWithdrawnSinceCutoff;
 
+  // Period deposits/withdrawals (only within the filtered date range)
   const periodDeposited = filteredTxs.filter(t => t.type === 'deposit').reduce((s, t) => s + t.assetsUsd, 0);
   const periodWithdrawn = filteredTxs.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.assetsUsd, 0);
   const periodNetFlow = periodDeposited - periodWithdrawn;
 
+  // For custom range ending before today: need to estimate end value
+  // endValue = startValue + deposits_in_period - withdrawals_in_period + yield_in_period
+  // We compute endValue by subtracting post-period flows from currentValue
+  let endValue = totalCurrentVal;
+  if (range === 'custom') {
+    const toEl = document.getElementById('pnl-date-to');
+    if (toEl?.value) {
+      const toMs = new Date(toEl.value).getTime() + 86400000;
+      const today = new Date(); today.setHours(23,59,59,999);
+      if (toMs < today.getTime()) {
+        // Custom range ends in the past: reverse from current using post-period flows
+        const postPeriodTxs = allTxs.filter(tx => tx.ts * 1000 > toMs);
+        const postDeposits = postPeriodTxs.filter(t => t.type === 'deposit').reduce((s, t) => s + t.assetsUsd, 0);
+        const postWithdrawals = postPeriodTxs.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.assetsUsd, 0);
+        // endValue at period end ≈ currentValue - postDeposits + postWithdrawals - postYield
+        // We can't know postYield exactly, but for short periods the approximation is reasonable
+        endValue = totalCurrentVal - postDeposits + postWithdrawals;
+      }
+    }
+  }
+
   // Period P&L = (endValue + periodWithdrawals) − (startValue + periodDeposits)
-  const periodPnl = (totalCurrentVal + periodWithdrawn) - (startValue + periodDeposited);
+  const periodPnl = (endValue + periodWithdrawn) - (startValue + periodDeposited);
 
   // Realised P&L within the period (FIFO for withdrawals)
   let periodRealisedPnl = 0;
@@ -5265,7 +5280,7 @@ function computePnl(filteredTxs, allTxs, currentPositions, range) {
     unrealisedPnl: periodUnrealisedPnl,
     totalPnl: periodPnl,
     roi,
-    totalCurrentVal,
+    totalCurrentVal: endValue,
     startValue,
     isPeriod: true,
   };
