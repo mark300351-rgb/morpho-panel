@@ -5163,43 +5163,54 @@ function computePnl(filteredTxs, allTxs, currentPositions, range) {
     return computePnlFIFO(filteredTxs, totalCurrentVal);
   }
 
-  // ── Specific period: baseline method ──
-  // Determine period cutoff timestamp
-  const cutoffMs = filteredTxs.length > 0
-    ? Math.min(...filteredTxs.map(tx => tx.ts * 1000))
-    : Date.now();
+  // ── Determine actual period start date ──
+  let cutoffMs;
+  if (range === 'custom') {
+    const fromEl = document.getElementById('pnl-date-from');
+    const toEl = document.getElementById('pnl-date-to');
+    if (fromEl?.value) {
+      cutoffMs = new Date(fromEl.value).getTime();
+    } else {
+      cutoffMs = filteredTxs.length > 0 ? Math.min(...filteredTxs.map(tx => tx.ts * 1000)) : Date.now();
+    }
+    // If custom range ends in the past, we can't use current portfolio as end value
+    // Fall back to FIFO on filtered txs only
+    if (toEl?.value) {
+      const toMs = new Date(toEl.value).getTime() + 86400000;
+      const today = new Date(); today.setHours(0,0,0,0);
+      if (toMs < today.getTime()) {
+        // Past range: can't reliably compute period P&L without historical portfolio values
+        // Use FIFO on filtered txs — shows realised P&L only (withdrawals vs cost basis)
+        const result = computePnlFIFO(filteredTxs, 0); // 0 for current val since range is in the past
+        result.isPeriod = false;
+        result.totalCurrentVal = 0;
+        result.note = 'past_range';
+        return result;
+      }
+    }
+  } else {
+    // Preset ranges (30D, 90D, etc.): compute cutoff from days
+    const msMap = { '7D': 7, '30D': 30, '90D': 90, '180D': 180, '1Y': 365 };
+    const days = msMap[range] || 30;
+    cutoffMs = Date.now() - days * 86400000;
+  }
 
-  // Transactions BEFORE the period
+  // ── Period baseline method ──
   const prePeriodTxs = allTxs.filter(tx => tx.ts * 1000 < cutoffMs);
 
-  // Calculate how much net capital was in the vaults at period start
-  // startValue = totalCurrentVal − netFlowDuringPeriod − netFlowAfterPeriod...
-  // Better approach: startValue = sum of all deposits before period − sum of all withdrawals before period
-  //   + any yield accrued before period (unknown)
-  // Best approach: use all-time FIFO to get remaining cost at period start,
-  //   then startValue ≈ remaining cost at period start (conservative, ignores pre-period yield)
-  // Most accurate for DeFi vaults:
-  //   startValue = totalCurrentVal − (periodDeposits − periodWithdrawals) − periodYield
-  //   periodYield = what we want to find
-  //   So: periodYield = totalCurrentVal − startValue − (periodDeposits − periodWithdrawals)
-
-  // Compute deposits/withdrawals in the period
   const periodDeposited = filteredTxs.filter(t => t.type === 'deposit').reduce((s, t) => s + t.assetsUsd, 0);
   const periodWithdrawn = filteredTxs.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.assetsUsd, 0);
   const periodNetFlow = periodDeposited - periodWithdrawn;
 
   // Compute starting value using all-time FIFO up to cutoff
   const preChron = [...prePeriodTxs].sort((a, b) => a.ts - b.ts);
-  let preDeposited = 0, preWithdrawn = 0;
   const preQueues = {};
   for (const tx of preChron) {
     const addr = tx.vaultAddress.toLowerCase();
     if (!preQueues[addr]) preQueues[addr] = [];
     if (tx.type === 'deposit') {
-      preDeposited += tx.assetsUsd;
       preQueues[addr].push({ remaining: tx.assetsUsd });
     } else {
-      preWithdrawn += tx.assetsUsd;
       let toConsume = tx.assetsUsd;
       const q = preQueues[addr];
       while (toConsume > 0 && q.length > 0) {
@@ -5210,25 +5221,17 @@ function computePnl(filteredTxs, allTxs, currentPositions, range) {
       }
     }
   }
-  // Remaining cost basis at period start = capital still in vaults
   let remainingCostAtStart = 0;
   for (const q of Object.values(preQueues)) {
     for (const d of q) remainingCostAtStart += d.remaining;
   }
 
-  // Start value ≈ remaining cost at period start
-  // This is the capital that was in vaults when the period began
   const startValue = remainingCostAtStart;
-
-  // Period P&L = (endValue + periodWithdrawals) − (startValue + periodDeposits)
-  // endValue = totalCurrentVal (what's in vaults now)
   const periodPnl = (totalCurrentVal + periodWithdrawn) - (startValue + periodDeposited);
 
-  // For display consistency, split into realised and unrealised
-  // Realised = withdrawn during period − cost basis of those withdrawals
+  // Realised P&L within the period
   let periodRealisedPnl = 0;
-  // Use FIFO starting from period-start queues for period txs
-  const periodQueues = JSON.parse(JSON.stringify(preQueues)); // deep copy
+  const periodQueues = JSON.parse(JSON.stringify(preQueues));
   const periodChron = [...filteredTxs].sort((a, b) => a.ts - b.ts);
   for (const tx of periodChron) {
     const addr = tx.vaultAddress.toLowerCase();
@@ -5262,7 +5265,6 @@ function computePnl(filteredTxs, allTxs, currentPositions, range) {
     totalPnl: periodPnl,
     roi,
     totalCurrentVal,
-    // Extra fields for period display
     startValue,
     isPeriod: true,
   };
