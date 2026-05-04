@@ -5224,7 +5224,29 @@ function computePnl(filteredTxs, allTxs, currentPositions, range) {
   }
 
   // Period P&L = (endValue + periodWithdrawals) − (startValue + periodDeposits)
-  const periodPnl = (endValue + periodWithdrawn) - (startValue + periodDeposited);
+  let periodPnl = (endValue + periodWithdrawn) - (startValue + periodDeposited);
+
+  // When there are no capital flows since cutoff, startValue == endValue and periodPnl == 0.
+  // But yield IS accruing inside vaults. Estimate from weighted APY × days.
+  if (Math.abs(periodPnl) < 1 && endValue > 0) {
+    let apyWeightedSum = 0;
+    for (const p of (currentPositions || [])) {
+      const usd = p.state?.assetsUsd || p.assetsUsd || 0;
+      const apy = p.vault?.state?.netApy || p.vault?.netApy || p.vault?.avgNetApy || 0;
+      // Sanity: cap at 10x (1000%)
+      const safeApy = Math.abs(apy) > 10 ? 0 : apy;
+      apyWeightedSum += usd * safeApy;
+    }
+    const avgApy = endValue > 0 ? apyWeightedSum / endValue : 0;
+    let periodDays;
+    if (range === 'custom') {
+      const fe = document.getElementById('pnl-date-from'), te = document.getElementById('pnl-date-to');
+      periodDays = (fe?.value && te?.value) ? Math.max(1, Math.round((new Date(te.value) - new Date(fe.value)) / 86400000)) : 1;
+    } else {
+      periodDays = { '7D':7, '30D':30, '90D':90, '180D':180, '1Y':365 }[range] || 30;
+    }
+    periodPnl = (startValue + periodDeposited) * avgApy * periodDays / 365;
+  }
 
   // Realised P&L within the period (FIFO for withdrawals)
   let periodRealisedPnl = 0;
