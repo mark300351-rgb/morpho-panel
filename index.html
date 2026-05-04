@@ -5196,14 +5196,25 @@ function computePnl(filteredTxs, allTxs, currentPositions, range) {
   }
 
   // ── Period baseline method ──
-  const prePeriodTxs = allTxs.filter(tx => tx.ts * 1000 < cutoffMs);
+  // Start value = reverse-engineer from current portfolio:
+  //   startValue = currentValue - deposits_since_start + withdrawals_since_start
+  // This accounts for all capital flows from period start to now
+  const txsSinceCutoff = allTxs.filter(tx => tx.ts * 1000 >= cutoffMs);
+  const depositsSinceStart = txsSinceCutoff.filter(t => t.type === 'deposit').reduce((s, t) => s + t.assetsUsd, 0);
+  const withdrawnSinceStart = txsSinceCutoff.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.assetsUsd, 0);
+  const startValue = totalCurrentVal - depositsSinceStart + withdrawnSinceStart;
 
   const periodDeposited = filteredTxs.filter(t => t.type === 'deposit').reduce((s, t) => s + t.assetsUsd, 0);
   const periodWithdrawn = filteredTxs.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.assetsUsd, 0);
   const periodNetFlow = periodDeposited - periodWithdrawn;
 
-  // Compute starting value using all-time FIFO up to cutoff
-  const preChron = [...prePeriodTxs].sort((a, b) => a.ts - b.ts);
+  // Period P&L = (endValue + periodWithdrawals) − (startValue + periodDeposits)
+  const periodPnl = (totalCurrentVal + periodWithdrawn) - (startValue + periodDeposited);
+
+  // Realised P&L within the period (FIFO for withdrawals)
+  let periodRealisedPnl = 0;
+  // Build FIFO queues from all pre-period txs
+  const preChron = [...allTxs.filter(tx => tx.ts * 1000 < cutoffMs)].sort((a, b) => a.ts - b.ts);
   const preQueues = {};
   for (const tx of preChron) {
     const addr = tx.vaultAddress.toLowerCase();
@@ -5221,16 +5232,6 @@ function computePnl(filteredTxs, allTxs, currentPositions, range) {
       }
     }
   }
-  let remainingCostAtStart = 0;
-  for (const q of Object.values(preQueues)) {
-    for (const d of q) remainingCostAtStart += d.remaining;
-  }
-
-  const startValue = remainingCostAtStart;
-  const periodPnl = (totalCurrentVal + periodWithdrawn) - (startValue + periodDeposited);
-
-  // Realised P&L within the period
-  let periodRealisedPnl = 0;
   const periodQueues = JSON.parse(JSON.stringify(preQueues));
   const periodChron = [...filteredTxs].sort((a, b) => a.ts - b.ts);
   for (const tx of periodChron) {
