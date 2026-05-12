@@ -2850,18 +2850,30 @@ async function gql(query, variables = {}) {
   throw new Error('CORS_ALL_FAILED');
 }
 
-async function _doFetch(mode, body, headers) {
-  let resp;
-  if (mode === 'direct') {
-    resp = await fetch(MORPHO_API, { method: 'POST', headers, body });
-  } else {
-    const idx = parseInt(mode.replace('proxy', ''));
-    resp = await CORS_PROXIES[idx](body, headers);
+async function _doFetch(mode, body, headers, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    let resp;
+    try {
+      if (mode === 'direct') {
+        resp = await fetch(MORPHO_API, { method: 'POST', headers, body });
+      } else {
+        const idx = parseInt(mode.replace('proxy', ''));
+        resp = await CORS_PROXIES[idx](body, headers);
+      }
+    } catch (e) {
+      if (attempt < retries) { await new Promise(r => setTimeout(r, 1500 * (attempt + 1))); continue; }
+      throw e;
+    }
+    // Retry on server errors (502/503/504)
+    if (resp.status >= 502 && resp.status <= 504 && attempt < retries) {
+      await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+      continue;
+    }
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = await resp.json();
+    if (json.errors) throw new Error(json.errors[0]?.message || 'GraphQL error');
+    return json.data;
   }
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const json = await resp.json();
-  if (json.errors) throw new Error(json.errors[0]?.message || 'GraphQL error');
-  return json.data;
 }
 
 function isNetworkOrCorsError(err) {
