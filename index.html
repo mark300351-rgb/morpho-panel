@@ -2709,7 +2709,7 @@ async function fetchV2Positions(address) {
   });
 
   // Step 2: fetch allocations for each active vault in parallel
-  const activePositions = rawPositions.filter(p => parseSharesToBigInt(p.shares) > 0n);
+  const activePositions = rawPositions.filter(p => parseSharesToBigInt(p.shares) > 0n && (p.assetsUsd || 0) >= 1);
   if (activePositions.length > 0) {
     const allocResults = await Promise.allSettled(
       activePositions.map(p => fetchV2VaultAllocations(p.vault?.address, p._chainId))
@@ -3522,12 +3522,12 @@ async function fetchPositions() {
 
     // V1 Vault positions: split into active (shares > 0) and withdrawn (shares == 0)
     const allVaultPositions = posData?.vaultPositions?.items || [];
-    let positions = allVaultPositions.filter(p => BigInt(p.state?.shares || '0') > 0n);
+    let positions = allVaultPositions.filter(p => BigInt(p.state?.shares || '0') > 0n && (p.state?.assetsUsd || 0) >= 1);
     let withdrawnPositions = allVaultPositions.filter(p => BigInt(p.state?.shares || '0') === 0n);
 
     // V2 Vault positions: already merged across chains, split active vs withdrawn
     console.log(`[V2] raw positions fetched: ${allV2Raw.length}`, allV2Raw.map(p => ({ name: p.vault?.name, shares: p.shares, assetsUsd: p.assetsUsd })));
-    let v2Positions = allV2Raw.filter(p => parseSharesToBigInt(p.shares) > 0n);
+    let v2Positions = allV2Raw.filter(p => parseSharesToBigInt(p.shares) > 0n && (p.assetsUsd || 0) >= 1);
     let v2WithdrawnPositions = allV2Raw.filter(p => parseSharesToBigInt(p.shares) === 0n);
     console.log(`[V2] active: ${v2Positions.length}, withdrawn: ${v2WithdrawnPositions.length}`);
 
@@ -4895,12 +4895,12 @@ function startMonitor() {
         ]);
 
         const allVault = posData?.vaultPositions?.items || [];
-        const positions = allVault.filter(p => BigInt(p.state?.shares || '0') > 0n);
+        const positions = allVault.filter(p => BigInt(p.state?.shares || '0') > 0n && (p.state?.assetsUsd || 0) >= 1);
         const withdrawnPositions = allVault.filter(p => BigInt(p.state?.shares || '0') === 0n);
-        const v2Positions = allV2Raw.filter(p => parseSharesToBigInt(p.shares) > 0n);
+        const v2Positions = allV2Raw.filter(p => parseSharesToBigInt(p.shares) > 0n && (p.assetsUsd || 0) >= 1);
         const v2WithdrawnPositions = allV2Raw.filter(p => parseSharesToBigInt(p.shares) === 0n);
         const allMarket = marketPosData?.marketPositions?.items || [];
-        const marketPositions = allMarket.filter(p => BigInt(p.supplyShares||'0') > 0n || BigInt(p.borrowShares||'0') > 0n);
+        const marketPositions = allMarket.filter(p => (BigInt(p.supplyShares||'0') > 0n || BigInt(p.borrowShares||'0') > 0n) && ((p.supplyAssetsUsd||0) >= 1 || (p.borrowAssetsUsd||0) >= 1));
 
         APP.positions = positions;
         APP.withdrawnPositions = withdrawnPositions;
