@@ -2934,17 +2934,22 @@ async function rpcCall(rpcUrl, to, data) {
   return j.result;
 }
 
-// previewRedeem(uint256) → uint256 ; selector 0x4cdad506 (kept as a fallback path)
+// previewRedeem(uint256) → uint256 ; selector 0x4cdad506
+// Converts the *given* shares amount to assets at current pricePerShare.
 function encodePreviewRedeem(shares) {
   const hex = BigInt(shares).toString(16).padStart(64, '0');
   return '0x4cdad506' + hex;
 }
 
+async function fetchLiveAssets(rpcUrl, vaultAddress, shares) {
+  const r = await rpcCall(rpcUrl, vaultAddress, encodePreviewRedeem(shares));
+  return BigInt(r);
+}
+
 // maxWithdraw(address) → uint256 ; selector 0xce96cb77
-// This is what morpho.org's "Withdraw Max" displays — reads the user's
-// current on-chain share balance and applies the vault's liquidity cap.
-// Use this over previewRedeem(indexer_shares) because the indexer may
-// lag the chain (recent deposits / reward auto-compounding).
+// What morpho.org's "Withdraw Max" displays — reads balanceOf(user) on chain
+// then applies the vault's liquidity cap. Returns 0 if the EOA doesn't
+// directly hold shares (e.g. Safe / smart-contract wallet ownership).
 function encodeMaxWithdraw(userAddress) {
   const addr = userAddress.toLowerCase().replace(/^0x/, '').padStart(64, '0');
   return '0xce96cb77' + addr;
@@ -2956,35 +2961,51 @@ async function fetchMaxWithdraw(rpcUrl, vaultAddress, userAddress) {
 }
 
 /**
- * Override API's assets / assetsUsd with on-chain maxWithdraw(user) — the
- * exact function morpho.org's "Withdraw Max" UI displays. Reads the user's
- * current on-chain share balance (handles indexer lag for recent deposits
- * or auto-compounding rewards) and applies vault liquidity cap.
+ * For each position, query the chain for both:
+ *   maxWithdraw(user)            — Morpho UI's Withdraw Max (uses balanceOf chain-side)
+ *   previewRedeem(api_shares)    — applies current pricePerShare to indexer shares
  *
- * Mutates positions/v2Positions in place. If an RPC call rejects, the
- * position retains its API-snapshot value and the failure is logged.
+ * Override API's assets / assetsUsd with whichever returns the larger value.
+ * In the normal case (EOA directly holds shares) both return the same number.
+ * For watch-only / Safe addresses, maxWithdraw returns 0 (balanceOf=0 on the
+ * EOA) but previewRedeem still gives an updated USD figure from share-price.
+ *
+ * Mutates positions/v2Positions in place. RPC errors are logged to console.
  */
 async function refreshLiveBalances(positions, v2Positions) {
   if (!APP.wallet) return;
   const user = APP.wallet;
   const tasks = [];
-  let updated = 0, failed = 0;
+  const report = []; // diagnostic rows for console.table
+  let updated = 0;
+
+  async function liveForVault(rpc, vault, shares) {
+    const [mw, pr] = await Promise.all([
+      fetchMaxWithdraw(rpc, vault, user).catch(() => 0n),
+      shares ? fetchLiveAssets(rpc, vault, shares).catch(() => 0n) : Promise.resolve(0n),
+    ]);
+    return { maxWithdraw: mw, previewRedeem: pr, chosen: mw > pr ? mw : pr };
+  }
 
   for (const p of (positions || [])) {
     const cid = p.vault?.chain?.id;
     const rpc = LIVE_RPC[cid];
     if (!rpc || !p.vault?.address) continue;
     tasks.push((async () => {
-      try {
-        const live = await fetchMaxWithdraw(rpc, p.vault.address, user);
-        const apiA = BigInt(p.state?.assets || '0');
-        if (apiA > 0n && p.state?.assetsUsd) {
-          const ratio = Number(live) / Number(apiA);
-          p.state.assets = live.toString();
-          p.state.assetsUsd = p.state.assetsUsd * ratio;
-          updated++;
-        }
-      } catch (e) { failed++; console.warn(`[LIVE V1] ${p.vault?.name || p.vault?.address}: ${e.message}`); }
+      const apiA = BigInt(p.state?.assets || '0');
+      const res = await liveForVault(rpc, p.vault.address, p.state?.shares);
+      report.push({
+        kind: 'V1', vault: p.vault?.name || p.vault?.address?.slice(0, 8),
+        chain: cid, apiAssets: apiA.toString(),
+        maxWithdraw: res.maxWithdraw.toString(),
+        previewRedeem: res.previewRedeem.toString(),
+      });
+      if (res.chosen > 0n && apiA > 0n && p.state?.assetsUsd) {
+        const ratio = Number(res.chosen) / Number(apiA);
+        p.state.assets = res.chosen.toString();
+        p.state.assetsUsd = p.state.assetsUsd * ratio;
+        updated++;
+      }
     })());
   }
 
@@ -2993,21 +3014,26 @@ async function refreshLiveBalances(positions, v2Positions) {
     const rpc = LIVE_RPC[cid];
     if (!rpc || !p.vault?.address) continue;
     tasks.push((async () => {
-      try {
-        const live = await fetchMaxWithdraw(rpc, p.vault.address, user);
-        const apiA = BigInt(p.assets || '0');
-        if (apiA > 0n && p.assetsUsd) {
-          const ratio = Number(live) / Number(apiA);
-          p.assets = live.toString();
-          p.assetsUsd = p.assetsUsd * ratio;
-          updated++;
-        }
-      } catch (e) { failed++; console.warn(`[LIVE V2] ${p.vault?.name || p.vault?.address}: ${e.message}`); }
+      const apiA = BigInt(p.assets || '0');
+      const res = await liveForVault(rpc, p.vault.address, p.shares);
+      report.push({
+        kind: 'V2', vault: p.vault?.name || p.vault?.address?.slice(0, 8),
+        chain: cid, apiAssets: apiA.toString(),
+        maxWithdraw: res.maxWithdraw.toString(),
+        previewRedeem: res.previewRedeem.toString(),
+      });
+      if (res.chosen > 0n && apiA > 0n && p.assetsUsd) {
+        const ratio = Number(res.chosen) / Number(apiA);
+        p.assets = res.chosen.toString();
+        p.assetsUsd = p.assetsUsd * ratio;
+        updated++;
+      }
     })());
   }
 
   await Promise.all(tasks);
-  console.log(`[LIVE] maxWithdraw refreshed ${updated} positions (${failed} RPC failures)`);
+  console.log(`[LIVE] refreshed ${updated}/${report.length} positions`);
+  if (report.length) console.table(report);
 }
 
 function _liveBtnState(loading) {
