@@ -2734,7 +2734,7 @@ query GetVaults {
     first: 60
     orderBy: TotalAssetsUsd
     orderDirection: Desc
-    where: { whitelisted: true }
+    where: { listed: true }
   ) {
     items {
       address
