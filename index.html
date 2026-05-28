@@ -2490,7 +2490,7 @@ query GetUserVaultPositions($address: String!) {
           allRewards { asset { symbol } supplyApr }
           allocation {
             market {
-              uniqueKey
+              marketId
               lltv
               loanAsset { symbol }
               collateralAsset { symbol }
@@ -2526,7 +2526,7 @@ query GetUserMarketPositions($address: String!) {
       collateralUsd
       healthFactor
       market {
-        uniqueKey
+        marketId
         lltv
         loanAsset { address symbol name decimals priceUsd }
         collateralAsset { address symbol name decimals priceUsd }
@@ -2748,7 +2748,7 @@ query GetVaults {
         allRewards { asset { symbol } supplyApr }
         allocation {
           market {
-            uniqueKey
+            marketId
             lltv
             loanAsset { symbol }
             collateralAsset { symbol }
