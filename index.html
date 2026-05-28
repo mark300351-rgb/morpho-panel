@@ -2934,34 +2934,51 @@ async function rpcCall(rpcUrl, to, data) {
   return j.result;
 }
 
-// previewRedeem(uint256) → uint256 ; selector 0x4cdad506
+// previewRedeem(uint256) → uint256 ; selector 0x4cdad506 (kept as a fallback path)
 function encodePreviewRedeem(shares) {
   const hex = BigInt(shares).toString(16).padStart(64, '0');
   return '0x4cdad506' + hex;
 }
 
-async function fetchLiveAssets(rpcUrl, vaultAddress, shares) {
-  const r = await rpcCall(rpcUrl, vaultAddress, encodePreviewRedeem(shares));
+// maxWithdraw(address) → uint256 ; selector 0xce96cb77
+// This is what morpho.org's "Withdraw Max" displays — reads the user's
+// current on-chain share balance and applies the vault's liquidity cap.
+// Use this over previewRedeem(indexer_shares) because the indexer may
+// lag the chain (recent deposits / reward auto-compounding).
+function encodeMaxWithdraw(userAddress) {
+  const addr = userAddress.toLowerCase().replace(/^0x/, '').padStart(64, '0');
+  return '0xce96cb77' + addr;
+}
+
+async function fetchMaxWithdraw(rpcUrl, vaultAddress, userAddress) {
+  const r = await rpcCall(rpcUrl, vaultAddress, encodeMaxWithdraw(userAddress));
   return BigInt(r);
 }
 
 /**
- * Override API's assets / assetsUsd with on-chain previewRedeem values.
- * Mutates positions/v2Positions in place. Silent fallback on any RPC failure.
+ * Override API's assets / assetsUsd with on-chain maxWithdraw(user) — the
+ * exact function morpho.org's "Withdraw Max" UI displays. Reads the user's
+ * current on-chain share balance (handles indexer lag for recent deposits
+ * or auto-compounding rewards) and applies vault liquidity cap.
+ *
+ * Mutates positions/v2Positions in place. If an RPC call rejects, the
+ * position retains its API-snapshot value and the failure is logged.
  */
 async function refreshLiveBalances(positions, v2Positions) {
+  if (!APP.wallet) return;
+  const user = APP.wallet;
   const tasks = [];
   let updated = 0, failed = 0;
 
   for (const p of (positions || [])) {
     const cid = p.vault?.chain?.id;
     const rpc = LIVE_RPC[cid];
-    if (!rpc || !p.vault?.address || !p.state?.shares) continue;
+    if (!rpc || !p.vault?.address) continue;
     tasks.push((async () => {
       try {
-        const live = await fetchLiveAssets(rpc, p.vault.address, p.state.shares);
-        const apiA = BigInt(p.state.assets || '0');
-        if (apiA > 0n && p.state.assetsUsd) {
+        const live = await fetchMaxWithdraw(rpc, p.vault.address, user);
+        const apiA = BigInt(p.state?.assets || '0');
+        if (apiA > 0n && p.state?.assetsUsd) {
           const ratio = Number(live) / Number(apiA);
           p.state.assets = live.toString();
           p.state.assetsUsd = p.state.assetsUsd * ratio;
@@ -2974,10 +2991,10 @@ async function refreshLiveBalances(positions, v2Positions) {
   for (const p of (v2Positions || [])) {
     const cid = p.vault?.chain?.id;
     const rpc = LIVE_RPC[cid];
-    if (!rpc || !p.vault?.address || !p.shares) continue;
+    if (!rpc || !p.vault?.address) continue;
     tasks.push((async () => {
       try {
-        const live = await fetchLiveAssets(rpc, p.vault.address, p.shares);
+        const live = await fetchMaxWithdraw(rpc, p.vault.address, user);
         const apiA = BigInt(p.assets || '0');
         if (apiA > 0n && p.assetsUsd) {
           const ratio = Number(live) / Number(apiA);
@@ -2990,7 +3007,7 @@ async function refreshLiveBalances(positions, v2Positions) {
   }
 
   await Promise.all(tasks);
-  console.log(`[LIVE] refreshed ${updated} positions (${failed} RPC failures)`);
+  console.log(`[LIVE] maxWithdraw refreshed ${updated} positions (${failed} RPC failures)`);
 }
 
 function _liveBtnState(loading) {
