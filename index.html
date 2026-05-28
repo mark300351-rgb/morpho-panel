@@ -441,6 +441,16 @@ select option { background: var(--bg-2); }
 .stat-card.green { border-left-color: var(--green); }
 .stat-card.yellow{ border-left-color: var(--yellow); }
 .stat-card.red   { border-left-color: var(--red); }
+#live-mode-btn:hover { color: var(--text-2); border-color: var(--text-3); }
+#live-mode-btn.live-on {
+  color: #fff; border-color: #ef4444; background: #ef4444;
+  animation: livePulse 1.6s ease-in-out infinite;
+}
+#live-mode-btn.live-loading { opacity: .55; cursor: wait; }
+@keyframes livePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.55); }
+  50%      { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+}
 
 /* remove old ::before top bar */
 .stat-card::before { display: none; }
@@ -1923,6 +1933,10 @@ select option { background: var(--bg-2); }
         <div class="stat-label" id="stat-label-total" data-i18n="statTotal">总持仓价值</div>
         <div class="stat-value" id="stat-total">$0</div>
         <div class="stat-sub" id="stat-vaults">0</div>
+        <button id="live-mode-btn" type="button" onclick="toggleLiveMode()" title="Read live balance from chain via previewRedeem(shares). Bypasses Morpho API snapshot lag."
+          style="margin-top:6px;font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text-3);cursor:pointer;letter-spacing:.4px;font-variant-numeric:tabular-nums;transition:all .15s">
+          LIVE: OFF
+        </button>
       </div>
       <div class="stat-card green">
         <div class="stat-label" id="stat-label-apy" data-i18n="statApy">加权平均 APY</div>
@@ -2425,6 +2439,7 @@ const APP = {
   countdownVal: 0,
   isMonitoring: false,
   lastFetch: null,
+  liveMode: false,          // 🔴 Live mode: bypass API snapshot via on-chain previewRedeem
 };
 
 // ────────────────────────────────────────────
@@ -2454,6 +2469,9 @@ function loadSettings() {
     if (s.liqThreshold) document.getElementById('liq-threshold').value = s.liqThreshold;
     if (s.apyThreshold) document.getElementById('apy-threshold').value = s.apyThreshold;
     if (s.bgmThHf) document.getElementById('bgm-th-hf').value = s.bgmThHf;
+    // Restore live mode (no refetch — let the wallet query do it)
+    APP.liveMode = localStorage.getItem('morpho_live_mode') === '1';
+    if (typeof _liveBtnState === 'function') _liveBtnState(false);
   } catch(e) {}
 }
 
@@ -2884,6 +2902,117 @@ function isNetworkOrCorsError(err) {
   // TypeError: Failed to fetch = CORS or network error
   return err instanceof TypeError || err.message.includes('fetch') || err.message.includes('network');
 }
+
+// ────────────────────────────────────────────
+// Live Mode — bypass Morpho indexer lag by calling
+// ERC-4626 previewRedeem(shares) directly via public RPC.
+// Strategy: live_assets / api_assets → ratio; scale api_assetsUsd by it.
+// Works for any underlying asset (USDC/WETH/...) because USD price is
+// inferred from the API's existing assetsUsd field.
+// ────────────────────────────────────────────
+// publicnode works reliably from browsers (CORS-friendly). llamarpc rate-limits curl & some browsers.
+const LIVE_RPC = {
+  1:     'https://ethereum-rpc.publicnode.com',   // Ethereum
+  8453:  'https://base-rpc.publicnode.com',       // Base
+  42161: 'https://arbitrum-one-rpc.publicnode.com', // Arbitrum
+  10:    'https://optimism-rpc.publicnode.com',   // OP Mainnet
+  137:   'https://polygon-bor-rpc.publicnode.com',// Polygon
+  130:   'https://unichain-rpc.publicnode.com',   // Unichain
+  480:   'https://worldchain-mainnet.g.alchemy.com/public', // World Chain
+  // 143 (Monad): no public RPC endpoint yet — falls back to API value
+};
+
+async function rpcCall(rpcUrl, to, data) {
+  const resp = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_call', params: [{ to, data }, 'latest'], id: 1 }),
+  });
+  if (!resp.ok) throw new Error(`RPC HTTP ${resp.status}`);
+  const j = await resp.json();
+  if (j.error) throw new Error(j.error.message);
+  return j.result;
+}
+
+// previewRedeem(uint256) → uint256 ; selector 0x4cdad506
+function encodePreviewRedeem(shares) {
+  const hex = BigInt(shares).toString(16).padStart(64, '0');
+  return '0x4cdad506' + hex;
+}
+
+async function fetchLiveAssets(rpcUrl, vaultAddress, shares) {
+  const r = await rpcCall(rpcUrl, vaultAddress, encodePreviewRedeem(shares));
+  return BigInt(r);
+}
+
+/**
+ * Override API's assets / assetsUsd with on-chain previewRedeem values.
+ * Mutates positions/v2Positions in place. Silent fallback on any RPC failure.
+ */
+async function refreshLiveBalances(positions, v2Positions) {
+  const tasks = [];
+  let updated = 0, failed = 0;
+
+  for (const p of (positions || [])) {
+    const cid = p.vault?.chain?.id;
+    const rpc = LIVE_RPC[cid];
+    if (!rpc || !p.vault?.address || !p.state?.shares) continue;
+    tasks.push((async () => {
+      try {
+        const live = await fetchLiveAssets(rpc, p.vault.address, p.state.shares);
+        const apiA = BigInt(p.state.assets || '0');
+        if (apiA > 0n && p.state.assetsUsd) {
+          const ratio = Number(live) / Number(apiA);
+          p.state.assets = live.toString();
+          p.state.assetsUsd = p.state.assetsUsd * ratio;
+          updated++;
+        }
+      } catch (e) { failed++; console.warn(`[LIVE V1] ${p.vault?.name || p.vault?.address}: ${e.message}`); }
+    })());
+  }
+
+  for (const p of (v2Positions || [])) {
+    const cid = p.vault?.chain?.id;
+    const rpc = LIVE_RPC[cid];
+    if (!rpc || !p.vault?.address || !p.shares) continue;
+    tasks.push((async () => {
+      try {
+        const live = await fetchLiveAssets(rpc, p.vault.address, p.shares);
+        const apiA = BigInt(p.assets || '0');
+        if (apiA > 0n && p.assetsUsd) {
+          const ratio = Number(live) / Number(apiA);
+          p.assets = live.toString();
+          p.assetsUsd = p.assetsUsd * ratio;
+          updated++;
+        }
+      } catch (e) { failed++; console.warn(`[LIVE V2] ${p.vault?.name || p.vault?.address}: ${e.message}`); }
+    })());
+  }
+
+  await Promise.all(tasks);
+  console.log(`[LIVE] refreshed ${updated} positions (${failed} RPC failures)`);
+}
+
+function _liveBtnState(loading) {
+  const btn = document.getElementById('live-mode-btn');
+  if (!btn) return;
+  btn.classList.toggle('live-on', !!APP.liveMode);
+  btn.classList.toggle('live-loading', !!loading);
+  btn.textContent = APP.liveMode ? (loading ? '⏳ LIVE…' : '🔴 LIVE') : 'LIVE: OFF';
+}
+
+function setLiveMode(on, refetch = true) {
+  APP.liveMode = !!on;
+  localStorage.setItem('morpho_live_mode', APP.liveMode ? '1' : '0');
+  _liveBtnState(false);
+  if (refetch && APP.wallet) {
+    _liveBtnState(true);
+    // Refetch positions to apply or remove live values
+    fetchPositions().finally(() => _liveBtnState(false));
+  }
+}
+
+function toggleLiveMode() { setLiveMode(!APP.liveMode); }
 
 // ────────────────────────────────────────────
 // Curator Address → Name Mapping
@@ -3570,6 +3699,11 @@ async function fetchPositions() {
     APP.lastFetch = new Date();
     // Reset P&L cache on new wallet query
     PNL_STATE.txV1 = []; PNL_STATE.txV2 = []; PNL_STATE.range = 'ALL'; PNL_STATE.page = 1;
+
+    // 🔴 Live mode: override API snapshot with on-chain previewRedeem before rendering
+    if (APP.liveMode) {
+      await refreshLiveBalances(positions, v2Positions);
+    }
 
     const activeCount = positions.length + v2Positions.length + marketPositions.length;
     const historyCount = withdrawnPositions.length + v2WithdrawnPositions.length;
@@ -4916,6 +5050,11 @@ function startMonitor() {
         APP.v2WithdrawnPositions = v2WithdrawnPositions;
         APP.marketPositions = marketPositions;
         APP.lastFetch = new Date();
+
+        // 🔴 Live mode: override API snapshot with on-chain previewRedeem before rendering
+        if (APP.liveMode) {
+          await refreshLiveBalances(positions, v2Positions);
+        }
 
         const hasAny = positions.length > 0 || v2Positions.length > 0 || marketPositions.length > 0 || withdrawnPositions.length > 0;
         if (hasAny) {
