@@ -2516,15 +2516,17 @@ query GetUserMarketPositions($address: String!) {
     first: 100
   ) {
     items {
-      supplyShares
-      supplyAssets
-      supplyAssetsUsd
-      borrowShares
-      borrowAssets
-      borrowAssetsUsd
-      collateral
-      collateralUsd
       healthFactor
+      state {
+        supplyShares
+        supplyAssets
+        supplyAssetsUsd
+        borrowShares
+        borrowAssets
+        borrowAssetsUsd
+        collateral
+        collateralUsd
+      }
       market {
         marketId
         lltv
@@ -2594,7 +2596,7 @@ query GetV2VaultAllocations($address: String!, $chainId: Int!) {
         ... on MorphoMarketV1Adapter {
           positions(first: 20) {
             items {
-              supplyAssetsUsd
+              state { supplyAssetsUsd }
               market {
                 lltv
                 loanAsset { symbol }
@@ -2650,9 +2652,11 @@ async function fetchV2VaultAllocations(vaultAddress, chainId) {
         }
       } else if (adapter.type === 'MorphoMarketV1' && adapter.positions?.items) {
         for (const p of adapter.positions.items) {
-          if (p.supplyAssetsUsd > 0) {
+          // MorphoMarketV1Adapter.positions.items are MarketPosition → supplyAssetsUsd moved into state{}
+          const usd = p.state?.supplyAssetsUsd || 0;
+          if (usd > 0) {
             allocs.push({
-              supplyAssetsUsd: p.supplyAssetsUsd,
+              supplyAssetsUsd: usd,
               supplyAssets: 0,
               market: p.market,
             });
@@ -3532,7 +3536,9 @@ async function fetchPositions() {
     console.log(`[V2] active: ${v2Positions.length}, withdrawn: ${v2WithdrawnPositions.length}`);
 
     // Market positions: split active vs closed
-    const allMarketPositions = marketPosData?.marketPositions?.items || [];
+    // Morpho schema moved supply/borrow/collateral fields into state{}; flatten for downstream code.
+    const allMarketPositions = (marketPosData?.marketPositions?.items || [])
+      .map(p => ({ ...p, ...(p.state || {}) }));
     let marketPositions = allMarketPositions.filter(
       p => BigInt(p.supplyShares || '0') > 0n || BigInt(p.borrowShares || '0') > 0n
     );
@@ -4899,7 +4905,9 @@ function startMonitor() {
         const withdrawnPositions = allVault.filter(p => BigInt(p.state?.shares || '0') === 0n);
         const v2Positions = allV2Raw.filter(p => parseSharesToBigInt(p.shares) > 0n && (p.assetsUsd || 0) >= 1);
         const v2WithdrawnPositions = allV2Raw.filter(p => parseSharesToBigInt(p.shares) === 0n);
-        const allMarket = marketPosData?.marketPositions?.items || [];
+        // Morpho schema moved supply/borrow/collateral fields into state{}; flatten for downstream code.
+        const allMarket = (marketPosData?.marketPositions?.items || [])
+          .map(p => ({ ...p, ...(p.state || {}) }));
         const marketPositions = allMarket.filter(p => (BigInt(p.supplyShares||'0') > 0n || BigInt(p.borrowShares||'0') > 0n) && ((p.supplyAssetsUsd||0) >= 1 || (p.borrowAssetsUsd||0) >= 1));
 
         APP.positions = positions;
