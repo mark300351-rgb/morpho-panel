@@ -2497,7 +2497,7 @@ query GetUserVaultPositions($address: String!) {
         name
         symbol
         chain { id network }
-        asset { address symbol name decimals priceUsd }
+        asset { address symbol name decimals price { usd } }
         liquidity { underlying usd }
         state {
           netApy
@@ -2548,8 +2548,8 @@ query GetUserMarketPositions($address: String!) {
       market {
         marketId
         lltv
-        loanAsset { address symbol name decimals priceUsd }
-        collateralAsset { address symbol name decimals priceUsd }
+        loanAsset { address symbol name decimals price { usd } }
+        collateralAsset { address symbol name decimals price { usd } }
         chain { id network }
         state {
           supplyApy
@@ -2759,7 +2759,7 @@ query GetVaults {
       name
       symbol
       chain { id network }
-      asset { address symbol decimals priceUsd }
+      asset { address symbol decimals price { usd } }
       liquidity { underlying usd }
       state {
         netApy
@@ -5172,6 +5172,11 @@ const PNL_STATE = {
   page:    1,     // current page (1-based)
   pageSize: 10,
   loading: false,
+  // Cache of UserHistory time series per (chains × interval × window).
+  // Key = `${chainsCsv}|${interval}|${startTs}|${endTs}`. Avoids redundant
+  // API calls when the user toggles between ranges or repaginates.
+  historyCache: {},
+  computing: false, // re-entrancy guard for async computePnl
 };
 
 // GraphQL queries
@@ -5211,7 +5216,7 @@ query GetV2Transactions($address: String!, $first: Int!, $skip: Int!) {
       txHash timestamp type shares
       vault {
         address name symbol
-        asset { symbol decimals }
+        asset { symbol decimals price { usd } }
         chain { network id }
       }
       data {
@@ -5221,6 +5226,108 @@ query GetV2Transactions($address: String!, $first: Int!, $skip: Int!) {
     }
   }
 }`;
+
+// ────────────────────────────────────────────
+// UserHistory query — gives the indexed historical USD value of the
+// wallet's full Morpho portfolio per chain. Sums V1 vaults + V2 vaults +
+// market supply positions into a single time series used to anchor
+// period P&L startValue / endValue against real on-chain history
+// (instead of reverse-engineering from current value + flows, which
+// mathematically cancels yield to zero).
+// ────────────────────────────────────────────
+const USER_HISTORY_QUERY = `
+query GetUserPortfolioHistory(
+  $address: String!, $chainId: Int!,
+  $startTs: Int!, $endTs: Int!, $interval: TimeseriesInterval!
+) {
+  userByAddress(address: $address, chainId: $chainId) {
+    historicalState {
+      vaultsAssetsUsd       (options: { startTimestamp: $startTs, endTimestamp: $endTs, interval: $interval }) { x y }
+      vaultV2sAssetsUsd     (options: { startTimestamp: $startTs, endTimestamp: $endTs, interval: $interval }) { x y }
+      marketsSupplyAssetsUsd(options: { startTimestamp: $startTs, endTimestamp: $endTs, interval: $interval }) { x y }
+    }
+  }
+}`;
+
+// All chains the user currently has any kind of Morpho position on
+function userChains() {
+  const chains = new Set();
+  for (const p of (APP.positions   || [])) { const c = p.vault?.chain?.id; if (c) chains.add(c); }
+  for (const p of (APP.v2Positions || [])) { const c = p.vault?.chain?.id || p._chainId; if (c) chains.add(c); }
+  for (const p of (APP.marketPositions || [])) { const c = p.market?.chain?.id; if (c) chains.add(c); }
+  return [...chains];
+}
+
+// Choose a TimeseriesInterval coarse enough to cover the window in
+// ≤ ~365 points (the API's hard cap on long ranges).
+function chooseInterval(startTs, endTs) {
+  const days = Math.max(1, Math.round((endTs - startTs) / 86400));
+  if (days <=   2) return 'HOUR';
+  if (days <= 400) return 'DAY';
+  if (days <= 1000) return 'WEEK';
+  return 'MONTH';
+}
+
+/**
+ * Fetch the wallet's combined Morpho USD value time series across all
+ * given chains for [startTs, endTs]. Returns {points: [{ts, usd}],
+ * startUsd, endUsd} where startUsd/endUsd are interpolated at the
+ * window edges (so periodPnL can be computed exactly).
+ *
+ * Cached in PNL_STATE.historyCache for the lifetime of the session.
+ */
+async function fetchUserHistory(wallet, chains, startTs, endTs) {
+  const interval = chooseInterval(startTs, endTs);
+  const cacheKey = `${chains.slice().sort().join(',')}|${interval}|${startTs}|${endTs}`;
+  if (PNL_STATE.historyCache[cacheKey]) return PNL_STATE.historyCache[cacheKey];
+
+  // Pull a small buffer around the window so the start/end edges have
+  // a real datapoint to interpolate from.
+  const pad = interval === 'HOUR' ? 7200 : 86400 * 2;
+  const qStart = startTs - pad, qEnd = endTs + pad;
+
+  const perChain = await Promise.all(chains.map(c =>
+    gql(USER_HISTORY_QUERY, { address: wallet, chainId: c, startTs: qStart, endTs: qEnd, interval })
+      .catch(err => { console.warn(`[PnL history] chain ${c} failed:`, err.message); return null; })
+  ));
+
+  // Merge per-chain, per-bucket time series into one totals-per-timestamp map
+  const total = new Map(); // ts -> usd
+  for (const r of perChain) {
+    if (!r?.userByAddress?.historicalState) continue;
+    const h = r.userByAddress.historicalState;
+    for (const arr of [h.vaultsAssetsUsd, h.vaultV2sAssetsUsd, h.marketsSupplyAssetsUsd]) {
+      for (const pt of (arr || [])) {
+        const ts = Number(pt.x), v = Number(pt.y) || 0;
+        total.set(ts, (total.get(ts) || 0) + v);
+      }
+    }
+  }
+  const points = [...total.entries()]
+    .map(([ts, usd]) => ({ ts, usd }))
+    .sort((a, b) => a.ts - b.ts);
+
+  // Linear-interpolate USD at startTs / endTs from the surrounding samples.
+  // If the window predates the wallet's first position the result is 0.
+  function interp(targetTs) {
+    if (points.length === 0) return 0;
+    if (targetTs <= points[0].ts)             return points[0].usd;
+    if (targetTs >= points[points.length-1].ts) return points[points.length-1].usd;
+    for (let i = 1; i < points.length; i++) {
+      if (points[i].ts >= targetTs) {
+        const a = points[i-1], b = points[i];
+        if (b.ts === a.ts) return b.usd;
+        const w = (targetTs - a.ts) / (b.ts - a.ts);
+        return a.usd + (b.usd - a.usd) * w;
+      }
+    }
+    return points[points.length-1].usd;
+  }
+
+  const result = { points, startUsd: interp(startTs), endUsd: interp(endTs), interval };
+  PNL_STATE.historyCache[cacheKey] = result;
+  return result;
+}
 
 async function fetchAllTx(address) {
   const PAGE = 100;
@@ -5284,8 +5391,10 @@ function normaliseTx(v1Raw, v2Raw, userAddress) {
     if (!isOwn) continue;
     const decimals = tx.vault?.asset?.decimals ?? 18;
     const rawAssets = String(d.assets || '0');
-    // Compute USD: V2 API doesn't return assetsUsd; estimate from raw assets
-    // We'll store raw and compute USD later using asset price from position data
+    // V2 tx data has no assetsUsd field — compute from current asset price.
+    // (Historical price at tx time would be ideal but requires another query per tx.)
+    const priceUsd  = tx.vault?.asset?.price?.usd ?? 1;
+    const underlying = parseFloat(rawAssets) / Math.pow(10, decimals);
     out.push({
       id: tx.txHash,
       ts: Number(tx.timestamp),
@@ -5299,7 +5408,7 @@ function normaliseTx(v1Raw, v2Raw, userAddress) {
       chainNetwork: tx.vault?.chain?.network || '',
       chainId:      tx.vault?.chain?.id      || 0,
       assetsRaw:    rawAssets,
-      assetsUsd:    parseFloat(rawAssets) / Math.pow(10, decimals), // rough USD (assuming ~$1 for stables)
+      assetsUsd:    underlying * priceUsd,
       hash: tx.txHash,
       isV2: true,
     });
@@ -5334,139 +5443,130 @@ function filterTxByRange(txs, range) {
 }
 
 /**
+ * Compute the [startTs, endTs] (seconds) of the selected range and
+ * whether the period end is in the past (custom backdated only).
+ */
+function computeWindowTs(range) {
+  const nowMs = Date.now();
+  if (range === 'custom') {
+    const fromEl = document.getElementById('pnl-date-from');
+    const toEl   = document.getElementById('pnl-date-to');
+    const startMs = fromEl?.value ? new Date(fromEl.value).getTime()              : nowMs - 30*86400000;
+    const endMs   = toEl?.value   ? new Date(toEl.value  ).getTime() + 86400000  : nowMs;
+    const today = new Date(); today.setHours(23,59,59,999);
+    const endsInPast = endMs < today.getTime();
+    return { startTs: Math.floor(startMs/1000), endTs: Math.floor(endMs/1000), endsInPast };
+  }
+  const daysMap = { '7D':7, '30D':30, '90D':90, '180D':180, '1Y':365 };
+  const days = daysMap[range] || 30;
+  const startMs = nowMs - days*86400000;
+  return { startTs: Math.floor(startMs/1000), endTs: Math.floor(nowMs/1000), endsInPast: false, periodDays: days };
+}
+
+/**
  * Compute P&L summary from transactions.
  *
- * For "ALL" range: FIFO cost-basis method (original logic).
- * For specific periods (30D, 90D, etc.):
- *   Period P&L = (current value + withdrawals in period) − (start value + deposits in period)
- *   where start value = current value + withdrawals(all before period end)
- *                       − deposits(all before period end)
- *                       ... approximated as: current value − net of all txs in period
- *   More precisely:
- *     startValue = reconstruct from all-time txs up to period start
- *     periodPnl  = (endValue + periodWithdrawals) − (startValue + periodDeposits)
+ * For "ALL": underlying-based FIFO cost-basis. Realised + unrealised yield
+ * are computed in underlying tokens, then valued at the *current* per-vault
+ * asset price. For stable vaults this is identical to USD-based FIFO; for
+ * WETH/wstETH/etc. it strips out price appreciation so the number reflects
+ * pure vault yield, not token speculation gains.
  *
- * @param {Array} filteredTxs - transactions in the selected period
- * @param {Array} allTxs - ALL transactions (needed for period baseline)
- * @param {Array} currentPositions - active vault positions
- * @param {string} range - 'ALL' | '30D' | '90D' | '180D' | '1Y' | 'custom'
+ * For specific periods (30D, 90D, custom, etc.):
+ *   periodPnL = (endValue + periodWithdrawals) − (startValue + periodDeposits)
+ *   startValue / endValue come from User.historicalState (real indexed USD
+ *   value at those timestamps) — NOT reverse-engineered from current value
+ *   and flows, which mathematically cancels yield to zero.
+ *
+ * @param {Array}  filteredTxs       - transactions in the selected period
+ * @param {Array}  allTxs            - ALL transactions (needed for FIFO basis)
+ * @param {Array}  currentPositions  - active vault positions
+ * @param {string} range             - 'ALL' | '30D' | '90D' | '180D' | '1Y' | 'custom'
+ * @param {Object} [historySnapshot] - result from fetchUserHistory (period ranges only)
  */
-function computePnl(filteredTxs, allTxs, currentPositions, range) {
-  // Build current position value
-  const currentVal = {};
+function computePnl(filteredTxs, allTxs, currentPositions, range, historySnapshot) {
+  // Build per-vault current value + price + underlying (for underlying-based FIFO)
+  const currentVal              = {};
+  const currentPriceByVault     = {};
+  const currentUnderlyingByVault = {};
   for (const p of (currentPositions || [])) {
     const addr = (p.vault?.address || '').toLowerCase();
-    currentVal[addr] = (currentVal[addr] || 0) + (p.state?.assetsUsd || p.assetsUsd || 0);
+    if (!addr) continue;
+    const usd = p.state?.assetsUsd ?? p.assetsUsd ?? 0;
+    currentVal[addr] = (currentVal[addr] || 0) + usd;
+
+    const px = p.vault?.asset?.price?.usd ?? 1;
+    currentPriceByVault[addr] = px;
+
+    const dec = p.vault?.asset?.decimals ?? 18;
+    const rawAssets = p.state?.assets ?? p.assets ?? '0';
+    const underlying = parseFloat(String(rawAssets)) / Math.pow(10, dec);
+    currentUnderlyingByVault[addr] = (currentUnderlyingByVault[addr] || 0) + underlying;
   }
   const totalCurrentVal = Object.values(currentVal).reduce((s, v) => s + v, 0);
 
-  // ── ALL time: use FIFO cost-basis (original) ──
+  // ── ALL time: underlying-based FIFO ──
   if (range === 'ALL' || !allTxs) {
-    return computePnlFIFO(filteredTxs, totalCurrentVal);
+    return computePnlFIFO(filteredTxs, currentUnderlyingByVault, currentPriceByVault, totalCurrentVal);
   }
 
-  // ── Determine actual period start date ──
-  let cutoffMs;
-  if (range === 'custom') {
-    const fromEl = document.getElementById('pnl-date-from');
-    const toEl = document.getElementById('pnl-date-to');
-    if (fromEl?.value) {
-      cutoffMs = new Date(fromEl.value).getTime();
-    } else {
-      cutoffMs = filteredTxs.length > 0 ? Math.min(...filteredTxs.map(tx => tx.ts * 1000)) : Date.now();
-    }
-    // If custom range ends in the past, we estimate end value from post-period flows
-    if (toEl?.value) {
-      const toMs = new Date(toEl.value).getTime() + 86400000;
-      const today = new Date(); today.setHours(0,0,0,0);
-    }
-  } else {
-    // Preset ranges (30D, 90D, etc.): compute cutoff from days
-    const msMap = { '7D': 7, '30D': 30, '90D': 90, '180D': 180, '1Y': 365 };
-    const days = msMap[range] || 30;
-    cutoffMs = Date.now() - days * 86400000;
-  }
+  // ── Period range ──
+  const { startTs, endsInPast } = computeWindowTs(range);
+  const cutoffMs = startTs * 1000;
 
-  // ── Period baseline method ──
-  // Start value = reverse-engineer from current portfolio value.
-  // All transactions from cutoff to NOW (not just within the custom date range)
-  // affect what the portfolio looks like today.
-  // startValue = currentValue - all_deposits_since_cutoff + all_withdrawals_since_cutoff
-  const allTxsSinceCutoff = allTxs.filter(tx => tx.ts * 1000 >= cutoffMs);
-  const allDepositsSinceCutoff = allTxsSinceCutoff.filter(t => t.type === 'deposit').reduce((s, t) => s + t.assetsUsd, 0);
-  const allWithdrawnSinceCutoff = allTxsSinceCutoff.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.assetsUsd, 0);
-  
-  // startValue includes yield already accrued at cutoff date
-  const startValue = totalCurrentVal - allDepositsSinceCutoff + allWithdrawnSinceCutoff;
-
-  // Period deposits/withdrawals (only within the filtered date range)
-  const periodDeposited = filteredTxs.filter(t => t.type === 'deposit').reduce((s, t) => s + t.assetsUsd, 0);
+  // Period deposits/withdrawals (already in historical USD via normaliseTx)
+  const periodDeposited = filteredTxs.filter(t => t.type === 'deposit') .reduce((s, t) => s + t.assetsUsd, 0);
   const periodWithdrawn = filteredTxs.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.assetsUsd, 0);
-  const periodNetFlow = periodDeposited - periodWithdrawn;
+  const periodNetFlow   = periodDeposited - periodWithdrawn;
 
-  // For custom range ending before today: need to estimate end value
-  // endValue = startValue + deposits_in_period - withdrawals_in_period + yield_in_period
-  // We compute endValue by subtracting post-period flows from currentValue
-  let endValue = totalCurrentVal;
-  if (range === 'custom') {
-    const toEl = document.getElementById('pnl-date-to');
-    if (toEl?.value) {
-      const toMs = new Date(toEl.value).getTime() + 86400000;
-      const today = new Date(); today.setHours(23,59,59,999);
-      if (toMs < today.getTime()) {
-        // Custom range ends in the past: reverse from current using post-period flows
-        const postPeriodTxs = allTxs.filter(tx => tx.ts * 1000 > toMs);
-        const postDeposits = postPeriodTxs.filter(t => t.type === 'deposit').reduce((s, t) => s + t.assetsUsd, 0);
-        const postWithdrawals = postPeriodTxs.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.assetsUsd, 0);
-        // endValue at period end ≈ currentValue - postDeposits + postWithdrawals - postYield
-        // We can't know postYield exactly, but for short periods the approximation is reasonable
-        endValue = totalCurrentVal - postDeposits + postWithdrawals;
-      }
-    }
+  // startValue / endValue from real on-chain history (via UserHistory query).
+  // If the wallet had no Morpho position before the period, startUsd = 0 and
+  // periodPnl correctly reflects "from-zero" growth.
+  let startValue, endValue, fallbackToApy = false;
+  if (historySnapshot && historySnapshot.points.length > 0) {
+    startValue = historySnapshot.startUsd;
+    endValue   = endsInPast ? historySnapshot.endUsd : totalCurrentVal;
+  } else {
+    // History query failed entirely (network error or no positions on any chain).
+    // Last-ditch APY estimate so the UI doesn't show $0 — flagged as estimate.
+    fallbackToApy = true;
+    startValue = totalCurrentVal;
+    endValue   = totalCurrentVal;
   }
 
-  // Period P&L = (endValue + periodWithdrawals) − (startValue + periodDeposits)
   let periodPnl = (endValue + periodWithdrawn) - (startValue + periodDeposited);
 
-  // When there are no capital flows since cutoff, startValue == endValue and periodPnl == 0.
-  // But yield IS accruing inside vaults. Estimate from weighted APY × days.
-  if (Math.abs(periodPnl) < 1 && endValue > 0) {
+  if (fallbackToApy && endValue > 0) {
     let apyWeightedSum = 0;
     for (const p of (currentPositions || [])) {
       const usd = p.state?.assetsUsd || p.assetsUsd || 0;
       const apy = p.vault?.state?.netApy || p.vault?.netApy || p.vault?.avgNetApy || 0;
-      // Sanity: cap at 10x (1000%)
       const safeApy = Math.abs(apy) > 10 ? 0 : apy;
       apyWeightedSum += usd * safeApy;
     }
     const avgApy = endValue > 0 ? apyWeightedSum / endValue : 0;
-    let periodDays;
-    if (range === 'custom') {
-      const fe = document.getElementById('pnl-date-from'), te = document.getElementById('pnl-date-to');
-      periodDays = (fe?.value && te?.value) ? Math.max(1, Math.round((new Date(te.value) - new Date(fe.value)) / 86400000)) : 1;
-    } else {
-      periodDays = { '7D':7, '30D':30, '90D':90, '180D':180, '1Y':365 }[range] || 30;
-    }
-    periodPnl = (startValue + periodDeposited) * avgApy * periodDays / 365;
+    const { periodDays = 30 } = computeWindowTs(range);
+    const days = periodDays || Math.max(1, Math.round((Date.now() - cutoffMs) / 86400000));
+    periodPnl = (startValue + periodDeposited) * avgApy * days / 365;
   }
 
-  // Realised P&L within the period (FIFO for withdrawals)
+  // Realised P&L within the period — underlying-based FIFO.
+  // Build per-vault queue from pre-cutoff txs (in underlying), then consume
+  // through period txs and accumulate yield = (withdraw_underlying − cost_basis_underlying)
+  // valued at the vault's CURRENT asset price.
   let periodRealisedPnl = 0;
-  // Build FIFO queues from all pre-period txs
   const preChron = [...allTxs.filter(tx => tx.ts * 1000 < cutoffMs)].sort((a, b) => a.ts - b.ts);
   const preQueues = {};
   for (const tx of preChron) {
     const addr = tx.vaultAddress.toLowerCase();
+    const u = parseFloat(tx.assetsRaw) / Math.pow(10, tx.decimals);
     if (!preQueues[addr]) preQueues[addr] = [];
-    if (tx.type === 'deposit') {
-      preQueues[addr].push({ remaining: tx.assetsUsd });
-    } else {
-      let toConsume = tx.assetsUsd;
-      const q = preQueues[addr];
+    if (tx.type === 'deposit') preQueues[addr].push({ remaining: u });
+    else {
+      let toConsume = u; const q = preQueues[addr];
       while (toConsume > 0 && q.length > 0) {
         const take = Math.min(q[0].remaining, toConsume);
-        q[0].remaining -= take;
-        toConsume -= take;
+        q[0].remaining -= take; toConsume -= take;
         if (q[0].remaining <= 0) q.shift();
       }
     }
@@ -5475,80 +5575,93 @@ function computePnl(filteredTxs, allTxs, currentPositions, range) {
   const periodChron = [...filteredTxs].sort((a, b) => a.ts - b.ts);
   for (const tx of periodChron) {
     const addr = tx.vaultAddress.toLowerCase();
+    const u = parseFloat(tx.assetsRaw) / Math.pow(10, tx.decimals);
     if (!periodQueues[addr]) periodQueues[addr] = [];
-    if (tx.type === 'deposit') {
-      periodQueues[addr].push({ remaining: tx.assetsUsd });
-    } else {
-      let toConsume = tx.assetsUsd, costBasis = 0;
-      const q = periodQueues[addr];
+    if (tx.type === 'deposit') periodQueues[addr].push({ remaining: u });
+    else {
+      let toConsume = u, costBasisU = 0; const q = periodQueues[addr];
       while (toConsume > 0 && q.length > 0) {
         const take = Math.min(q[0].remaining, toConsume);
-        costBasis += take;
-        q[0].remaining -= take;
-        toConsume -= take;
+        costBasisU += take; q[0].remaining -= take; toConsume -= take;
         if (q[0].remaining <= 0) q.shift();
       }
-      periodRealisedPnl += tx.assetsUsd - costBasis;
+      const px = currentPriceByVault[addr] ?? 1;
+      periodRealisedPnl += (u - costBasisU) * px;
     }
   }
   const periodUnrealisedPnl = periodPnl - periodRealisedPnl;
-
   const roi = startValue + periodDeposited > 0
     ? (periodPnl / (startValue + periodDeposited) * 100) : 0;
 
   return {
     totalDeposited: periodDeposited,
     totalWithdrawn: periodWithdrawn,
-    netFlow: periodNetFlow,
-    realisedPnl: periodRealisedPnl,
+    netFlow:       periodNetFlow,
+    realisedPnl:   periodRealisedPnl,
     unrealisedPnl: periodUnrealisedPnl,
-    totalPnl: periodPnl,
+    totalPnl:      periodPnl,
     roi,
     totalCurrentVal: endValue,
     startValue,
     isPeriod: true,
+    fallbackToApy,
   };
 }
 
 /**
- * Original FIFO cost-basis P&L (used for ALL time range)
+ * Underlying-based FIFO P&L (used for ALL time range).
+ * Identical to USD-based FIFO for stable vaults; for non-stable vaults
+ * (WETH/wstETH/etc.) it separates vault yield from token price appreciation.
+ *
+ * @param {Object} currentUnderlyingByVault  - vault → current underlying amount
+ * @param {Object} currentPriceByVault       - vault → current asset USD price
  */
-function computePnlFIFO(txs, totalCurrentVal) {
-  const depositQueues = {};
-  let totalDeposited = 0, totalWithdrawn = 0, realisedPnl = 0;
-  const chronological = [...txs].sort((a, b) => a.ts - b.ts);
+function computePnlFIFO(txs, currentUnderlyingByVault, currentPriceByVault, totalCurrentVal) {
+  const queues = {}; // vault → [{ remaining (underlying) }]
+  let totalDeposited = 0, totalWithdrawn = 0;
+  let realisedYieldUsd = 0;
+  const chrono = [...txs].sort((a, b) => a.ts - b.ts);
 
-  for (const tx of chronological) {
+  for (const tx of chrono) {
     const addr = tx.vaultAddress.toLowerCase();
-    if (!depositQueues[addr]) depositQueues[addr] = [];
+    const u = parseFloat(tx.assetsRaw) / Math.pow(10, tx.decimals);
+    if (!queues[addr]) queues[addr] = [];
     if (tx.type === 'deposit') {
       totalDeposited += tx.assetsUsd;
-      depositQueues[addr].push({ assetsUsd: tx.assetsUsd, remaining: tx.assetsUsd });
+      queues[addr].push({ remaining: u });
     } else {
       totalWithdrawn += tx.assetsUsd;
-      let toConsume = tx.assetsUsd, costBasis = 0;
-      const q = depositQueues[addr];
+      let toConsume = u, costBasisU = 0; const q = queues[addr];
       while (toConsume > 0 && q.length > 0) {
         const take = Math.min(q[0].remaining, toConsume);
-        costBasis += take;
-        q[0].remaining -= take;
-        toConsume -= take;
+        costBasisU += take; q[0].remaining -= take; toConsume -= take;
         if (q[0].remaining <= 0) q.shift();
       }
-      realisedPnl += tx.assetsUsd - costBasis;
+      const px = currentPriceByVault[addr] ?? 1;
+      realisedYieldUsd += (u - costBasisU) * px;
     }
   }
 
-  let totalRemainingCost = 0;
-  for (const q of Object.values(depositQueues)) {
-    for (const d of q) totalRemainingCost += d.remaining;
+  // Unrealised yield = (current underlying − remaining cost basis underlying) × current price
+  let unrealisedYieldUsd = 0;
+  for (const addr of Object.keys(queues)) {
+    const remainingCost = queues[addr].reduce((s, d) => s + d.remaining, 0);
+    const currentU = currentUnderlyingByVault[addr] || 0;
+    const px = currentPriceByVault[addr] ?? 1;
+    unrealisedYieldUsd += (currentU - remainingCost) * px;
   }
-  const unrealisedPnl = totalCurrentVal - totalRemainingCost;
-  const netFlow = totalDeposited - totalWithdrawn;
-  const totalPnl = realisedPnl + unrealisedPnl;
-  const roi = totalDeposited > 0 ? (totalPnl / totalDeposited * 100) : 0;
 
-  return { totalDeposited, totalWithdrawn, netFlow, realisedPnl, unrealisedPnl, totalPnl, roi, totalCurrentVal, isPeriod: false };
+  const totalPnl = realisedYieldUsd + unrealisedYieldUsd;
+  const netFlow  = totalDeposited - totalWithdrawn;
+  const roi      = totalDeposited > 0 ? (totalPnl / totalDeposited * 100) : 0;
+
+  return {
+    totalDeposited, totalWithdrawn, netFlow,
+    realisedPnl:   realisedYieldUsd,
+    unrealisedPnl: unrealisedYieldUsd,
+    totalPnl, roi, totalCurrentVal,
+    isPeriod: false,
+  };
 }
 
 async function renderPnlTab() {
@@ -5575,14 +5688,44 @@ async function renderPnlTab() {
   renderPnlContent();
 }
 
-function renderPnlContent() {
+async function renderPnlContent() {
   const container = document.getElementById('pnl-container');
   if (!container) return;
 
   const allTx    = normaliseTx(PNL_STATE.txV1, PNL_STATE.txV2, APP.wallet);
   const filtered = filterTxByRange(allTx, PNL_STATE.range);
   const allPositions = [...APP.positions, ...APP.v2Positions.map(p => ({ vault: p.vault, state: p, assetsUsd: p.assetsUsd }))];
-  const pnl      = computePnl(filtered, allTx, allPositions, PNL_STATE.range);
+
+  // For period ranges, fetch the wallet's real historical USD value series
+  // from User.historicalState — this is what anchors startValue / endValue.
+  // ALL-time range uses underlying-based FIFO and needs no history fetch.
+  let historySnapshot = null;
+  if (PNL_STATE.range !== 'ALL' && APP.wallet) {
+    const chains = userChains();
+    if (chains.length > 0) {
+      const { startTs, endTs } = computeWindowTs(PNL_STATE.range);
+      const interval = chooseInterval(startTs, endTs);
+      const cacheKey = `${chains.slice().sort().join(',')}|${interval}|${startTs}|${endTs}`;
+      const cached   = !!PNL_STATE.historyCache[cacheKey];
+      // Show "loading history…" hint only on cold fetches (cached → instant)
+      const bar = container.querySelector('.pnl-toolbar');
+      if (bar && !cached && !document.getElementById('pnl-history-loading-hint')) {
+        const hint = document.createElement('span');
+        hint.id = 'pnl-history-loading-hint';
+        hint.style.cssText = 'font-size:11px;color:var(--text-3);margin-left:8px';
+        hint.textContent = CURRENT_LANG==='en' ? 'loading history…' : '加载历史…';
+        bar.appendChild(hint);
+      }
+      try {
+        historySnapshot = await fetchUserHistory(APP.wallet, chains, startTs, endTs);
+      } catch (err) {
+        console.warn('[PnL] history fetch failed, falling back to APY estimate:', err.message);
+      }
+      document.getElementById('pnl-history-loading-hint')?.remove();
+    }
+  }
+
+  const pnl      = computePnl(filtered, allTx, allPositions, PNL_STATE.range, historySnapshot);
 
   const isEn     = CURRENT_LANG === 'en';
   const pnlColor = (v) => v >= 0 ? 'var(--green)' : 'var(--red)';
