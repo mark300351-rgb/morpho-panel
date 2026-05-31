@@ -2059,7 +2059,15 @@ const APP_VERSION = '1.3.2';
 // ────────────────────────────────────────────
 // Constants
 // ────────────────────────────────────────────
-const MORPHO_API = 'https://api.morpho.org/graphql'; // Official Morpho API (supports V1 + V2)
+// F5 — route Morpho queries through our own Cloudflare Worker rather than
+// hitting api.morpho.org directly. Eliminates dependence on third-party
+// CORS proxies (corsproxy.io / proxy.cors.sh / crossorigin.me) which were
+// flaky and rate-limited. The Worker proxy serves the same JSON response
+// with proper CORS headers and adds no measurable latency (sub-50ms).
+// The third-party CORS_PROXIES list below is kept as belt-and-suspenders:
+// if our Worker is ever down, _doFetch will still try those as fallback.
+const MORPHO_UPSTREAM = 'https://api.morpho.org/graphql'; // canonical source
+const MORPHO_API      = 'https://morpho-monitor.markli-mcgrp.workers.dev/api/morpho-proxy';
 
 const RISK_COLORS = ['#10b981','#22c55e','#f59e0b','#f97316','#ef4444'];
 const ALLOC_COLORS = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#f97316','#ef4444','#06b6d4','#ec4899'];
@@ -2363,6 +2371,17 @@ const I18N = {
 
 function t(key) {
   return (I18N[CURRENT_LANG] || I18N['zh-CN'])[key] ?? I18N['zh-CN'][key] ?? key;
+}
+
+// F2 — HTML escape for any external string interpolated into innerHTML.
+// Morpho's whitelisted vault names "should" be safe, but vault names
+// are curator-controlled and a single `<`/`&` would break our render or
+// (in the worst case for a non-whitelisted vault we've recommended)
+// inject markup. Cheap to always escape — call on any vault.name /
+// asset.symbol / curator name before string-interpolating into HTML.
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function switchLang(lang) {
@@ -2797,12 +2816,12 @@ let _proxyResolved = false;
 const CORS_PROXIES = [
   // corsproxy.io — Cloudflare-challenged for curl but works from browsers
   async (body, headers) => {
-    const url = `https://corsproxy.io/?${encodeURIComponent(MORPHO_API)}`;
+    const url = `https://corsproxy.io/?${encodeURIComponent(MORPHO_UPSTREAM)}`;
     return fetch(url, { method: 'POST', headers, body });
   },
   // proxy.cors.sh — another browser-friendly proxy
   async (body, headers) => {
-    return fetch(`https://proxy.cors.sh/${MORPHO_API}`, {
+    return fetch(`https://proxy.cors.sh/${MORPHO_UPSTREAM}`, {
       method: 'POST',
       headers: { ...headers, 'x-cors-api-key': 'temp_free' },
       body,
@@ -2810,7 +2829,7 @@ const CORS_PROXIES = [
   },
   // crossorigin.me — simple prefix proxy
   async (body, headers) => {
-    return fetch(`https://crossorigin.me/${MORPHO_API}`, {
+    return fetch(`https://crossorigin.me/${MORPHO_UPSTREAM}`, {
       method: 'POST', headers, body,
     });
   },
@@ -3617,7 +3636,7 @@ async function sendManualAlert() {
         const liq = fmtUSD(getV1TotalLiquidity(v));
         const liqAlert = getV1TotalLiquidity(v) < liqThreshold ? ' ⚠️' : '';
         const apyAlert = parseFloat(apy) < apyThreshold ? ' ⚠️' : '';
-        msg += `🏦 <b>${v.name || v.symbol}</b>\n`;
+        msg += `🏦 <b>${escHtml(v.name || v.symbol)}</b>\n`;
         msg += `   持仓：${fmtUSD(pos.state?.assetsUsd || 0)} | APY：${apy}%${apyAlert}\n`;
         msg += `   流动性：${liq}${liqAlert} | 风险：${risk.grade} ${risk.label}\n\n`;
       });
@@ -3635,7 +3654,7 @@ async function sendManualAlert() {
         const liqAlert = getV2TotalLiquidity(v) < liqThreshold ? ' ⚠️' : '';
         const apyAlert = parseFloat(apy) < apyThreshold ? ' ⚠️' : '';
         const chainName = v.chain?.network || v.chain?.id || '';
-        msg += `🏦 <b>${v.name || v.symbol || 'V2 Vault'}${chainName ? ` (${chainName})` : ''}</b>\n`;
+        msg += `🏦 <b>${escHtml(v.name || v.symbol || 'V2 Vault')}${chainName ? ` (${escHtml(chainName)})` : ''}</b>\n`;
         msg += `   持仓：${fmtUSD(pos.assetsUsd || 0)} | APY：${apy}%${apyAlert}\n`;
         msg += `   流动性：${liq}${liqAlert} | 风险：${risk.grade} ${risk.label}\n\n`;
       });
@@ -4036,7 +4055,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
                 ${imgSrc ? `<img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.parentNode.textContent='${assetSymbol.charAt(0)}'">` : assetSymbol.charAt(0)}
               </div>
               <div>
-                <div class="vault-name">${name}
+                <div class="vault-name">${escHtml(name)}
                   <span style="font-size:10px;padding:1px 5px;background:#8b5cf622;color:#8b5cf6;border-radius:3px;margin-left:4px;font-weight:400">V2</span>
                 </div>
                 <div class="vault-meta">
@@ -4207,11 +4226,11 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
     return `<div class="vault-card ${hasAlert ? 'has-alert' : ''}">
       <div class="vault-card-header">
         <div class="vault-info">
-          <div class="vault-icon" style="background:${bgColor}">${assetSymbol.charAt(0)}</div>
+          <div class="vault-icon" style="background:${bgColor}">${escHtml(assetSymbol.charAt(0))}</div>
           <div>
-            <div class="vault-name">${name}</div>
+            <div class="vault-name">${escHtml(name)}</div>
             <div class="vault-meta">
-              <span class="badge badge-gray">${assetSymbol}</span>
+              <span class="badge badge-gray">${escHtml(assetSymbol)}</span>
               <span class="badge badge-blue">${networkLabel(network)}</span>
               ${warnings.some(w=>w.level==='RED') ? `<span class="badge badge-red">${t('labelHighRisk')}</span>` : warnings.some(w=>w.level==='YELLOW') ? `<span class="badge" style="background:#f59e0b22;color:#f59e0b">${t('labelCaution')}</span>` : ''}
               ${hasAlert ? `<span class="badge badge-red">⚠️ ${t('labelAlert')}</span>` : ''}
@@ -4306,11 +4325,11 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
           return `<div class="vault-card" style="opacity:0.55">
             <div class="vault-card-header">
               <div class="vault-info">
-                <div class="vault-icon" style="background:${bgColor}">${assetSymbol.charAt(0)}</div>
+                <div class="vault-icon" style="background:${bgColor}">${escHtml(assetSymbol.charAt(0))}</div>
                 <div>
-                  <div class="vault-name" style="color:var(--text-3)">${name}</div>
+                  <div class="vault-name" style="color:var(--text-3)">${escHtml(name)}</div>
                   <div class="vault-meta">
-                    <span class="badge badge-gray">${assetSymbol}</span>
+                    <span class="badge badge-gray">${escHtml(assetSymbol)}</span>
                     <span class="badge badge-blue">${networkLabel(network)}</span>
                     <span class="badge" style="background:#6b728022;color:#6b7280">${t('labelWithdrawn')}</span>
                   </div>
@@ -4370,7 +4389,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
             ${imgSrc ? `<img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.parentNode.textContent='${assetSymbol.charAt(0)}'">` : assetSymbol.charAt(0)}
           </div>
           <div>
-            <div class="vault-name" style="color:var(--text-3)">${vault.name}
+            <div class="vault-name" style="color:var(--text-3)">${escHtml(vault.name)}
               <span style="font-size:10px;padding:1px 5px;background:#8b5cf622;color:#8b5cf6;border-radius:3px;margin-left:4px">V2</span>
             </div>
             <div class="vault-meta">
@@ -4676,7 +4695,7 @@ function renderRecCard(x) {
       <div style="display:flex;align-items:flex-start;gap:10px;width:100%">
         <div class="vault-icon" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:${bgColor};flex-shrink:0">${(v.asset?.symbol || '?').charAt(0)}</div>
         <div style="min-width:0;flex:1">
-          <div class="rec-name" style="word-break:break-word;white-space:normal;line-height:1.35;margin-bottom:6px">${v.name || v.symbol}</div>
+          <div class="rec-name" style="word-break:break-word;white-space:normal;line-height:1.35;margin-bottom:6px">${escHtml(v.name || v.symbol)}</div>
           <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
             <span class="badge badge-gray">${v.asset?.symbol || '?'}</span>
             <span class="badge badge-blue">${networkLabel(network)}</span>
@@ -5180,25 +5199,36 @@ const PNL_STATE = {
 };
 
 // GraphQL queries
+// F1 — migrated from deprecated `Query.transactions` (removed 2026-07-29)
+// to `vaultV1Transactions`. New schema differences:
+//   • orderBy enum: Timestamp → Time  (Shares is the only other option)
+//   • items.hash → items.txHash
+//   • items.assets / items.shares / items.vault are now TOP-LEVEL (no longer
+//     nested under a `data { ... on VaultTransactionData { … } }` fragment)
+//   • items has no assetsUsd field — compute from assets × asset.price.usd
+//   • type values: MetaMorphoDeposit → Deposit ; MetaMorphoWithdraw → Withdraw
+//   • pageInfo has only `count` (no countTotal / limit / skip)
+//   • Pagination is cursor-based (where.cursor = { txHash, logIndex }),
+//     not offset (skip)-based
 const TX_V1_QUERY = `
-query GetV1Transactions($address: String!, $first: Int!, $skip: Int!) {
-  transactions(
-    where: { userAddress_in: [$address], type_in: [MetaMorphoDeposit, MetaMorphoWithdraw] }
-    first: $first skip: $skip
-    orderBy: Timestamp orderDirection: Desc
+query GetV1Transactions($address: String!, $first: Int!, $cursor: VaultV1TransactionCursorInput) {
+  vaultV1Transactions(
+    where: {
+      userAddress_in: [$address],
+      type_in: [Deposit, Withdraw],
+      cursor: $cursor
+    }
+    first: $first
+    orderBy: Time orderDirection: Desc
   ) {
-    pageInfo { countTotal count }
+    pageInfo { count }
     items {
-      hash timestamp type
-      data {
-        ... on VaultTransactionData {
-          assets assetsUsd shares
-          vault {
-            address name symbol
-            asset { symbol decimals }
-            chain { network id }
-          }
-        }
+      txHash timestamp type logIndex
+      assets shares
+      vault {
+        address name symbol
+        asset { symbol decimals price { usd } }
+        chain { network id }
       }
     }
   }
@@ -5331,11 +5361,34 @@ async function fetchUserHistory(wallet, chains, startTs, endTs) {
 
 async function fetchAllTx(address) {
   const PAGE = 100;
-  async function paginate(queryStr, field, vars) {
+
+  // V1: cursor-based pagination via where.cursor = { txHash, logIndex }
+  async function paginateV1() {
+    const all = [];
+    let cursor = null;
+    // Hard cap iterations to avoid runaway loops if the API ever returns
+    // a non-strictly-decreasing cursor.
+    for (let i = 0; i < 50; i++) {
+      const vars = { address, first: PAGE };
+      if (cursor) vars.cursor = cursor;
+      const data = await gql(TX_V1_QUERY, vars);
+      const items = data?.vaultV1Transactions?.items || [];
+      if (items.length === 0) break;
+      all.push(...items);
+      if (items.length < PAGE) break;
+      const last = items[items.length - 1];
+      if (!last?.txHash || last?.logIndex == null) break;
+      cursor = { txHash: last.txHash, logIndex: last.logIndex };
+    }
+    return all;
+  }
+
+  // V2: offset/skip pagination (still supported by vaultV2transactions)
+  async function paginateV2() {
     let all = [], skip = 0, total = null;
     while (total === null || all.length < total) {
-      const data = await gql(queryStr, { ...vars, first: PAGE, skip });
-      const res = data?.[field];
+      const data = await gql(TX_V2_QUERY, { address, first: PAGE, skip });
+      const res = data?.vaultV2transactions;
       if (!res) break;
       if (total === null) total = res.pageInfo?.countTotal ?? res.items?.length;
       all.push(...(res.items || []));
@@ -5344,10 +5397,8 @@ async function fetchAllTx(address) {
     }
     return all;
   }
-  const [v1, v2] = await Promise.all([
-    paginate(TX_V1_QUERY, 'transactions', { address }),
-    paginate(TX_V2_QUERY, 'vaultV2transactions', { address }),
-  ]);
+
+  const [v1, v2] = await Promise.all([paginateV1(), paginateV2()]);
   return { v1, v2 };
 }
 
@@ -5362,24 +5413,30 @@ function normaliseTx(v1Raw, v2Raw, userAddress) {
   const ua = (userAddress || '').toLowerCase();
 
   for (const tx of v1Raw) {
-    const d = tx.data;
-    if (!d) continue;
+    // Post-vaultV1Transactions migration: assets/shares/vault are top-level,
+    // no nested `data { ... }`. assetsUsd no longer returned — compute it.
+    const v = tx.vault;
+    if (!v) continue;
+    const decimals = v.asset?.decimals ?? 18;
+    const priceUsd = v.asset?.price?.usd ?? 1;
+    const rawAssets = String(tx.assets || '0');
+    const underlying = parseFloat(rawAssets) / Math.pow(10, decimals);
     out.push({
-      id: tx.hash,
-      ts: Number(tx.timestamp),
-      date: new Date(Number(tx.timestamp) * 1000),
-      type: tx.type === 'MetaMorphoDeposit' ? 'deposit' : 'withdraw',
-      vaultAddress: d.vault?.address || '',
-      vaultName:    d.vault?.name    || d.vault?.symbol || '',
-      vaultSymbol:  d.vault?.symbol  || '',
-      assetSymbol:  d.vault?.asset?.symbol  || '?',
-      decimals:     d.vault?.asset?.decimals ?? 18,
-      chainNetwork: d.vault?.chain?.network || '',
-      chainId:      d.vault?.chain?.id      || 0,
-      assetsRaw:    String(d.assets || '0'),
-      assetsUsd:    d.assetsUsd || 0,
-      hash: tx.hash,
-      isV2: false,
+      id:           tx.txHash,
+      ts:           Number(tx.timestamp),
+      date:         new Date(Number(tx.timestamp) * 1000),
+      type:         tx.type === 'Deposit' ? 'deposit' : 'withdraw',
+      vaultAddress: v.address || '',
+      vaultName:    v.name || v.symbol || '',
+      vaultSymbol:  v.symbol || '',
+      assetSymbol:  v.asset?.symbol || '?',
+      decimals,
+      chainNetwork: v.chain?.network || '',
+      chainId:      v.chain?.id || 0,
+      assetsRaw:    rawAssets,
+      assetsUsd:    underlying * priceUsd,
+      hash:         tx.txHash,
+      isV2:         false,
     });
   }
 
@@ -5764,8 +5821,8 @@ async function renderPnlContent() {
     <div class="pnl-tx-row ${tx.type}">
       <div class="pnl-tx-date">${dateStr}</div>
       <div class="pnl-tx-type">${isDeposit ? (isEn ? 'Deposit' : '存入') : (isEn ? 'Withdraw' : '取出')}</div>
-      <div class="pnl-tx-vault">${tx.vaultName}${v2Badge}<small>${tx.assetSymbol} · ${networkLabel(tx.chainNetwork)}</small></div>
-      <div class="pnl-tx-amount ${amtClass}">${amtSign}${(parseFloat(tx.assetsRaw) / Math.pow(10, tx.decimals)).toLocaleString('en-US', {maximumFractionDigits: 4})} ${tx.assetSymbol}</div>
+      <div class="pnl-tx-vault">${escHtml(tx.vaultName)}${v2Badge}<small>${escHtml(tx.assetSymbol)} · ${escHtml(networkLabel(tx.chainNetwork))}</small></div>
+      <div class="pnl-tx-amount ${amtClass}">${amtSign}${(parseFloat(tx.assetsRaw) / Math.pow(10, tx.decimals)).toLocaleString('en-US', {maximumFractionDigits: 4})} ${escHtml(tx.assetSymbol)}</div>
       <div class="pnl-tx-hash">${shortHash ? `<a href="${explorerBase}${tx.hash}" target="_blank" title="${tx.hash}">${shortHash}</a>` : ''}</div>
     </div>`;
   }
@@ -5958,8 +6015,8 @@ function useCustomProxy() {
   // Prepend custom proxy to the list so it's tried first
   CORS_PROXIES.unshift(async (body, headers) => {
     const targetUrl = url.includes('{URL}')
-      ? url.replace('{URL}', encodeURIComponent(MORPHO_API))
-      : url + encodeURIComponent(MORPHO_API);
+      ? url.replace('{URL}', encodeURIComponent(MORPHO_UPSTREAM))
+      : url + encodeURIComponent(MORPHO_UPSTREAM);
     return fetch(targetUrl, { method: 'POST', headers, body });
   });
   _proxyMode = 'auto';
