@@ -3122,9 +3122,47 @@ const CURATOR_MAP = {
   '0x6788c8ad65E85CCa7224a0B46D061EF7D81F9Da5': { name: 'ALPHA', verified: true },
 };
 
+// F8 — runtime cache populated by fetchCurators() at boot. Keeps the
+// hardcoded CURATOR_MAP above as a fallback for offline/cold-load cases
+// and for any names not yet indexed by the API.
+const CURATOR_DYNAMIC = {}; // lower-case address → { name, verified }
+
+const CURATORS_QUERY = `
+query GetCurators {
+  curators(first: 200) {
+    items {
+      name verified
+      addresses { address }
+    }
+  }
+}`;
+
+let _curatorsFetched = false;
+async function fetchCurators() {
+  if (_curatorsFetched) return;
+  _curatorsFetched = true; // set before await so concurrent callers no-op
+  try {
+    const data = await gql(CURATORS_QUERY);
+    const items = data?.curators?.items || [];
+    let count = 0;
+    for (const c of items) {
+      for (const a of (c.addresses || [])) {
+        if (!a?.address) continue;
+        CURATOR_DYNAMIC[a.address.toLowerCase()] = { name: c.name, verified: !!c.verified };
+        count++;
+      }
+    }
+    console.log(`[curators] loaded ${items.length} curators (${count} addresses) from Morpho API`);
+  } catch (e) {
+    _curatorsFetched = false; // allow retry on next call
+    console.warn('[curators] fetch failed, falling back to hardcoded map:', e.message);
+  }
+}
+
 function getCuratorName(addr) {
   if (!addr) return t('unknownCurator');
   const lower = addr.toLowerCase();
+  if (CURATOR_DYNAMIC[lower]) return CURATOR_DYNAMIC[lower].name;
   for (const [k, v] of Object.entries(CURATOR_MAP)) {
     if (k.toLowerCase() === lower) return v.name;
   }
@@ -3135,6 +3173,7 @@ function getCuratorName(addr) {
 function isVerifiedCurator(addr) {
   if (!addr) return false;
   const lower = addr.toLowerCase();
+  if (CURATOR_DYNAMIC[lower]) return CURATOR_DYNAMIC[lower].verified;
   for (const [k, v] of Object.entries(CURATOR_MAP)) {
     if (k.toLowerCase() === lower) return v.verified;
   }
@@ -6212,6 +6251,9 @@ document.addEventListener('click', function(e) {
 // Init
 // ────────────────────────────────────────────
 loadSettings();
+// F8 — load curator address → display-name map from Morpho API (fire-and-forget).
+// Cached for the session; falls back to hardcoded CURATOR_MAP on failure.
+fetchCurators();
 
 // Set default date range for yield curve (today and 30 days ago)
 (function initDatePickers() {
