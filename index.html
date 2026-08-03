@@ -1092,6 +1092,80 @@ select option { background: var(--bg-2); }
   font-family: 'SF Mono','Menlo','Monaco',monospace;
 }
 .gov-timelock { font-size: 11px; opacity: .8; }
+
+/* Rewritten governance drawer — plain-language layout.
+   Roles get an inline explainer (<em>) under the label; timelocks are
+   grouped by delay with zero-delay shown first as a risk callout. */
+.gov-section { padding: 4px 0 2px; }
+.gov-section + .gov-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+.gov-section-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  letter-spacing: .3px;
+  margin-bottom: 6px;
+}
+.gov-note {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.55;
+  margin-bottom: 8px;
+}
+.gov-key em {
+  display: block;
+  font-style: normal;
+  font-size: 10px;
+  color: var(--text-3);
+  opacity: .85;
+  margin-top: 1px;
+  line-height: 1.4;
+}
+.gov-tl-group {
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-3);
+}
+.gov-tl-group.instant {
+  border-color: rgba(220,38,38,0.35);
+  background: rgba(220,38,38,0.05);
+}
+.gov-tl-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+.gov-tl-badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.gov-tl-badge.risk { background: rgba(220,38,38,0.14); color: var(--red); }
+.gov-tl-badge.safe { background: rgba(5,150,105,0.12);  color: var(--green); }
+.gov-tl-hint { font-size: 10px; color: var(--text-3); }
+.gov-tl-list {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1px 12px;
+}
+.gov-tl-list li {
+  font-size: 11px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+.pending-what { font-size: 12px; color: var(--text-1); font-weight: 500; }
+.pending-when { font-size: 10px; color: var(--text-3); margin-top: 1px; font-variant-numeric: tabular-nums; }
 .pending-list {
   display: flex;
   flex-direction: column;
@@ -3642,6 +3716,34 @@ function isVerifiedCurator(addr) {
 // status, and any pending config proposals. Data comes from the V2 query
 // governance surface added in Sprint 2.1.
 // ────────────────────────────────────────────
+// ────────────────────────────────────────────
+// Morpho app URL builder
+// app.morpho.org is an SPA whose router expects /{chain-slug}/{kind}/{id}.
+// Earlier code used /vault/{addr}?network={name}, which always rendered
+// Morpho's "Not Found" page. Slugs are NOT just lowercased network names
+// ("Arbitrum One" → "arbitrum", "OP Mainnet" → "optimism"), so they're
+// mapped by chainId. Verified live: ethereum, arbitrum, market → variable.
+// ────────────────────────────────────────────
+const MORPHO_CHAIN_SLUG = {
+  1: 'ethereum', 8453: 'base', 42161: 'arbitrum', 137: 'polygon',
+  10: 'optimism', 130: 'unichain', 480: 'worldchain', 143: 'monad',
+  999: 'hyperevm', 747474: 'katana', 988: 'stable', 4217: 'tempo',
+};
+function morphoChainSlug(chainId, networkName) {
+  if (chainId && MORPHO_CHAIN_SLUG[chainId]) return MORPHO_CHAIN_SLUG[chainId];
+  // Fallback for chains added after this map: strip suffixes Morpho drops
+  return String(networkName || 'ethereum').toLowerCase()
+    .replace(/\s+(one|mainnet|chain)$/,'').replace(/\s+/g,'');
+}
+function morphoVaultUrl(address, chainId, networkName) {
+  if (!address) return null;
+  return `https://app.morpho.org/${morphoChainSlug(chainId, networkName)}/vault/${address}`;
+}
+function morphoMarketUrl(marketId, chainId, networkName) {
+  if (!marketId) return null;
+  return `https://app.morpho.org/${morphoChainSlug(chainId, networkName)}/market/${marketId}`;
+}
+
 function _govShortAddr(a) { return a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '—'; }
 function _govFmtDur(seconds) {
   const s = Number(seconds) || 0;
@@ -3650,6 +3752,35 @@ function _govFmtDur(seconds) {
   if (s < 86400) return `${(s / 3600).toFixed(1)}h`;
   return `${(s / 86400).toFixed(1)}d`;
 }
+// Contract function name → plain-language description of what the change
+// actually means for a depositor. The raw Solidity names (setIsAllocator,
+// setForceDeallocatePenalty, abdicate…) told the user nothing, which is why
+// the first version of this drawer was unreadable.
+const GOV_ACTION_ZH = {
+  setisallocator:              '换调仓执行人',
+  setreceivesharesgate:        '改「谁能收到份额」的限制',
+  setsendsharesgate:           '改「谁能转出份额」的限制',
+  setreceiveassetsgate:        '改「谁能存入」的限制',
+  setsendassetsgate:           '改「谁能取出」的限制',
+  setadapterregistry:          '换投放渠道的白名单来源',
+  addadapter:                  '新增一个投放渠道',
+  removeadapter:               '移除一个投放渠道',
+  increasetimelock:            '延长改动缓冲期',
+  decreasetimelock:            '缩短改动缓冲期',
+  setperformancefee:           '改绩效费',
+  setmanagementfee:            '改管理费',
+  setperformancefeerecipient:  '改绩效费收款地址',
+  setmanagementfeerecipient:   '改管理费收款地址',
+  increaseabsolutecap:         '提高单个市场的投放上限',
+  increaserelativecap:         '提高单个市场的占比上限',
+  setforcedeallocatepenalty:   '改强制赎回的罚金比例',
+  abdicate:                    '永久放弃某项权限（不可逆）',
+};
+function govActionLabel(fnName) {
+  const key = String(fnName || '').toLowerCase();
+  return GOV_ACTION_ZH[key] || fnName || '未知操作';
+}
+
 function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
   const owner        = vault.owner?.address || '';
   const curatorAddr  = vault.curator?.address || '';
@@ -3664,42 +3795,99 @@ function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
     ? curatorsList.map(c => `<span class="badge badge-blue" style="margin-right:4px">${c.verified ? '✓ ' : ''}${escHtml(c.name)}</span>`).join('')
     : `<code>${escHtml(_govShortAddr(curatorAddr))}</code>`;
 
-  const timelocksHTML = timelocks.length > 0
-    ? timelocks
-        .slice()
-        .sort((a, b) => Number(b.duration) - Number(a.duration))
-        .map(t => `<span class="gov-timelock" title="${escHtml(t.functionName)}"><code>${escHtml(t.functionName)}</code>: ${_govFmtDur(t.duration)}</span>`)
-        .join(' ')
-    : '<span style="opacity:.55">全部已 abdicate（无法再更改）</span>';
+  // Group timelocks by duration. Zero-delay entries come FIRST because
+  // "the curator can do this instantly, with no chance for you to exit"
+  // is the actual risk signal a depositor needs — burying it in a
+  // duration-sorted list was the main flaw of the first version.
+  const byDuration = new Map();
+  for (const t of timelocks) {
+    const d = Number(t.duration) || 0;
+    if (!byDuration.has(d)) byDuration.set(d, []);
+    byDuration.get(d).push(govActionLabel(t.functionName));
+  }
+  const durationGroups = [...byDuration.entries()].sort((a, b) => a[0] - b[0]);
+
+  const timelockGroupsHTML = durationGroups.length === 0
+    ? `<div class="gov-note">所有权限都已永久放弃 — curator 无法再改动这个 Vault 的任何参数。</div>`
+    : durationGroups.map(([dur, actions]) => {
+        const instant = dur === 0;
+        return `
+        <div class="gov-tl-group ${instant ? 'instant' : 'buffered'}">
+          <div class="gov-tl-head">
+            ${instant
+              ? '<span class="gov-tl-badge risk">⚠️ 立即生效</span><span class="gov-tl-hint">没有缓冲期，你来不及先撤出</span>'
+              : `<span class="gov-tl-badge safe">🛡 ${_govFmtDur(dur)} 后生效</span><span class="gov-tl-hint">提前公示，你有时间决定是否撤出</span>`}
+          </div>
+          <ul class="gov-tl-list">${actions.map(a => `<li>${escHtml(a)}</li>`).join('')}</ul>
+        </div>`;
+      }).join('');
 
   const pendingHTML = pendingConfigs.length > 0
-    ? `<div class="gov-row"><span class="gov-key">Pending 提案</span><span class="gov-val"><div class="pending-list">${
+    ? `<div class="gov-section">
+         <div class="gov-section-title">⏳ 已提交、等待生效的改动</div>
+         <div class="pending-list">${
         pendingConfigs.slice(0, 8).map(pc => {
           const validAtMs = Number(pc.validAt) * 1000;
           const dh = Math.round((validAtMs - nowMs) / 3600_000);
-          const timeStr = dh < 0 ? `${-dh}h 前已到期 · 可执行` :
-                          dh < 24 ? `${dh}h 后生效` :
-                          `${Math.round(dh / 24)}d 后生效`;
+          const timeStr = dh < 0 ? `已到期 · 随时可执行` :
+                          dh < 24 ? `${dh} 小时后生效` :
+                          `${Math.round(dh / 24)} 天后生效`;
+          const dateStr = new Date(validAtMs).toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
           const urgent = dh < 24;
-          return `<div class="pending-item ${urgent ? 'urgent' : ''}"><code>${escHtml(pc.functionName)}</code> · ${escHtml(timeStr)}</div>`;
+          return `<div class="pending-item ${urgent ? 'urgent' : ''}">
+            <div class="pending-what">${escHtml(govActionLabel(pc.functionName))}</div>
+            <div class="pending-when">${escHtml(timeStr)} · ${escHtml(dateStr)}</div>
+          </div>`;
         }).join('')
-      }${pendingConfigs.length > 8 ? `<div style="opacity:.55;font-size:11px">+${pendingConfigs.length - 8} more</div>` : ''}</div></span></div>`
+      }${pendingConfigs.length > 8 ? `<div style="opacity:.55;font-size:11px">还有 ${pendingConfigs.length - 8} 项</div>` : ''}</div>
+       </div>`
     : '';
 
   return `
   <details class="vault-governance">
     <summary>
-      <span>🏛 治理</span>
-      ${pendingConfigs.length > 0 ? `<span class="badge" style="background:#f9731622;color:#f97316;margin-left:6px">${pendingConfigs.length} pending</span>` : ''}
+      <span>🏛 谁能改动这个 Vault</span>
+      ${pendingConfigs.length > 0 ? `<span class="badge" style="background:#f9731622;color:#f97316;margin-left:6px">${pendingConfigs.length} 项待生效</span>` : ''}
     </summary>
     <div class="gov-body">
-      <div class="gov-row"><span class="gov-key">Owner</span><span class="gov-val"><code>${escHtml(_govShortAddr(owner))}</code></span></div>
-      <div class="gov-row"><span class="gov-key">Curator</span><span class="gov-val">${curatorChips}</span></div>
-      <div class="gov-row"><span class="gov-key">Allocators (${allocators.length})</span><span class="gov-val">${allocators.length ? allocators.map(a => `<code>${escHtml(_govShortAddr(a))}</code>`).join(' ') : '<span style="opacity:.55">—</span>'}</span></div>
-      <div class="gov-row"><span class="gov-key">Sentinels (${sentinels.length})</span><span class="gov-val">${sentinels.length ? sentinels.map(a => `<code>${escHtml(_govShortAddr(a))}</code>`).join(' ') : '<span style="opacity:.55">—</span>'}</span></div>
-      <div class="gov-row"><span class="gov-key">Timelocks 生效中</span><span class="gov-val">${timelocksHTML}</span></div>
-      <div class="gov-row"><span class="gov-key">Listing</span><span class="gov-val">${latestListing ? `<code>${escHtml(latestListing.action)}</code> @ ${new Date(Number(latestListing.timestamp) * 1000).toLocaleDateString()}` : '<span style="opacity:.55">—</span>'}</span></div>
+
+      <div class="gov-section">
+        <div class="gov-section-title">相关角色</div>
+        <div class="gov-row">
+          <span class="gov-key">策略管理人<em>决定钱投到哪些市场</em></span>
+          <span class="gov-val">${curatorChips}</span>
+        </div>
+        <div class="gov-row">
+          <span class="gov-key">最高权限持有者<em>可更换管理人和哨兵</em></span>
+          <span class="gov-val"><code>${escHtml(_govShortAddr(owner))}</code></span>
+        </div>
+        <div class="gov-row">
+          <span class="gov-key">调仓执行<em>日常在各市场之间搬钱</em></span>
+          <span class="gov-val">${allocators.length ? `${allocators.length} 个地址 ` + allocators.map(a => `<code>${escHtml(_govShortAddr(a))}</code>`).join(' ') : '<span style="opacity:.55">无</span>'}</span>
+        </div>
+        <div class="gov-row">
+          <span class="gov-key">风控哨兵<em>出事时可紧急撤资、拦下提案</em></span>
+          <span class="gov-val">${sentinels.length ? `${sentinels.length} 个地址 ` + sentinels.map(a => `<code>${escHtml(_govShortAddr(a))}</code>`).join(' ') : '<span style="opacity:.55">无 — 无人可紧急干预</span>'}</span>
+        </div>
+      </div>
+
+      <div class="gov-section">
+        <div class="gov-section-title">改动多久后才生效</div>
+        <div class="gov-note">缓冲期越长越安全：管理人提交改动后必须等待，期间你可以先把钱取出来。</div>
+        ${timelockGroupsHTML}
+      </div>
+
       ${pendingHTML}
+
+      <div class="gov-section">
+        <div class="gov-row">
+          <span class="gov-key">Morpho 官方状态</span>
+          <span class="gov-val">${latestListing
+            ? `${latestListing.action === 'Added' ? '✅ 已收录' : `⚠️ ${escHtml(latestListing.action)}`}（${new Date(Number(latestListing.timestamp) * 1000).toLocaleDateString('zh-CN')} 起）`
+            : '<span style="opacity:.55">—</span>'}</span>
+        </div>
+      </div>
+
     </div>
   </details>`;
 }
@@ -4032,6 +4220,7 @@ function checkAlerts(positions) {
         vault: name,
         vaultAddress: (vault.address || '').toLowerCase(),
         chainNetwork: vault.chain?.network || '',
+        chainId:      vault.chain?.id || 0,
         fingerprint: fp,
         metric, value,
         time: new Date(),
@@ -5161,8 +5350,7 @@ function ignoreAlert(fp) {
 
 function alertResolveUrl(alert) {
   if (!alert.vaultAddress) return null;
-  const network = (alert.chainNetwork || 'Ethereum').toLowerCase();
-  return `https://app.morpho.org/vault/${alert.vaultAddress}?network=${network}`;
+  return morphoVaultUrl(alert.vaultAddress, alert.chainId, alert.chainNetwork);
 }
 
 function renderAlerts() {
@@ -5393,7 +5581,7 @@ function renderRecCard(x) {
       </div>
     </div>` : '';
 
-  return `<div class="rec-card" onclick="window.open('https://app.morpho.org/vault?vault=${v.address}&network=${network}','_blank')">
+  return `<div class="rec-card" onclick="window.open('${morphoVaultUrl(v.address, v.chain?.id, network)}','_blank')">
     ${whyBadge}
     <div class="rec-header">
       <div style="display:flex;align-items:flex-start;gap:10px;width:100%">
@@ -5920,7 +6108,7 @@ function renderGovernanceTab() {
     const v = p.vault;
     if (!v) continue;
     const network = (v.chain?.network || 'Ethereum').toLowerCase();
-    const morphoUrl = `https://app.morpho.org/vault/${v.address}?network=${network}`;
+    const morphoUrl = morphoVaultUrl(v.address, v.chain?.id, v.chain?.network);
     const curators = v.curators?.items || [];
     const sentinelCount = (v.sentinels || []).length;
     const timelockCount = (v.timelocks || []).filter(t => !t.abdicatedAt).length;
