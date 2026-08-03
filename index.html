@@ -2529,11 +2529,11 @@ const I18N = {
     govOwner:'最高权限持有者', govOwnerDesc:'可更换管理人和哨兵',
     govAllocator:'调仓执行', govAllocatorDesc:'日常在各市场之间搬钱',
     govSentinel:'风控哨兵', govSentinelDesc:'出事时可紧急撤资、拦下提案',
-    govAddrCount:'个地址', govNone:'无', govNoSentinel:'无 — 无人可紧急干预',
+    govAddrCount:'个地址', govAddrCountOne:'个地址', govNone:'无', govNoSentinel:'无 — 无人可紧急干预',
     govDelayTitle:'改动多久后才生效',
     govDelayNote:'缓冲期越长越安全：管理人提交改动后必须等待，期间你可以先把钱取出来。',
     govInstant:'立即生效', govInstantHint:'没有缓冲期，你来不及先撤出',
-    govAfterTpl:'{dur} 后生效', govBufferedHint:'提前公示，你有时间决定是否撤出',
+    govAfterTpl:'{dur}后生效', govBufferedHint:'提前公示，你有时间决定是否撤出',
     govAllAbdicated:'所有权限都已永久放弃 — 管理人无法再改动这个 Vault 的任何参数。',
     govPendingTitle:'已提交、等待生效的改动', govPendingMoreTpl:'还有 {n} 项',
     govListingStatus:'Morpho 官方状态', govListed:'已收录', govSinceTpl:'（{date} 起）',
@@ -2650,11 +2650,11 @@ const I18N = {
     govOwner:'最高權限持有者', govOwnerDesc:'可更換管理人和哨兵',
     govAllocator:'調倉執行', govAllocatorDesc:'日常在各市場之間搬錢',
     govSentinel:'風控哨兵', govSentinelDesc:'出事時可緊急撤資、攔下提案',
-    govAddrCount:'個地址', govNone:'無', govNoSentinel:'無 — 無人可緊急干預',
+    govAddrCount:'個地址', govAddrCountOne:'個地址', govNone:'無', govNoSentinel:'無 — 無人可緊急干預',
     govDelayTitle:'改動多久後才生效',
     govDelayNote:'緩衝期越長越安全：管理人提交改動後必須等待，期間你可以先把錢取出來。',
     govInstant:'立即生效', govInstantHint:'沒有緩衝期，你來不及先撤出',
-    govAfterTpl:'{dur} 後生效', govBufferedHint:'提前公示，你有時間決定是否撤出',
+    govAfterTpl:'{dur}後生效', govBufferedHint:'提前公示，你有時間決定是否撤出',
     govAllAbdicated:'所有權限都已永久放棄 — 管理人無法再改動這個 Vault 的任何參數。',
     govPendingTitle:'已提交、等待生效的改動', govPendingMoreTpl:'還有 {n} 項',
     govListingStatus:'Morpho 官方狀態', govListed:'已收錄', govSinceTpl:'（{date} 起）',
@@ -2770,7 +2770,7 @@ const I18N = {
     govOwner:'Owner', govOwnerDesc:'Can replace the curator and sentinels',
     govAllocator:'Allocators', govAllocatorDesc:'Move funds between markets day to day',
     govSentinel:'Sentinels', govSentinelDesc:'Can pull funds and veto proposals in an emergency',
-    govAddrCount:'addresses', govNone:'None', govNoSentinel:'None — nobody can intervene in an emergency',
+    govAddrCount:'addresses', govAddrCountOne:'address', govNone:'None', govNoSentinel:'None — nobody can intervene in an emergency',
     govDelayTitle:'How long before changes take effect',
     govDelayNote:'A longer delay is safer: after the curator submits a change they must wait, and you can withdraw during that window.',
     govInstant:'Takes effect immediately', govInstantHint:'No delay — no time for you to exit first',
@@ -3924,7 +3924,7 @@ function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
   const durationGroups = [...byDuration.entries()].sort((a, b) => a[0] - b[0]);
 
   const locale = CURRENT_LANG === 'en' ? 'en-US' : CURRENT_LANG;
-  const addrList = arr => `${arr.length} ${t('govAddrCount')} ` +
+  const addrList = arr => `${arr.length} ${t(arr.length === 1 ? 'govAddrCountOne' : 'govAddrCount')} ` +
     arr.map(a => `<code>${escHtml(_govShortAddr(a))}</code>`).join(' ');
 
   const timelockGroupsHTML = durationGroups.length === 0
