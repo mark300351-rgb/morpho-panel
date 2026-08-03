@@ -582,6 +582,70 @@ select option { background: var(--bg-2); }
   opacity: 0.6;
 }
 
+/* Sprint 1.2 — pulse-highlight for deep-linked vault card (from Telegram alert) */
+.vault-card.pulse-highlight {
+  animation: cardPulse 2.4s cubic-bezier(.4,0,.2,1);
+  border-radius: 12px;
+  box-shadow: 0 0 0 3px rgba(224,92,0,0.35);
+  position: relative;
+  z-index: 2;
+}
+@keyframes cardPulse {
+  0%   { box-shadow: 0 0 0 0   rgba(224,92,0,0.7); }
+  40%  { box-shadow: 0 0 0 16px rgba(224,92,0,0);   }
+  100% { box-shadow: 0 0 0 3px  rgba(224,92,0,0.35); }
+}
+
+/* Sprint 1.6 — tabular figures for all numeric values so digits align vertically */
+.stat-value,
+.metric-value,
+.position-usd,
+.pnl-summary-value,
+.pnl-tx-amount,
+#stat-total,
+#stat-apy,
+#stat-alerts,
+.vault-metric-value,
+[data-numeric] {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* Sprint 1.7 — Dark mode via prefers-color-scheme (Fire & Earth — Night Theme).
+   Palette darkens backgrounds to deep-warm blacks while keeping the fire-orange
+   accent recognizable. Text/border ratios tuned for WCAG AA on both modes. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-0: #0b0906;
+    --bg-1: #12100c;
+    --bg-2: #191510;
+    --bg-3: #221b13;
+    --bg-card: #12100c;
+    --bg-hover: #1c1710;
+    --border: #3a2c1c;
+    --border-light: #5a4128;
+    --text-1: #f5eee4;
+    --text-2: #d4b896;
+    --text-3: #8b6a48;
+    --blue: #f97316;
+    --blue-dark: #ea580c;
+    --blue-glow: rgba(249,115,22,0.22);
+    --purple: #d97706;
+    --green: #10b981;
+    --green-dark: #059669;
+    --green-glow: rgba(16,185,129,0.16);
+    --yellow: #f59e0b;
+    --orange: #fb923c;
+    --red: #f87171;
+    --red-glow: rgba(248,113,113,0.18);
+    --morpho: #f97316;
+    --fire-bright: #fb923c;
+    --fire-deep: #ea580c;
+    --ember: #b45309;
+    --earth: #92400e;
+  }
+}
+
 .vault-card-header {
   padding: 18px 22px 14px;
   display: flex;
@@ -902,6 +966,35 @@ select option { background: var(--bg-2); }
 
 .alert-desc { font-size: 12px; color: var(--text-2); }
 .alert-time { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+/* Sprint 1.3 — alert action row (去处理 / 延迟 / 忽略) */
+.alert-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.alert-btn {
+  font-size: 11px;
+  font-weight: 400;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text-2);
+  cursor: pointer;
+  text-decoration: none;
+  font-family: inherit;
+  transition: background .12s, color .12s, border-color .12s;
+  line-height: 1.4;
+}
+.alert-btn:hover { background: var(--bg-hover); color: var(--text-1); border-color: var(--border-light); }
+.alert-btn.primary {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue-dark);
+}
+.alert-btn.primary:hover { background: var(--blue-dark); color: #fff; }
 
 /* ===========================
    Recommendation Cards
@@ -2929,28 +3022,70 @@ function isNetworkOrCorsError(err) {
 // Works for any underlying asset (USDC/WETH/...) because USD price is
 // inferred from the API's existing assetsUsd field.
 // ────────────────────────────────────────────
-// publicnode works reliably from browsers (CORS-friendly). llamarpc rate-limits curl & some browsers.
+// Sprint 1.5 — multi-RPC per chain. Promise.any picks the fastest live response;
+// single-provider outage (publicnode rate-limit, alchemy public down) no longer
+// silently breaks LIVE mode. 8s hard timeout per attempt via AbortController.
 const LIVE_RPC = {
-  1:     'https://ethereum-rpc.publicnode.com',   // Ethereum
-  8453:  'https://base-rpc.publicnode.com',       // Base
-  42161: 'https://arbitrum-one-rpc.publicnode.com', // Arbitrum
-  10:    'https://optimism-rpc.publicnode.com',   // OP Mainnet
-  137:   'https://polygon-bor-rpc.publicnode.com',// Polygon
-  130:   'https://unichain-rpc.publicnode.com',   // Unichain
-  480:   'https://worldchain-mainnet.g.alchemy.com/public', // World Chain
+  1: [
+    'https://ethereum-rpc.publicnode.com',
+    'https://eth.llamarpc.com',
+    'https://rpc.ankr.com/eth',
+  ],
+  8453: [
+    'https://base-rpc.publicnode.com',
+    'https://base.llamarpc.com',
+    'https://mainnet.base.org',
+  ],
+  42161: [
+    'https://arbitrum-one-rpc.publicnode.com',
+    'https://arb1.arbitrum.io/rpc',
+    'https://arbitrum.llamarpc.com',
+  ],
+  10: [
+    'https://optimism-rpc.publicnode.com',
+    'https://mainnet.optimism.io',
+    'https://optimism.llamarpc.com',
+  ],
+  137: [
+    'https://polygon-bor-rpc.publicnode.com',
+    'https://polygon-rpc.com',
+    'https://polygon.llamarpc.com',
+  ],
+  130: [
+    'https://unichain-rpc.publicnode.com',
+    'https://mainnet.unichain.org',
+  ],
+  480: [
+    'https://worldchain-mainnet.g.alchemy.com/public',
+  ],
   // 143 (Monad): no public RPC endpoint yet — falls back to API value
 };
 
-async function rpcCall(rpcUrl, to, data) {
-  const resp = await fetch(rpcUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_call', params: [{ to, data }, 'latest'], id: 1 }),
-  });
-  if (!resp.ok) throw new Error(`RPC HTTP ${resp.status}`);
-  const j = await resp.json();
-  if (j.error) throw new Error(j.error.message);
-  return j.result;
+const RPC_TIMEOUT_MS = 8000;
+
+async function rpcCallOne(rpcUrl, to, data) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), RPC_TIMEOUT_MS);
+  try {
+    const resp = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_call', params: [{ to, data }, 'latest'], id: 1 }),
+      signal: ctrl.signal,
+    });
+    if (!resp.ok) throw new Error(`RPC HTTP ${resp.status}`);
+    const j = await resp.json();
+    if (j.error) throw new Error(j.error.message);
+    return j.result;
+  } finally { clearTimeout(timer); }
+}
+
+async function rpcCall(rpcUrls, to, data) {
+  const urls = Array.isArray(rpcUrls) ? rpcUrls : [rpcUrls];
+  if (urls.length === 0) throw new Error('No RPC URL configured');
+  if (urls.length === 1) return rpcCallOne(urls[0], to, data);
+  // Race — first successful response wins. AggregateError if ALL fail.
+  return Promise.any(urls.map(u => rpcCallOne(u, to, data)));
 }
 
 // previewRedeem(uint256) → uint256 ; selector 0x4cdad506
@@ -3003,7 +3138,11 @@ async function refreshLiveBalances(positions, v2Positions) {
       fetchMaxWithdraw(rpc, vault, user).catch(() => 0n),
       shares ? fetchLiveAssets(rpc, vault, shares).catch(() => 0n) : Promise.resolve(0n),
     ]);
-    return { maxWithdraw: mw, previewRedeem: pr, chosen: mw > pr ? mw : pr };
+    // Sprint 1.5 — prefer maxWithdraw when it returns a real value: it accounts
+    // for BOTH balanceOf(user) freshness AND the vault's current liquidity cap.
+    // Taking max(mw,pr) was overstating withdrawable when liquidity < share value.
+    // Fall back to previewRedeem only when mw=0 (Safe / contract wallet case).
+    return { maxWithdraw: mw, previewRedeem: pr, chosen: mw > 0n ? mw : pr };
   }
 
   for (const p of (positions || [])) {
@@ -3498,43 +3637,36 @@ function checkAlerts(positions) {
     const score = calcRiskScore(vault);
     const risk = getRiskLevel(score);
 
+    // Sprint 1.3 — enrich each alert with fingerprint + vault deep-link data
+    // and filter out snoozed / ignored ones (localStorage-backed).
+    const emit = (type, icon, title, desc, metric, value) => {
+      const fp = alertFingerprint(vault, metric);
+      if (alertSnoozed(fp) || alertIgnored(fp)) return;
+      newAlerts.push({
+        type, icon, title, desc,
+        vault: name,
+        vaultAddress: (vault.address || '').toLowerCase(),
+        chainNetwork: vault.chain?.network || '',
+        fingerprint: fp,
+        metric, value,
+        time: new Date(),
+      });
+    };
+
     if (liquidity < liqThreshold && liquidity > 0) {
-      newAlerts.push({
-        type: 'critical',
-        icon: '!',
-        title: t('alertLiqTitle'),
-        desc: `${name}: ${t('labelAvailLiq')} ${fmtUSD(liquidity)}, ${t('labelLow')} < ${fmtUSD(liqThreshold)}`,
-        vault: name,
-        metric: 'liquidity',
-        value: liquidity,
-        time: new Date(),
-      });
+      emit('critical', '!', t('alertLiqTitle'),
+        `${name}: ${t('labelAvailLiq')} ${fmtUSD(liquidity)}, ${t('labelLow')} < ${fmtUSD(liqThreshold)}`,
+        'liquidity', liquidity);
     }
-
     if (apy < apyThreshold && apy > 0) {
-      newAlerts.push({
-        type: 'warning',
-        icon: '↓',
-        title: t('alertApyTitle'),
-        desc: `${name}: APY ${apy.toFixed(2)}%, ${t('labelLow')} < ${apyThreshold}%`,
-        vault: name,
-        metric: 'apy',
-        value: apy,
-        time: new Date(),
-      });
+      emit('warning', '↓', t('alertApyTitle'),
+        `${name}: APY ${apy.toFixed(2)}%, ${t('labelLow')} < ${apyThreshold}%`,
+        'apy', apy);
     }
-
     if (score >= 72) {
-      newAlerts.push({
-        type: 'critical',
-        icon: '▲',
-        title: t('alertRiskTitle'),
-        desc: `${name}: ${t('labelRiskRating')} ${risk.grade} (${risk.label}), score ${score}/100`,
-        vault: name,
-        metric: 'risk',
-        value: score,
-        time: new Date(),
-      });
+      emit('critical', '▲', t('alertRiskTitle'),
+        `${name}: ${t('labelRiskRating')} ${risk.grade} (${risk.label}), score ${score}/100`,
+        'risk', score);
     }
   });
 
@@ -3968,7 +4100,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
         const hf = mp.healthFactor ? parseFloat(mp.healthFactor).toFixed(3) : null;
         const hfColor = hf ? (parseFloat(hf) < 1.05 ? '#ef4444' : parseFloat(hf) < 1.2 ? '#f97316' : '#10b981') : 'var(--text-3)';
         const warnings = market?.warnings || [];
-        return `<div class="vault-card">
+        return `<div class="vault-card" id="market-${(market?.marketId || '').toLowerCase()}">
           <div class="vault-card-header">
             <div class="vault-info">
               <div class="vault-icon" style="background:${assetColor(loan, 0)}">${loan.charAt(0)}</div>
@@ -4087,7 +4219,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
         const v2Score = calcRiskScoreV2(vault, v2Allocs);
         const v2Risk  = getRiskLevel(v2Score);
 
-        return `<div class="vault-card ${hasAlert ? 'has-alert' : ''}">
+        return `<div class="vault-card ${hasAlert ? 'has-alert' : ''}" id="vault-${(vault.address || '').toLowerCase()}">
           <div class="vault-card-header">
             <div class="vault-info">
               <div class="vault-icon" style="background:${bgColor};overflow:hidden;padding:0">
@@ -4262,7 +4394,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
     const rewards = vault.state?.allRewards || [];
     const rewardStr = rewards.map(r => `+${(parseFloat(r.supplyApr || 0) * 100).toFixed(2)}% ${r.asset?.symbol}`).join(' ');
 
-    return `<div class="vault-card ${hasAlert ? 'has-alert' : ''}">
+    return `<div class="vault-card ${hasAlert ? 'has-alert' : ''}" id="vault-${(vault.address || '').toLowerCase()}">
       <div class="vault-card-header">
         <div class="vault-info">
           <div class="vault-icon" style="background:${bgColor}">${escHtml(assetSymbol.charAt(0))}</div>
@@ -4520,6 +4652,52 @@ function renderStats(positions, marketPositions = [], v2Positions = []) {
 // ────────────────────────────────────────────
 // Render Alerts
 // ────────────────────────────────────────────
+// ─── Sprint 1.3 — alert lifecycle helpers ───
+// Fingerprint mirrors the Worker's `${vault}|${type}` convention so the same
+// key can eventually be shared between frontend snooze/ignore state and the
+// Worker's KV alertCooldowns. For now scope is localStorage-only.
+function alertFingerprint(vault, metric) {
+  return `${(vault?.address || '?').toLowerCase()}|LOCAL_${(metric || '').toUpperCase()}`;
+}
+
+function _readAlertMap(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
+}
+function _readAlertArr(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+}
+
+function alertSnoozed(fp) {
+  const map = _readAlertMap('morpho_alert_snooze');
+  return (map[fp] || 0) > Date.now();
+}
+function alertIgnored(fp) {
+  return _readAlertArr('morpho_alert_ignore').includes(fp);
+}
+
+function snoozeAlert(fp, hours = 24) {
+  const map = _readAlertMap('morpho_alert_snooze');
+  map[fp] = Date.now() + hours * 3600_000;
+  localStorage.setItem('morpho_alert_snooze', JSON.stringify(map));
+  APP.alertHistory = APP.alertHistory.filter(a => a.fingerprint !== fp);
+  renderAlerts();
+  showToast('info', CURRENT_LANG === 'en' ? `Snoozed ${hours}h` : `已延迟 ${hours} 小时`);
+}
+function ignoreAlert(fp) {
+  const arr = _readAlertArr('morpho_alert_ignore');
+  if (!arr.includes(fp)) arr.push(fp);
+  localStorage.setItem('morpho_alert_ignore', JSON.stringify(arr));
+  APP.alertHistory = APP.alertHistory.filter(a => a.fingerprint !== fp);
+  renderAlerts();
+  showToast('info', CURRENT_LANG === 'en' ? 'Alert permanently ignored' : '此警报已永久忽略');
+}
+
+function alertResolveUrl(alert) {
+  if (!alert.vaultAddress) return null;
+  const network = (alert.chainNetwork || 'Ethereum').toLowerCase();
+  return `https://app.morpho.org/vault/${alert.vaultAddress}?network=${network}`;
+}
+
 function renderAlerts() {
   if (APP.alertHistory.length === 0) {
     document.getElementById('alerts-container').innerHTML = `
@@ -4531,16 +4709,29 @@ function renderAlerts() {
     return;
   }
 
-  const html = APP.alertHistory.map(alert => `
+  const isEn = CURRENT_LANG === 'en';
+  const resolveLabel = isEn ? '→ Handle'    : '→ 去处理';
+  const snoozeLabel  = isEn ? '💤 24h'      : '💤 延迟 24h';
+  const ignoreLabel  = isEn ? '🚫 Ignore'   : '🚫 永久忽略';
+
+  const html = APP.alertHistory.map(alert => {
+    const resolveUrl = alertResolveUrl(alert);
+    const fp = escHtml(alert.fingerprint || '');
+    const btns = [];
+    if (resolveUrl) btns.push(`<a class="alert-btn primary" href="${escHtml(resolveUrl)}" target="_blank" rel="noopener">${resolveLabel}</a>`);
+    if (fp) btns.push(`<button class="alert-btn" type="button" onclick="snoozeAlert('${fp}',24)">${snoozeLabel}</button>`);
+    if (fp) btns.push(`<button class="alert-btn" type="button" onclick="ignoreAlert('${fp}')">${ignoreLabel}</button>`);
+    return `
     <div class="alert-item ${alert.type}">
       <div class="alert-icon">${alert.icon}</div>
       <div class="alert-body">
-        <div class="alert-title">${alert.title}</div>
-        <div class="alert-desc">${alert.desc}</div>
-        <div class="alert-time">${alert.time.toLocaleString('zh-CN')}</div>
+        <div class="alert-title">${escHtml(alert.title)}</div>
+        <div class="alert-desc">${escHtml(alert.desc)}</div>
+        <div class="alert-time">${alert.time.toLocaleString(isEn ? 'en-US' : 'zh-CN')}</div>
+        ${btns.length ? `<div class="alert-actions">${btns.join('')}</div>` : ''}
       </div>
-    </div>`).join('');
-
+    </div>`;
+  }).join('');
   document.getElementById('alerts-container').innerHTML = `<div class="alert-panel">${html}</div>`;
 }
 
@@ -6254,6 +6445,84 @@ loadSettings();
 // F8 — load curator address → display-name map from Morpho API (fire-and-forget).
 // Cached for the session; falls back to hardcoded CURATOR_MAP on failure.
 fetchCurators();
+
+// Sprint 1.7 — sync <meta name="theme-color"> to the actual system scheme
+// so iOS Safari's status bar and Android's chrome UI match panel background.
+(function syncThemeColor() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  const apply = () => {
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    meta.setAttribute('content', dark ? '#0b0906' : '#fffcfa');
+  };
+  apply();
+  try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply); }
+  catch { /* Safari < 14 lacks addEventListener on MediaQueryList */ }
+})();
+
+// Sprint 1.2 — deep-link handler
+// Reads `?wallet=<addr>` and `#alert=<fp>` (or `#vault=<addr>` / `#market=<id>`)
+// from the URL Telegram sent, auto-fills the wallet, triggers the query, and
+// scrolls + pulse-highlights the exact vault/market card that triggered the
+// alert. Closes the "警报 → 找到 vault" 3-second gap the UX review identified.
+(function handleDeepLink() {
+  try {
+    const url = new URL(location.href);
+    const walletParam = url.searchParams.get('wallet');
+
+    if (walletParam && /^0x[0-9a-fA-F]{40}$/.test(walletParam)) {
+      const input = document.getElementById('wallet-input');
+      if (input) {
+        input.value = walletParam;
+        // Trigger positions fetch after other init settles
+        setTimeout(() => {
+          if (typeof fetchPositions === 'function') fetchPositions();
+        }, 400);
+      }
+    }
+
+    const hash = url.hash || '';
+    let vaultAddr = null;
+    let marketId  = null;
+
+    // Preferred form from Worker: `#alert=<fp>` where fp = `${id}|${type}`
+    const alertMatch = hash.match(/#alert=([^&]+)/);
+    if (alertMatch) {
+      const fp = decodeURIComponent(alertMatch[1]);
+      const [id, type] = fp.split('|');
+      if (id) {
+        if (type && type.startsWith('MKT_')) marketId = id.toLowerCase();
+        else vaultAddr = id.toLowerCase();
+      }
+    }
+    // Direct forms: `#vault=<addr>` or `#market=<id>`
+    if (!vaultAddr && !marketId) {
+      const vaultMatch  = hash.match(/#vault=([^&]+)/);
+      const marketMatch = hash.match(/#market=([^&]+)/);
+      if (vaultMatch)  vaultAddr = decodeURIComponent(vaultMatch[1]).toLowerCase();
+      if (marketMatch) marketId  = decodeURIComponent(marketMatch[1]).toLowerCase();
+    }
+    if (!vaultAddr && !marketId) return;
+
+    // Poll for the target card to appear (positions render is async)
+    const targetId = vaultAddr ? `vault-${vaultAddr}` : `market-${marketId}`;
+    let attempts = 0;
+    const anchor = () => {
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Pulse — re-triggered by removing/adding to force restart
+        el.classList.remove('pulse-highlight');
+        void el.offsetWidth;
+        el.classList.add('pulse-highlight');
+        setTimeout(() => el.classList.remove('pulse-highlight'), 3000);
+        return;
+      }
+      if (attempts++ < 25) setTimeout(anchor, 400); // up to ~10s
+    };
+    setTimeout(anchor, 900); // wait ~1s for initial render
+  } catch (e) { console.warn('[deep-link] parse failed:', e.message); }
+})();
 
 // Set default date range for yield curve (today and 30 days ago)
 (function initDatePickers() {
