@@ -1023,65 +1023,189 @@ select option { background: var(--bg-2); }
 }
 .alert-btn.primary:hover { background: var(--blue-dark); color: #fff; }
 
-/* Sprint 2.3 — V2 Governance Drawer (collapsible <details>) */
-.vault-governance {
-  margin: 12px 22px 4px;
-  padding: 0;
-  border-top: 1px solid var(--border);
+/* Governance — compact trigger chip on the vault card */
+.gov-trigger-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 10px 22px 2px;
+}
+.gov-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text-2);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.gov-trigger:hover { background: var(--bg-hover); border-color: var(--border-light); color: var(--text-1); }
+.gov-trigger-badge {
+  min-width: 15px;
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
+  border-radius: 8px;
+  background: #f97316;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ⓘ affordance — replaces the always-on explanatory subtitles */
+.info-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text-2);
+  font-size: 9px;
+  font-style: italic;
+  font-weight: 600;
+  font-family: Georgia, 'Times New Roman', serif;
+  cursor: pointer;
+  user-select: none;
+  vertical-align: 1px;
+  flex-shrink: 0;
+  transition: all .12s;
+}
+.info-dot:hover, .info-dot:focus-visible {
+  background: var(--blue);
+  color: #fff;
+  outline: none;
+}
+#gov-tip {
+  position: fixed;
+  z-index: 10001;
+  max-width: 260px;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-1);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.14);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s;
+}
+#gov-tip.show { opacity: 1; }
+
+/* Governance modal */
+#gov-modal-host { display: none; }
+#gov-modal-host.open { display: block; }
+.gov-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(26,10,0,.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  animation: govFadeIn .14s ease;
+}
+@keyframes govFadeIn { from { opacity: 0 } to { opacity: 1 } }
+.gov-modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.22);
+  overflow: hidden;
+  animation: govSlideIn .16s ease;
+}
+@keyframes govSlideIn { from { transform: translateY(8px); opacity: .6 } to { transform: none; opacity: 1 } }
+.gov-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-2);
-  border-radius: 8px;
-  overflow: hidden;
 }
-.vault-governance > summary {
-  padding: 10px 12px;
-  font-size: 12px;
-  font-weight: 500;
+.gov-modal-title { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.gov-modal-title span { font-size: 14px; font-weight: 500; color: var(--text-1); }
+.gov-modal-title small {
+  font-size: 11px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gov-modal-close {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg-1);
   color: var(--text-2);
+  font-size: 12px;
   cursor: pointer;
-  list-style: none;
+  font-family: inherit;
+}
+.gov-modal-close:hover { background: var(--bg-hover); color: var(--text-1); }
+.gov-modal-body {
+  padding: 14px 18px 18px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Shared section / row primitives used inside the modal */
+.gov-section + .gov-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+.gov-section-title {
   display: flex;
   align-items: center;
   gap: 6px;
-  user-select: none;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  letter-spacing: .3px;
+  margin-bottom: 8px;
 }
-.vault-governance > summary::-webkit-details-marker { display: none; }
-.vault-governance > summary::before {
-  content: '▸';
-  font-size: 10px;
-  color: var(--text-3);
-  transition: transform .15s;
-}
-.vault-governance[open] > summary::before { transform: rotate(90deg); }
-.vault-governance > summary:hover { background: var(--bg-hover); }
-.gov-body {
-  padding: 8px 14px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  border-top: 1px solid var(--border);
-}
+.gov-note { font-size: 11px; color: var(--text-3); line-height: 1.55; margin-bottom: 8px; }
 .gov-row {
   display: grid;
-  grid-template-columns: 130px 1fr;
+  grid-template-columns: 132px 1fr;
   gap: 12px;
-  align-items: start;
-  padding: 4px 0;
+  align-items: baseline;
+  padding: 5px 0;
 }
 .gov-key {
-  color: var(--text-3);
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: .3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-2);
 }
 .gov-val {
-  color: var(--text-2);
-  word-break: break-all;
+  font-size: 12px;
+  color: var(--text-1);
   display: flex;
   flex-wrap: wrap;
   gap: 4px 8px;
   align-items: center;
+  min-width: 0;
 }
 .gov-val code {
   font-size: 11px;
@@ -1091,39 +1215,8 @@ select option { background: var(--bg-2); }
   color: var(--text-1);
   font-family: 'SF Mono','Menlo','Monaco',monospace;
 }
-.gov-timelock { font-size: 11px; opacity: .8; }
 
-/* Rewritten governance drawer — plain-language layout.
-   Roles get an inline explainer (<em>) under the label; timelocks are
-   grouped by delay with zero-delay shown first as a risk callout. */
-.gov-section { padding: 4px 0 2px; }
-.gov-section + .gov-section {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--border);
-}
-.gov-section-title {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-2);
-  letter-spacing: .3px;
-  margin-bottom: 6px;
-}
-.gov-note {
-  font-size: 11px;
-  color: var(--text-3);
-  line-height: 1.55;
-  margin-bottom: 8px;
-}
-.gov-key em {
-  display: block;
-  font-style: normal;
-  font-size: 10px;
-  color: var(--text-3);
-  opacity: .85;
-  margin-top: 1px;
-  line-height: 1.4;
-}
+/* Delay groups — one line of actions instead of a bulleted grid */
 .gov-tl-group {
   border-radius: 8px;
   padding: 8px 10px;
@@ -1132,16 +1225,10 @@ select option { background: var(--bg-2); }
   background: var(--bg-3);
 }
 .gov-tl-group.instant {
-  border-color: rgba(220,38,38,0.35);
-  background: rgba(220,38,38,0.05);
+  border-color: rgba(220,38,38,.32);
+  background: rgba(220,38,38,.05);
 }
-.gov-tl-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 5px;
-}
+.gov-tl-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
 .gov-tl-badge {
   font-size: 11px;
   font-weight: 500;
@@ -1149,23 +1236,40 @@ select option { background: var(--bg-2); }
   border-radius: 5px;
   white-space: nowrap;
 }
-.gov-tl-badge.risk { background: rgba(220,38,38,0.14); color: var(--red); }
-.gov-tl-badge.safe { background: rgba(5,150,105,0.12);  color: var(--green); }
-.gov-tl-hint { font-size: 10px; color: var(--text-3); }
-.gov-tl-list {
-  margin: 0;
-  padding-left: 16px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1px 12px;
+.gov-tl-badge.risk { background: rgba(220,38,38,.14); color: var(--red); }
+.gov-tl-badge.safe { background: rgba(5,150,105,.12); color: var(--green); }
+.gov-tl-count {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
 }
-.gov-tl-list li {
-  font-size: 11px;
-  color: var(--text-2);
-  line-height: 1.6;
+.gov-tl-inline { font-size: 11px; color: var(--text-2); line-height: 1.65; }
+
+.pending-list { display: flex; flex-direction: column; gap: 4px; }
+.pending-item {
+  padding: 5px 9px;
+  background: var(--bg-3);
+  border-radius: 5px;
+  border-left: 2px solid var(--yellow);
 }
+.pending-item.urgent { border-left-color: var(--red); background: rgba(220,38,38,.06); }
 .pending-what { font-size: 12px; color: var(--text-1); font-weight: 500; }
 .pending-when { font-size: 10px; color: var(--text-3); margin-top: 1px; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 480px) {
+  .gov-trigger-row { margin: 8px 12px 2px; }
+  .gov-modal-backdrop { padding: 0; align-items: flex-end; }
+  .gov-modal {
+    max-width: none;
+    max-height: 88vh;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .gov-row { grid-template-columns: 108px 1fr; gap: 8px; }
+  .gov-key { font-size: 11px; }
+  .gov-val { font-size: 11px; }
+}
 .pending-list {
   display: flex;
   flex-direction: column;
@@ -2482,6 +2586,11 @@ select option { background: var(--bg-2); }
 
 <!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
+
+<!-- Governance modal host + shared ⓘ tooltip layer (fixed-position so the
+     tip is never clipped by the modal's own scroll container) -->
+<div id="gov-modal-host"></div>
+<div id="gov-tip" role="tooltip"></div>
 
 <!-- ===========================
      JavaScript
@@ -3897,7 +4006,103 @@ function govActionLabel(fnName) {
   return table[key] || fnName || table._unknown;
 }
 
-function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
+// ────────────────────────────────────────────
+// Governance — compact trigger + modal
+// The first version rendered everything inline, which pushed the rest of
+// the card down and buried the numbers users actually scan for. Now the
+// card carries a one-line chip; full detail opens in a modal, and every
+// explanation hides behind an ⓘ instead of sitting on screen permanently.
+// ────────────────────────────────────────────
+
+// ⓘ affordance. `title` covers desktop hover; the click handler in
+// initGovTooltips() covers touch, where :hover / title never fire.
+function govInfo(text) {
+  return `<span class="info-dot" data-tip="${escHtml(text)}" title="${escHtml(text)}" role="button" tabindex="0" aria-label="${escHtml(text)}">i</span>`;
+}
+
+function buildV2GovTrigger(vault, pendingConfigs) {
+  const addr = (vault?.address || '').toLowerCase();
+  if (!addr) return '';
+  const n = pendingConfigs.length;
+  return `<div class="gov-trigger-row">
+    <button type="button" class="gov-trigger" onclick="openGovModal('${escHtml(addr)}')">
+      <span>${t('govTitle')}</span>
+      ${n > 0 ? `<span class="gov-trigger-badge">${n}</span>` : ''}
+    </button>
+  </div>`;
+}
+
+// Look the vault back up from APP state so the modal doesn't need the whole
+// object serialized into an onclick attribute.
+function _findV2VaultByAddress(addr) {
+  const target = String(addr || '').toLowerCase();
+  for (const p of (APP.v2Positions || [])) {
+    if ((p.vault?.address || '').toLowerCase() === target) return p.vault;
+  }
+  return null;
+}
+
+function openGovModal(addr) {
+  const vault = _findV2VaultByAddress(addr);
+  if (!vault) return;
+  const nowMs = Date.now();
+  const pendingConfigs = vault.pendingConfigs?.items || [];
+  const host = document.getElementById('gov-modal-host');
+  if (!host) return;
+  host.innerHTML = buildV2GovModal(vault, pendingConfigs, nowMs);
+  host.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  initGovTooltips(host);
+  host.querySelector('.gov-modal-close')?.focus();
+}
+
+function closeGovModal(ev) {
+  // Backdrop click only — ignore clicks bubbling out of the panel
+  if (ev && ev.target && !ev.target.classList.contains('gov-modal-backdrop') && !ev.target.classList.contains('gov-modal-close')) return;
+  const host = document.getElementById('gov-modal-host');
+  if (!host) return;
+  host.classList.remove('open');
+  host.innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeGovModal();
+});
+
+// Click/tap-to-reveal tooltips. Positioned in fixed coords so the tip is
+// never clipped by the modal's own overflow.
+function initGovTooltips(scope) {
+  const tip = document.getElementById('gov-tip');
+  if (!tip) return;
+  const show = el => {
+    tip.textContent = el.dataset.tip || '';
+    tip.classList.add('show');
+    const r = el.getBoundingClientRect();
+    tip.style.visibility = 'hidden';
+    tip.style.left = '0px';
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    let left = r.left + r.width / 2 - tw / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+    let top = r.top - th - 8;
+    if (top < 8) top = r.bottom + 8;          // flip below when clipped at top
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.visibility = '';
+  };
+  const hide = () => tip.classList.remove('show');
+  scope.querySelectorAll('.info-dot').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      if (tip.classList.contains('show') && tip.textContent === el.dataset.tip) hide();
+      else show(el);
+    });
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(el); } });
+  });
+  scope.addEventListener('click', e => { if (!e.target.classList.contains('info-dot')) hide(); });
+}
+
+function buildV2GovModal(vault, pendingConfigs, nowMs) {
   const owner        = vault.owner?.address || '';
   const curatorAddr  = vault.curator?.address || '';
   const curatorsList = vault.curators?.items || [];
@@ -3906,26 +4111,24 @@ function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
   const timelocks    = (vault.timelocks  || []).filter(t => !t.abdicatedAt);
   const listingHist  = vault.listingHistory || [];
   const latestListing = listingHist.slice().sort((a, b) => Number(b.timestamp) - Number(a.timestamp))[0];
+  const locale = CURRENT_LANG === 'en' ? 'en-US' : CURRENT_LANG;
+  const vaultName = vault.name || vault.symbol || 'V2 Vault';
 
   const curatorChips = curatorsList.length > 0
-    ? curatorsList.map(c => `<span class="badge badge-blue" style="margin-right:4px">${c.verified ? '✓ ' : ''}${escHtml(c.name)}</span>`).join('')
+    ? curatorsList.map(c => `<span class="badge badge-blue">${c.verified ? '✓ ' : ''}${escHtml(c.name)}</span>`).join(' ')
     : `<code>${escHtml(_govShortAddr(curatorAddr))}</code>`;
-
-  // Group timelocks by duration. Zero-delay entries come FIRST because
-  // "the curator can do this instantly, with no chance for you to exit"
-  // is the actual risk signal a depositor needs — burying it in a
-  // duration-sorted list was the main flaw of the first version.
-  const byDuration = new Map();
-  for (const t of timelocks) {
-    const d = Number(t.duration) || 0;
-    if (!byDuration.has(d)) byDuration.set(d, []);
-    byDuration.get(d).push(govActionLabel(t.functionName));
-  }
-  const durationGroups = [...byDuration.entries()].sort((a, b) => a[0] - b[0]);
-
-  const locale = CURRENT_LANG === 'en' ? 'en-US' : CURRENT_LANG;
   const addrList = arr => `${arr.length} ${t(arr.length === 1 ? 'govAddrCountOne' : 'govAddrCount')} ` +
     arr.map(a => `<code>${escHtml(_govShortAddr(a))}</code>`).join(' ');
+
+  // Group by delay; zero-delay first — "can change this with no warning" is
+  // the signal a depositor is actually looking for.
+  const byDuration = new Map();
+  for (const tl of timelocks) {
+    const d = Number(tl.duration) || 0;
+    if (!byDuration.has(d)) byDuration.set(d, []);
+    byDuration.get(d).push(govActionLabel(tl.functionName));
+  }
+  const durationGroups = [...byDuration.entries()].sort((a, b) => a[0] - b[0]);
 
   const timelockGroupsHTML = durationGroups.length === 0
     ? `<div class="gov-note">${t('govAllAbdicated')}</div>`
@@ -3935,10 +4138,11 @@ function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
         <div class="gov-tl-group ${instant ? 'instant' : 'buffered'}">
           <div class="gov-tl-head">
             ${instant
-              ? `<span class="gov-tl-badge risk">⚠️ ${t('govInstant')}</span><span class="gov-tl-hint">${t('govInstantHint')}</span>`
-              : `<span class="gov-tl-badge safe">🛡 ${t('govAfterTpl').replace('{dur}', _govFmtDur(dur))}</span><span class="gov-tl-hint">${t('govBufferedHint')}</span>`}
+              ? `<span class="gov-tl-badge risk">⚠️ ${t('govInstant')}</span>${govInfo(t('govInstantHint'))}`
+              : `<span class="gov-tl-badge safe">🛡 ${t('govAfterTpl').replace('{dur}', _govFmtDur(dur))}</span>${govInfo(t('govBufferedHint'))}`}
+            <span class="gov-tl-count">${actions.length}</span>
           </div>
-          <ul class="gov-tl-list">${actions.map(a => `<li>${escHtml(a)}</li>`).join('')}</ul>
+          <div class="gov-tl-inline">${actions.map(a => escHtml(a)).join(' · ')}</div>
         </div>`;
       }).join('');
 
@@ -3953,8 +4157,7 @@ function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
                         : dh < 24 ? t('govInHoursTpl').replace('{n}', dh)
                         :           t('govInDaysTpl').replace('{n}', Math.round(dh / 24));
           const dateStr = new Date(validAtMs).toLocaleString(locale, { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
-          const urgent = dh < 24;
-          return `<div class="pending-item ${urgent ? 'urgent' : ''}">
+          return `<div class="pending-item ${dh < 24 ? 'urgent' : ''}">
             <div class="pending-what">${escHtml(govActionLabel(pc.functionName))}</div>
             <div class="pending-when">${escHtml(timeStr)} · ${escHtml(dateStr)}</div>
           </div>`;
@@ -3964,52 +4167,56 @@ function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
     : '';
 
   return `
-  <details class="vault-governance">
-    <summary>
-      <span>${t('govTitle')}</span>
-      ${pendingConfigs.length > 0 ? `<span class="badge" style="background:#f9731622;color:#f97316;margin-left:6px">${pendingConfigs.length} ${t('govPendingBadge')}</span>` : ''}
-    </summary>
-    <div class="gov-body">
-
-      <div class="gov-section">
-        <div class="gov-section-title">${t('govRoles')}</div>
-        <div class="gov-row">
-          <span class="gov-key">${t('govCurator')}<em>${t('govCuratorDesc')}</em></span>
-          <span class="gov-val">${curatorChips}</span>
+  <div class="gov-modal-backdrop" onclick="closeGovModal(event)">
+    <div class="gov-modal" role="dialog" aria-modal="true" aria-label="${escHtml(t('govTitle'))}">
+      <div class="gov-modal-head">
+        <div class="gov-modal-title">
+          <span>${t('govTitle')}</span>
+          <small>${escHtml(vaultName)}</small>
         </div>
-        <div class="gov-row">
-          <span class="gov-key">${t('govOwner')}<em>${t('govOwnerDesc')}</em></span>
-          <span class="gov-val"><code>${escHtml(_govShortAddr(owner))}</code></span>
-        </div>
-        <div class="gov-row">
-          <span class="gov-key">${t('govAllocator')}<em>${t('govAllocatorDesc')}</em></span>
-          <span class="gov-val">${allocators.length ? addrList(allocators) : `<span style="opacity:.55">${t('govNone')}</span>`}</span>
-        </div>
-        <div class="gov-row">
-          <span class="gov-key">${t('govSentinel')}<em>${t('govSentinelDesc')}</em></span>
-          <span class="gov-val">${sentinels.length ? addrList(sentinels) : `<span style="opacity:.55">${t('govNoSentinel')}</span>`}</span>
-        </div>
+        <button type="button" class="gov-modal-close" onclick="closeGovModal(event)" aria-label="close">✕</button>
       </div>
+      <div class="gov-modal-body">
 
-      <div class="gov-section">
-        <div class="gov-section-title">${t('govDelayTitle')}</div>
-        <div class="gov-note">${t('govDelayNote')}</div>
-        ${timelockGroupsHTML}
-      </div>
-
-      ${pendingHTML}
-
-      <div class="gov-section">
-        <div class="gov-row">
-          <span class="gov-key">${t('govListingStatus')}</span>
-          <span class="gov-val">${latestListing
-            ? `${latestListing.action === 'Added' ? `✅ ${t('govListed')}` : `⚠️ ${escHtml(latestListing.action)}`}${t('govSinceTpl').replace('{date}', new Date(Number(latestListing.timestamp) * 1000).toLocaleDateString(locale))}`
-            : '<span style="opacity:.55">—</span>'}</span>
+        <div class="gov-section">
+          <div class="gov-section-title">${t('govRoles')}</div>
+          <div class="gov-row">
+            <span class="gov-key">${t('govCurator')} ${govInfo(t('govCuratorDesc'))}</span>
+            <span class="gov-val">${curatorChips}</span>
+          </div>
+          <div class="gov-row">
+            <span class="gov-key">${t('govOwner')} ${govInfo(t('govOwnerDesc'))}</span>
+            <span class="gov-val"><code>${escHtml(_govShortAddr(owner))}</code></span>
+          </div>
+          <div class="gov-row">
+            <span class="gov-key">${t('govAllocator')} ${govInfo(t('govAllocatorDesc'))}</span>
+            <span class="gov-val">${allocators.length ? addrList(allocators) : `<span style="opacity:.55">${t('govNone')}</span>`}</span>
+          </div>
+          <div class="gov-row">
+            <span class="gov-key">${t('govSentinel')} ${govInfo(t('govSentinelDesc'))}</span>
+            <span class="gov-val">${sentinels.length ? addrList(sentinels) : `<span style="opacity:.55">${t('govNoSentinel')}</span>`}</span>
+          </div>
         </div>
-      </div>
 
+        <div class="gov-section">
+          <div class="gov-section-title">${t('govDelayTitle')} ${govInfo(t('govDelayNote'))}</div>
+          ${timelockGroupsHTML}
+        </div>
+
+        ${pendingHTML}
+
+        <div class="gov-section">
+          <div class="gov-row">
+            <span class="gov-key">${t('govListingStatus')}</span>
+            <span class="gov-val">${latestListing
+              ? `${latestListing.action === 'Added' ? `✅ ${t('govListed')}` : `⚠️ ${escHtml(latestListing.action)}`}${t('govSinceTpl').replace('{date}', new Date(Number(latestListing.timestamp) * 1000).toLocaleDateString(locale))}`
+              : '<span style="opacity:.55">—</span>'}</span>
+          </div>
+        </div>
+
+      </div>
     </div>
-  </details>`;
+  </div>`;
 }
 
 // ────────────────────────────────────────────
@@ -4963,7 +5170,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
               return `<span class="badge" style="background:${color}22;color:${color}" title="${escHtml(earliestPendingV2.pc.functionName)} 生效倒计时">⏳ ${label}</span>`;
             })()
           : '';
-        const govDrawerHTMLV2 = buildV2GovDrawer(vault, pendingConfigsV2, nowMsV2);
+        const govDrawerHTMLV2 = buildV2GovTrigger(vault, pendingConfigsV2);
 
         return `<div class="vault-card ${hasAlert ? 'has-alert' : ''}" id="vault-${(vault.address || '').toLowerCase()}">
           <div class="vault-card-header">
