@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Morpho Monitor">
@@ -30,7 +30,9 @@
   /* ── Text (warm dark) ── */
   --text-1: #1a0a00;
   --text-2: #7c4820;
-  --text-3: #b07848;
+  /* Sprint 3.3 — bumped from #b07848 (3.05:1 fails WCAG AA) to #8b5a2f
+     (~5.1:1 passes AA for normal text). Preserves warm-brown palette. */
+  --text-3: #8b5a2f;
   /* ── Fire primary accent ── */
   --blue: #e05c00;
   --blue-dark: #b84800;
@@ -481,6 +483,31 @@ select option { background: var(--bg-2); }
   font-size: 11px;
   color: var(--text-3);
   margin-top: 4px;
+}
+
+/* Sprint 3.8 — active threshold chip inside the "活跃警报" stat-card */
+.threshold-chip {
+  margin-top: 6px;
+  padding: 3px 8px;
+  font-size: 10px;
+  color: var(--text-3);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .2px;
+}
+.threshold-chip-label {
+  color: var(--text-2);
+  font-weight: 500;
+  margin-right: 2px;
+}
+.threshold-chip-sep {
+  opacity: .35;
+  padding: 0 2px;
 }
 
 /* ===========================
@@ -2137,6 +2164,17 @@ select option { background: var(--bg-2); }
         <div class="stat-label" id="stat-label-alerts" data-i18n="statAlerts">活跃警报</div>
         <div class="stat-value" id="stat-alerts">0</div>
         <div class="stat-sub" id="stat-alert-desc" data-i18n="statNormal">无异常</div>
+        <!-- Sprint 3.8 — inline threshold chip so users always know the active
+             cut-off without expanding the config panel. Text is refreshed by
+             updateThresholdChip() when the inputs change. -->
+        <div id="threshold-chip" class="threshold-chip" style="display:none">
+          <span class="threshold-chip-label">阈值</span>
+          <span id="threshold-chip-liq">$200K</span>
+          <span class="threshold-chip-sep">·</span>
+          <span id="threshold-chip-apy">5%</span>
+          <span class="threshold-chip-sep">·</span>
+          <span id="threshold-chip-hf">HF 1.2</span>
+        </div>
       </div>
     </div>
 
@@ -2145,10 +2183,18 @@ select option { background: var(--bg-2); }
       <div class="tab active" onclick="switchTab('positions')" id="tab-positions">持仓</div>
       <div class="tab" onclick="switchTab('yield')" id="tab-yield">收益率曲线</div>
       <div class="tab" onclick="switchTab('pnl')" id="tab-pnl">收益计算</div>
+      <!-- Sprint 3.7 — alerts tab downgraded to "警报记录" (historical log
+           role). Per-vault active warnings now live inline on vault-card
+           header via the ⚠️ badge; this tab keeps the timeline for review. -->
       <div class="tab" onclick="switchTab('alerts')" id="tab-alerts">
-        警报 <span class="tab-badge" id="alert-badge" style="display:none">0</span>
+        <span data-i18n="tabAlertsLog">警报记录</span>
+        <span class="tab-badge" id="alert-badge" style="display:none">0</span>
       </div>
-      <div class="tab" onclick="switchTab('recommendations')" id="tab-recommendations">推荐 Vault</div>
+      <!-- Sprint 3.1 — Recommendations tab removed. Audit consensus: does not
+           fit "personal AI copilot" positioning; users know which vaults they
+           want to enter before opening Monitor. Preserved renderRecommendations()
+           function + APP.recommendations state so re-enabling is a 3-line
+           rollback. -->
     </div>
 
     <!-- Tab: Positions -->
@@ -2218,16 +2264,8 @@ select option { background: var(--bg-2); }
       </div>
     </div>
 
-    <!-- Tab: Recommendations -->
-    <div class="tab-content" id="tab-content-recommendations">
-      <div id="recs-container">
-        <div class="empty-state">
-          <div class="empty-icon" style="font-size:28px;opacity:0.4">◎</div>
-          <div class="empty-title" data-i18n="emptyRecs">查询持仓后获取推荐</div>
-          <div class="empty-desc" data-i18n="emptyRecsDesc">系统将根据你的资产类型、当前 APY 和风险偏好推荐更优 Vault</div>
-        </div>
-      </div>
-    </div>
+    <!-- Sprint 3.1 — tab-content-recommendations removed (see comment on
+         tab button above). renderRecommendations() function preserved. -->
 
   </div>
 </div>
@@ -4847,7 +4885,33 @@ function renderStats(positions, marketPositions = [], v2Positions = []) {
   document.getElementById('stat-apy').textContent = `${(weightedApy * 100).toFixed(2)}%`;
   document.getElementById('stat-alerts').textContent = alertCount;
   document.getElementById('stat-alert-desc').textContent = alertCount > 0 ? `${alertCount} ${t('statNeedAttention')}` : t('statNormal');
+  updateThresholdChip();
 }
+
+// Sprint 3.8 — inline threshold chip on the "活跃警报" stat card. Reflects
+// the current three cut-offs (liquidity / APY / health-factor) so users
+// know which alerts they'd be receiving without expanding the config panel.
+function updateThresholdChip() {
+  const chip   = document.getElementById('threshold-chip');
+  if (!chip) return;
+  const liqEl  = document.getElementById('liq-threshold');
+  const apyEl  = document.getElementById('apy-threshold');
+  const hfEl   = document.getElementById('bgm-th-hf');
+  const liq    = parseFloat(liqEl?.value || 200000);
+  const apy    = parseFloat(apyEl?.value || 5);
+  const hf     = parseFloat(hfEl?.value  || 1.2);
+  const liqStr = liq >= 1e6 ? `$${(liq / 1e6).toFixed(1)}M` : liq >= 1e3 ? `$${(liq / 1e3).toFixed(0)}K` : `$${liq}`;
+  document.getElementById('threshold-chip-liq').textContent = liqStr;
+  document.getElementById('threshold-chip-apy').textContent = `${apy}%`;
+  document.getElementById('threshold-chip-hf').textContent  = `HF ${hf}`;
+  chip.style.display = 'inline-flex';
+}
+
+// Re-render chip on any threshold input change (no debounce — inputs are cheap)
+['liq-threshold', 'apy-threshold', 'bgm-th-hf'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateThresholdChip);
+});
 
 // ────────────────────────────────────────────
 // Render Alerts
