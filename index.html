@@ -2341,8 +2341,9 @@ select option { background: var(--bg-2); }
         <button class="btn btn-primary" id="fetch-btn" onclick="fetchPositions()">
           <span data-i18n="btnFetch">查询持仓</span>
         </button>
-        <button class="btn btn-success" id="monitor-btn" onclick="toggleMonitor()" disabled>
-          <span id="monitor-btn-text" data-i18n="btnMonitorStart">开始监控</span>
+        <button class="btn btn-success" id="monitor-btn" onclick="toggleMonitor()" disabled
+          title="仅自动刷新本页显示的数据。Telegram 告警由下方「后台持续监控」负责，与此按钮无关。">
+          <span id="monitor-btn-text" data-i18n="btnAutoRefreshStart">自动刷新</span>
         </button>
       </div>
 
@@ -2601,7 +2602,7 @@ select option { background: var(--bg-2); }
 // ────────────────────────────────────────────
 // Version
 // ────────────────────────────────────────────
-const APP_VERSION = '1.4.0';  // 2026-08 — post-audit Sprint 1 (deep-link + schema probe + LIVE fix + dark mode)
+const APP_VERSION = '1.5.0';  // 2026-08 — post-audit Sprint 1 (deep-link + schema probe + LIVE fix + dark mode)
 const EXPECTED_WORKER_VERSION = '1.6.0';  // matched against /api/health.version; mismatch shows ⚠️ in header
 
 // ────────────────────────────────────────────
@@ -2667,6 +2668,8 @@ const I18N = {
     labelWallet:'钱包地址', labelNetwork:'网络', placeholderWallet:'0x... 输入以太坊钱包地址',
     netAll:'全部网络', netEth:'🔷 Ethereum', netBase:'🔵 Base', netArb:'🔶 Arbitrum One', netMonad:'🟣 Monad',
     btnFetch:'查询持仓', btnMonitorStart:'开始监控', btnMonitorStop:'停止监控', btnConnect:'连接钱包',
+    btnAutoRefreshStart:'自动刷新', btnAutoRefreshStop:'停止刷新',
+    statusAutoRefresh:'自动刷新中', autoRefreshStarted:'自动刷新已开启 — 告警仍由后台监控负责', autoRefreshStopped:'已停止自动刷新',
     configToggleOpen:'展开配置（Telegram 报警 & 监控参数）', configToggleClose:'收起配置',
     labelTgToken:'Telegram Bot Token', labelTgChat:'Telegram Chat ID',
     labelInterval:'监控间隔', labelLiqTh:'流动性警戒线（USD）', labelApyTh:'APY 警戒线（%）',
@@ -2788,6 +2791,8 @@ const I18N = {
     labelWallet:'錢包地址', labelNetwork:'網絡', placeholderWallet:'0x... 輸入以太坊錢包地址',
     netAll:'全部網絡', netEth:'🔷 Ethereum', netBase:'🔵 Base', netArb:'🔶 Arbitrum One', netMonad:'🟣 Monad',
     btnFetch:'查詢持倉', btnMonitorStart:'開始監控', btnMonitorStop:'停止監控', btnConnect:'連接錢包',
+    btnAutoRefreshStart:'自動刷新', btnAutoRefreshStop:'停止刷新',
+    statusAutoRefresh:'自動刷新中', autoRefreshStarted:'自動刷新已開啟 — 告警仍由後台監控負責', autoRefreshStopped:'已停止自動刷新',
     configToggleOpen:'展開配置（Telegram 報警 & 監控參數）', configToggleClose:'收起配置',
     labelTgToken:'Telegram Bot Token', labelTgChat:'Telegram Chat ID',
     labelInterval:'監控間隔', labelLiqTh:'流動性警戒線（USD）', labelApyTh:'APY 警戒線（%）',
@@ -2908,6 +2913,8 @@ const I18N = {
     labelWallet:'Wallet Address', labelNetwork:'Network', placeholderWallet:'0x... Enter wallet address',
     netAll:'All Networks', netEth:'🔷 Ethereum', netBase:'🔵 Base', netArb:'🔶 Arbitrum One', netMonad:'🟣 Monad',
     btnFetch:'Fetch Positions', btnMonitorStart:'Start Monitor', btnMonitorStop:'Stop Monitor', btnConnect:'Connect Wallet',
+    btnAutoRefreshStart:'Auto-refresh', btnAutoRefreshStop:'Stop refresh',
+    statusAutoRefresh:'Auto-refreshing', autoRefreshStarted:'Auto-refresh on — alerts still come from the background monitor', autoRefreshStopped:'Auto-refresh stopped',
     configToggleOpen:'Expand Settings (Telegram & Monitor)', configToggleClose:'Collapse Settings',
     labelTgToken:'Telegram Bot Token', labelTgChat:'Telegram Chat ID',
     labelInterval:'Refresh Interval', labelLiqTh:'Liquidity Alert (USD)', labelApyTh:'APY Alert (%)',
@@ -3022,11 +3029,12 @@ function switchLang(lang) {
   // Update monitor button text
   const monBtnText = document.getElementById('monitor-btn-text');
   if (monBtnText) {
-    monBtnText.textContent = APP.isMonitoring ? t('btnMonitorStop') : t('btnMonitorStart');
+    monBtnText.textContent = APP.isMonitoring ? t('btnAutoRefreshStop') : t('btnAutoRefreshStart');
   }
-  // Update status-text
+  // Header status follows the background monitor (APP.bgmActive), not the
+  // in-page refresh timer.
   const stText = document.getElementById('status-text');
-  if (stText && !APP.isMonitoring) stText.textContent = t('statusIdle');
+  if (stText) stText.textContent = t(APP.bgmActive ? 'bgmStatusActive' : 'bgmStatusInactive');
   // Update tab labels
   // Keep in sync with the tab buttons in markup. `alerts` uses tabAlertsLog
   // (Sprint 3.7 renamed it to a log/history role) and `governance` was added
@@ -3084,6 +3092,7 @@ const APP = {
   isMonitoring: false,
   lastFetch: null,
   liveMode: false,          // 🔴 Live mode: bypass API snapshot via on-chain previewRedeem
+  bgmActive: false,         // background (Worker) monitor registered — drives header status
 };
 
 // ────────────────────────────────────────────
@@ -4595,9 +4604,13 @@ function checkAlerts(positions) {
     APP.alertHistory = [...newAlerts, ...APP.alertHistory].slice(0, 50);
     renderAlerts();
     updateAlertBadge();
-    if (newAlerts.some(a => a.type === 'critical' || a.type === 'warning')) {
-      sendTelegramAlert(newAlerts, positions);
-    }
+    // Telegram delivery is the Worker's job, not the browser's. This used to
+    // call sendTelegramAlert() here, which meant that with both the in-page
+    // monitor and the background Worker enabled you received two alerts for
+    // the same event — in different formats, with no dedup, and the in-page
+    // one only covered V1 positions. The browser path also sent the bot
+    // token straight to api.telegram.org, defeating the encrypted-KV design.
+    // The in-page alert list below is kept; pushing is Worker-only now.
   }
 
   return newAlerts;
@@ -4643,42 +4656,10 @@ async function testTelegram() {
   }
 }
 
-async function sendTelegramAlert(alerts, positions) {
-  try {
-    const { token, chatId } = getTgConfig();
-    if (!token || !chatId) return;
-
-    const wallet = APP.wallet;
-    const shortWallet = wallet ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : '未知';
-    const totalUsd = positions.reduce((s, p) => s + (p.state?.assetsUsd || 0), 0);
-    const liqThreshold = parseFloat(document.getElementById('liq-threshold').value) || 200000;
-    const apyThreshold = parseFloat(document.getElementById('apy-threshold').value) || 5;
-
-    let msg = `🚨 <b>Morpho Vault 风险警报</b>\n\n`;
-    msg += `💼 钱包：<code>${shortWallet}</code>\n`;
-    msg += `⏰ 时间：${new Date().toLocaleString('zh-CN')}\n`;
-    msg += `━━━━━━━━━━━━━━━━\n\n`;
-
-    alerts.forEach(alert => {
-      const icon = alert.type === 'critical' ? '🔴' : '🟡';
-      msg += `${icon} <b>${alert.title}</b>\n`;
-      msg += `${alert.desc}\n\n`;
-    });
-
-    msg += `━━━━━━━━━━━━━━━━\n`;
-    msg += `📊 <b>持仓摘要</b>\n`;
-    msg += `• 总持仓：${fmtUSD(totalUsd)}\n`;
-    msg += `• Vault 数量：${positions.length}\n`;
-    msg += `• 流动性警戒：${fmtUSD(liqThreshold)}\n`;
-    msg += `• APY 警戒：${apyThreshold}%\n\n`;
-    msg += `🔗 <a href="https://app.morpho.org/vaults">查看 Morpho 持仓</a>`;
-
-    await sendTelegramMsg(msg);
-    showToast('success', `📬 已发送 ${alerts.length} 条警报到 Telegram`);
-  } catch (e) {
-    console.warn('Telegram 发送失败:', e.message);
-  }
-}
+// sendTelegramAlert() removed 2026-08-03 — the browser no longer pushes
+// alerts. Worker v1.6.0 owns Telegram delivery (severity tiers, per-tier
+// cooldowns, deep links, encrypted token). testTelegram() and
+// sendManualAlert() build their own messages and are unaffected.
 
 async function sendManualAlert() {
   const hasPositions = APP.positions.length > 0 || APP.marketPositions.length > 0 || APP.v2Positions.length > 0;
@@ -6315,15 +6296,20 @@ function toggleMonitor() {
   }
 }
 
+// In-page auto-refresh. Re-fetches and re-renders on an interval so the
+// numbers on screen stay current while you're looking at them — nothing
+// more. It does NOT send Telegram alerts (Worker v1.6.0 owns that) and it
+// stops the moment the tab closes, which is exactly why the background
+// Worker exists.
 function startMonitor() {
   APP.isMonitoring = true;
   const interval = parseInt(document.getElementById('interval-select').value) || 300;
   APP.countdownVal = interval;
 
-  document.getElementById('monitor-btn').innerHTML = `<span id="monitor-btn-text">${t('btnMonitorStop')}</span>`;
+  document.getElementById('monitor-btn').innerHTML = `<span id="monitor-btn-text">${t('btnAutoRefreshStop')}</span>`;
   document.getElementById('monitor-btn').className = 'btn btn-danger';
-  document.getElementById('status-dot').classList.add('active');
-  document.getElementById('status-text').textContent = t('statusMonitoring');
+  // The header status dot reflects the BACKGROUND monitor, so auto-refresh
+  // must not touch it — only the countdown belongs to this button.
   document.getElementById('countdown-display').style.display = 'flex';
 
   APP.monitorTimer = setInterval(async () => {
@@ -6376,7 +6362,7 @@ function startMonitor() {
     document.getElementById('countdown-val').textContent = formatCountdown(APP.countdownVal);
   }, 1000);
 
-  showToast('success', `✅ ${t('monitorStarted')} · ${formatCountdown(interval)}`);
+  showToast('success', `✅ ${t('autoRefreshStarted')} · ${formatCountdown(interval)}`);
 }
 
 function stopMonitor() {
@@ -6384,13 +6370,12 @@ function stopMonitor() {
   clearInterval(APP.monitorTimer);
   clearInterval(APP.countdownTimer);
 
-  document.getElementById('monitor-btn').innerHTML = `<span id="monitor-btn-text">${t('btnMonitorStart')}</span>`;
+  document.getElementById('monitor-btn').innerHTML = `<span id="monitor-btn-text">${t('btnAutoRefreshStart')}</span>`;
   document.getElementById('monitor-btn').className = 'btn btn-success';
-  document.getElementById('status-dot').classList.remove('active');
-  document.getElementById('status-text').textContent = t('statusStopped');
   document.getElementById('countdown-display').style.display = 'none';
+  // Header dot left alone — it tracks the background Worker, not this timer.
 
-  showToast('info', t('monitorStopped'));
+  showToast('info', t('autoRefreshStopped'));
 }
 
 // ────────────────────────────────────────────
@@ -7792,6 +7777,16 @@ function bgmGetConfig() {
 }
 
 function bgmUpdateUI(active) {
+  // The header dot/text now mirror the BACKGROUND monitor, which is the
+  // thing that actually keeps watching after you close the tab. Before,
+  // they tracked the in-page interval, so the header could read
+  // "Monitoring" while nothing was registered with the Worker at all.
+  APP.bgmActive = !!active;
+  const hDot = document.getElementById('status-dot');
+  const hText = document.getElementById('status-text');
+  if (hDot)  hDot.classList.toggle('active', !!active);
+  if (hText) hText.textContent = t(active ? 'bgmStatusActive' : 'bgmStatusInactive');
+
   const dot = document.getElementById('bgm-status-dot');
   const text = document.getElementById('bgm-status-text');
   const btnStart = document.getElementById('bgm-btn-start');
