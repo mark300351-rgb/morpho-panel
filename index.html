@@ -11,7 +11,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>🔥</text></svg>">
 <title>Morpho Vault Monitor · ML</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 /* ===========================
@@ -638,40 +638,9 @@ select option { background: var(--bg-2); }
   font-weight: 500;
 }
 
-/* Sprint 1.7 — Dark mode via prefers-color-scheme (Fire & Earth — Night Theme).
-   Palette darkens backgrounds to deep-warm blacks while keeping the fire-orange
-   accent recognizable. Text/border ratios tuned for WCAG AA on both modes. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-0: #0b0906;
-    --bg-1: #12100c;
-    --bg-2: #191510;
-    --bg-3: #221b13;
-    --bg-card: #12100c;
-    --bg-hover: #1c1710;
-    --border: #3a2c1c;
-    --border-light: #5a4128;
-    --text-1: #f5eee4;
-    --text-2: #d4b896;
-    --text-3: #8b6a48;
-    --blue: #f97316;
-    --blue-dark: #ea580c;
-    --blue-glow: rgba(249,115,22,0.22);
-    --purple: #d97706;
-    --green: #10b981;
-    --green-dark: #059669;
-    --green-glow: rgba(16,185,129,0.16);
-    --yellow: #f59e0b;
-    --orange: #fb923c;
-    --red: #f87171;
-    --red-glow: rgba(248,113,113,0.18);
-    --morpho: #f97316;
-    --fire-bright: #fb923c;
-    --fire-deep: #ea580c;
-    --ember: #b45309;
-    --earth: #92400e;
-  }
-}
+/* Sprint 1.7 的简版暗色块已由 <style id="neo-skin"> 取代（2026-08-03 导入
+   Design 项目 "Onchain Terminal" VI）。皮肤在文件末尾统一定义双主题，
+   做法是重定义下面这些原生变量，所以组件层不需要任何主题判断。 */
 
 .vault-card-header {
   padding: 18px 22px 14px;
@@ -2252,6 +2221,390 @@ select option { background: var(--bg-2); }
 #donut-tooltip .dt-more { font-size: 10px; color: var(--text-3); margin-top: 6px; text-align: center; }
 
 </style>
+<style id="neo-skin">
+/* ============================================================
+   Onchain Terminal — skin overlay
+   导入自 Design 项目 "Morpho Monitor"（design-system/tokens.css）
+   ------------------------------------------------------------
+   接入方式（照 design-system/README.md 的约定）：
+   不逐个覆盖选择器，而是**重定义 App 原生 CSS 变量**
+   （--bg-0..3 / --text-1..3 / --blue / --green / --morpho ...）。
+   这样上游新增的组件只要用这些变量写样式，就自动适配双主题，
+   皮肤不需要跟着改。只有写死色值的地方才需要补覆盖。
+
+   语义色一律 oklch(L C H)：色相 H 固定，明度 L 按主题锁死，
+   对比度由构造保证。新增语义色只加 H、不动 L，就不会破 AA。
+   品牌色相 53 取自标志本体的加权像素采样，不是另选的。
+
+   主题：<html> 跟随系统 · [data-theme="light"] 强制白天
+        · [data-theme="dark"] 强制黑夜（记忆在 localStorage mm-theme）
+   ============================================================ */
+
+/* ── A. 与主题无关的标量 ───────────────────────────────── */
+:root {
+  --font-sans-ds: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                  'PingFang SC', 'HarmonyOS Sans SC', 'Noto Sans SC',
+                  'Microsoft YaHei', sans-serif;
+  --font-sans-tc: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                  'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  --font-mono-ds: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+                  'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', monospace;
+  --font-mono-tc: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+                  'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', monospace;
+
+  --ls-tightest: -.03em;
+  --ls-widest:   .14em;
+  --ls-cjk-wide: .08em;
+  --lh-cjk:      1.68;
+
+  --ease-out:   cubic-bezier(.2,.7,.3,1);
+  --dur-fast:   .18s;
+  --dur-base:   .25s;
+  --dur-sheen:  .65s;
+  --dur-grid:   44s;
+  --dur-theme:  .35s;
+
+  /* 色相锚点 —— 只加 H，不动 L */
+  --h-brand:   53;   /* 等离子橙 · 唯一主角 */
+  --h-success:168;   /* 薄荷绿 · 正收益 */
+  --h-danger:  15;   /* 玫红 · 警报 */
+  --h-warning: 78;   /* 琥珀 · 警告 */
+  --h-info:   208;   /* 电子青 · 仅链接与数据 */
+  --h-accent: 295;   /* 紫 · 仅 V2 标记 */
+  --L-text:  .82;    /* 黑夜语义文字 */
+  --L-solid: .70;    /* 实心色 / 图形 */
+
+  /* 代币与链的真实品牌色 —— 不参与主题换色 */
+  --token-usdc:#2775ca; --token-usdt:#26a17b; --token-weth:#627eea;
+  --token-wbtc:#f7931a; --token-dai:#f5ac37;
+  --chain-ethereum:#627eea; --chain-base:#0052ff;
+  --chain-arbitrum:#28a0f0; --chain-monad:#836ef9;
+}
+
+/* ── B. 黑夜 Onchain Terminal（跟随系统 + 手动强制共用）──── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --neo-dark: 1; }
+}
+:root[data-theme="dark"] { --neo-dark: 1; }
+
+@media (prefers-color-scheme: dark) {
+:root:not([data-theme="light"]) {
+  color-scheme: dark;
+
+  /* 设计系统层 */
+  --surface-void:#05060b; --surface-sunken:#090b13; --surface-base:#0b0e18;
+  --surface-raised:#0e1120; --surface-overlay:#161a2b; --surface-hover:#141829;
+  --surface-header:rgba(8,10,18,.72);
+  --glass-weak:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012));
+  --glass-strong:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
+  --fill-1:rgba(255,255,255,.04); --fill-2:rgba(255,255,255,.08); --fill-3:rgba(255,255,255,.06);
+  --sheen:rgba(255,255,255,.26);
+  --border-subtle:rgba(255,255,255,.075); --border-strong:rgba(255,255,255,.16);
+  --border-hair:rgba(255,255,255,.05);
+  --shadow-card:inset 0 1px 0 rgba(255,255,255,.05),0 12px 40px -18px rgba(0,0,0,.9);
+  --shadow-hover:inset 0 1px 0 rgba(255,255,255,.06),0 24px 54px -24px #000;
+  --shadow-float:0 24px 60px -20px #000;
+  --glow-brand:0 0 46px -24px oklch(var(--L-solid) .18 var(--h-brand)/.95);
+  --glow-text-brand:0 0 26px oklch(var(--L-solid) .18 var(--h-brand)/.45);
+  --glow-text-success:0 0 18px oklch(var(--L-solid) .16 var(--h-success)/.40);
+  --glow-text-danger:0 0 18px oklch(var(--L-solid) .19 var(--h-danger)/.40);
+  --ring-focus:0 0 0 3px oklch(var(--L-solid) .18 var(--h-brand)/.14),0 0 26px -10px oklch(var(--L-solid) .18 var(--h-brand)/.9);
+  --ambient-plasma:
+    radial-gradient(62% 44% at 50% -10%, oklch(var(--L-solid) .19 var(--h-brand)/.22), transparent 62%),
+    radial-gradient(48% 38% at 100% 2%,  oklch(78% .10 var(--h-info)/.10),  transparent 60%),
+    radial-gradient(54% 42% at 0% 24%,   oklch(72% .12 var(--h-accent)/.09), transparent 62%);
+  --ambient-grid-color:rgba(255,255,255,.05);
+  --ambient-grid-opacity:.32;
+  --glow-a:.16;
+
+  /* ↓↓↓ App 原生变量重映射 —— 组件层无需改动 ↓↓↓ */
+  --bg-0:      var(--surface-void);
+  --bg-1:      var(--surface-base);
+  --bg-2:      var(--surface-raised);
+  --bg-3:      var(--surface-overlay);
+  --bg-card:   var(--surface-base);
+  --bg-hover:  var(--surface-hover);
+  --border:       var(--border-subtle);
+  --border-light: var(--border-strong);
+  --text-1: oklch(93% .012 265);
+  --text-2: oklch(72% .030 265);
+  --text-3: oklch(60% .035 265);
+  /* App 把 --blue 当主强调色用（其实是火焰橙），继续保持这个语义 */
+  --blue:      oklch(var(--L-solid) .17 var(--h-brand));
+  --blue-dark: oklch(58% .17 var(--h-brand));
+  --blue-glow: oklch(var(--L-solid) .16 var(--h-brand)/.16);
+  --purple:    oklch(72% .12 var(--h-accent));
+  --green:      oklch(var(--L-solid) .16 var(--h-success));
+  --green-dark: oklch(58% .14 var(--h-success));
+  --green-glow: oklch(var(--L-solid) .16 var(--h-success)/.14);
+  --yellow: oklch(var(--L-solid) .15 var(--h-warning));
+  --orange: oklch(76% .15 var(--h-brand));
+  --red:      oklch(var(--L-solid) .19 var(--h-danger));
+  --red-glow: oklch(var(--L-solid) .19 var(--h-danger)/.15);
+  --morpho:      oklch(var(--L-solid) .17 var(--h-brand));
+  --fire-bright: oklch(76% .15 var(--h-brand));
+  --fire-deep:   oklch(58% .17 var(--h-brand));
+  --ember:       oklch(var(--L-solid) .15 var(--h-warning));
+  --earth:       oklch(52% .12 var(--h-brand));
+}
+}
+
+/* 手动强制黑夜 —— 与上面同值（CSS 变量无法跨 @media 复用，只能重述） */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-void:#05060b; --surface-sunken:#090b13; --surface-base:#0b0e18;
+  --surface-raised:#0e1120; --surface-overlay:#161a2b; --surface-hover:#141829;
+  --surface-header:rgba(8,10,18,.72);
+  --glass-weak:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012));
+  --glass-strong:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
+  --fill-1:rgba(255,255,255,.04); --fill-2:rgba(255,255,255,.08); --fill-3:rgba(255,255,255,.06);
+  --sheen:rgba(255,255,255,.26);
+  --border-subtle:rgba(255,255,255,.075); --border-strong:rgba(255,255,255,.16);
+  --border-hair:rgba(255,255,255,.05);
+  --shadow-card:inset 0 1px 0 rgba(255,255,255,.05),0 12px 40px -18px rgba(0,0,0,.9);
+  --shadow-hover:inset 0 1px 0 rgba(255,255,255,.06),0 24px 54px -24px #000;
+  --shadow-float:0 24px 60px -20px #000;
+  --glow-brand:0 0 46px -24px oklch(var(--L-solid) .18 var(--h-brand)/.95);
+  --glow-text-brand:0 0 26px oklch(var(--L-solid) .18 var(--h-brand)/.45);
+  --glow-text-success:0 0 18px oklch(var(--L-solid) .16 var(--h-success)/.40);
+  --glow-text-danger:0 0 18px oklch(var(--L-solid) .19 var(--h-danger)/.40);
+  --ring-focus:0 0 0 3px oklch(var(--L-solid) .18 var(--h-brand)/.14),0 0 26px -10px oklch(var(--L-solid) .18 var(--h-brand)/.9);
+  --ambient-plasma:
+    radial-gradient(62% 44% at 50% -10%, oklch(var(--L-solid) .19 var(--h-brand)/.22), transparent 62%),
+    radial-gradient(48% 38% at 100% 2%,  oklch(78% .10 var(--h-info)/.10),  transparent 60%),
+    radial-gradient(54% 42% at 0% 24%,   oklch(72% .12 var(--h-accent)/.09), transparent 62%);
+  --ambient-grid-color:rgba(255,255,255,.05);
+  --ambient-grid-opacity:.32;
+  --glow-a:.16;
+
+  --bg-0:var(--surface-void); --bg-1:var(--surface-base); --bg-2:var(--surface-raised);
+  --bg-3:var(--surface-overlay); --bg-card:var(--surface-base); --bg-hover:var(--surface-hover);
+  --border:var(--border-subtle); --border-light:var(--border-strong);
+  --text-1:oklch(93% .012 265); --text-2:oklch(72% .030 265); --text-3:oklch(60% .035 265);
+  --blue:oklch(var(--L-solid) .17 var(--h-brand));
+  --blue-dark:oklch(58% .17 var(--h-brand));
+  --blue-glow:oklch(var(--L-solid) .16 var(--h-brand)/.16);
+  --purple:oklch(72% .12 var(--h-accent));
+  --green:oklch(var(--L-solid) .16 var(--h-success));
+  --green-dark:oklch(58% .14 var(--h-success));
+  --green-glow:oklch(var(--L-solid) .16 var(--h-success)/.14);
+  --yellow:oklch(var(--L-solid) .15 var(--h-warning));
+  --orange:oklch(76% .15 var(--h-brand));
+  --red:oklch(var(--L-solid) .19 var(--h-danger));
+  --red-glow:oklch(var(--L-solid) .19 var(--h-danger)/.15);
+  --morpho:oklch(var(--L-solid) .17 var(--h-brand));
+  --fire-bright:oklch(76% .15 var(--h-brand));
+  --fire-deep:oklch(58% .17 var(--h-brand));
+  --ember:oklch(var(--L-solid) .15 var(--h-warning));
+  --earth:oklch(52% .12 var(--h-brand));
+}
+
+/* ── C. 白天 Solar Terminal ──────────────────────────────
+   不是暗色的反相：暖纸 + 暖墨 + 同一支橙，接回项目原本
+   Fire & Earth 的暖色血统。语义色统一锁 L=.46。
+   ────────────────────────────────────────────────────── */
+:root, :root[data-theme="light"] {
+  --surface-void:oklch(96.3% .0075 65); --surface-sunken:oklch(94.2% .010 65);
+  --surface-base:oklch(99.3% .003 65);  --surface-raised:oklch(100% 0 0);
+  --surface-overlay:oklch(100% 0 0);    --surface-hover:oklch(97.6% .008 65);
+  --surface-header:oklch(99.3% .003 65/.82);
+  --glass-weak:linear-gradient(180deg,oklch(99.6% .002 65/.97),oklch(99% .004 65/.90));
+  --glass-strong:linear-gradient(180deg,oklch(99.6% .002 65),oklch(99.3% .003 65/.95));
+  --fill-1:oklch(30% .018 58/.04); --fill-2:oklch(30% .018 58/.075); --fill-3:oklch(30% .018 58/.055);
+  --sheen:oklch(100% 0 0/.55);
+  --border-subtle:oklch(30% .018 58/.12); --border-strong:oklch(30% .018 58/.22);
+  --border-hair:oklch(30% .018 58/.08);
+  --shadow-card:0 1px 2px oklch(30% .02 58/.05),0 12px 32px -20px oklch(30% .02 58/.26);
+  --shadow-hover:0 2px 6px oklch(30% .02 58/.07),0 22px 46px -24px oklch(30% .02 58/.28);
+  --shadow-float:0 20px 50px -18px oklch(30% .02 58/.26);
+  --glow-brand:0 0 34px -20px oklch(58% .17 var(--h-brand)/.7);
+  --glow-text-brand:none; --glow-text-success:none; --glow-text-danger:none;
+  --ring-focus:0 0 0 3px oklch(65% .16 var(--h-brand)/.20);
+  /* 浅底上多色相叠加会互相中和成灰褐，只保留单一品牌色相的极淡光晕 */
+  --ambient-plasma:radial-gradient(70% 40% at 50% -12%, oklch(78% .13 var(--h-brand)/.11), transparent 66%);
+  --ambient-grid-color:oklch(30% .018 58/.045);
+  --ambient-grid-opacity:.22;
+  --glow-a:.07;
+
+  /* App 原生变量 —— 白天 */
+  --bg-0:var(--surface-raised); --bg-1:var(--surface-base); --bg-2:var(--surface-void);
+  --bg-3:var(--surface-sunken); --bg-card:var(--surface-raised); --bg-hover:var(--surface-hover);
+  --border:var(--border-subtle); --border-light:var(--border-strong);
+  --text-1:oklch(25% .020 60); --text-2:oklch(40% .025 60); --text-3:oklch(47% .030 60);
+  --blue:oklch(46% .14 var(--h-brand));
+  --blue-dark:oklch(38% .13 var(--h-brand));
+  --blue-glow:oklch(65% .15 var(--h-brand)/.12);
+  --purple:oklch(50% .17 var(--h-accent));
+  --green:oklch(46% .11 var(--h-success));
+  --green-dark:oklch(40% .10 var(--h-success));
+  --green-glow:oklch(65% .13 var(--h-success)/.10);
+  --yellow:oklch(46% .11 var(--h-warning));
+  --orange:oklch(55% .16 var(--h-brand));
+  --red:oklch(46% .18 var(--h-danger));
+  --red-glow:oklch(60% .19 var(--h-danger)/.10);
+  --morpho:oklch(52% .16 var(--h-brand));
+  --fire-bright:oklch(58% .17 var(--h-brand));
+  --fire-deep:oklch(42% .14 var(--h-brand));
+  --ember:oklch(46% .11 var(--h-warning));
+  --earth:oklch(38% .09 var(--h-brand));
+}
+
+/* ── D. 主题过渡 + 环境层 ────────────────────────────── */
+body {
+  background: var(--bg-2);
+  transition: background var(--dur-theme) var(--ease-in-out, ease),
+              color var(--dur-theme) var(--ease-in-out, ease);
+}
+/* 三层等离子光晕 + 64px 网格慢速漂移。两层都是 pointer-events:none，
+   z-index 0，压在内容底下。reduced-motion 下停掉漂移。 */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+body::before { background: var(--ambient-plasma); }
+body::after {
+  opacity: var(--ambient-grid-opacity);
+  background-image:
+    linear-gradient(var(--ambient-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ambient-grid-color) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(closest-side at 50% 28%, #000, transparent 76%);
+  mask-image: radial-gradient(closest-side at 50% 28%, #000, transparent 76%);
+  animation: neoGridDrift var(--dur-grid) linear infinite;
+}
+@keyframes neoGridDrift { to { background-position: 64px 64px; } }
+/* 内容必须浮在环境层之上 */
+body > * { position: relative; z-index: 1; }
+
+/* ── E. 数字排版：等宽 + tabular-nums ─────────────────── */
+.stat-value, .position-usd, .metric-value, .vault-position-value,
+.alloc-pct, .pnl-tx-amount, .pnl-summary-value, .util-pill,
+#stat-total, #stat-apy, #stat-alerts, .countdown,
+.gov-val code, .gov-timeline-time, .gov-timeline-fn, .pending-when,
+.threshold-chip, #app-version-badge {
+  font-family: var(--font-mono-ds);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--ls-tight, -.02em);
+}
+.stat-value, #stat-total { letter-spacing: var(--ls-tightest); }
+/* 数字辉光 —— 只在黑夜出现（白天 --glow-text-* 是 none） */
+.stat-card.blue  .stat-value { text-shadow: var(--glow-text-brand); }
+.stat-card.green .stat-value { text-shadow: var(--glow-text-success); }
+.stat-card.red   .stat-value { text-shadow: var(--glow-text-danger); }
+
+/* ── F. 微标签：mono + uppercase + 宽字距 ─────────────── */
+.stat-label, .metric-label, .position-label, .gov-section-title,
+.label-micro, .threshold-chip-label {
+  font-family: var(--font-mono-ds);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-widest);
+}
+/* 汉字不吃拉丁的宽字距，收窄；且不做负字距 */
+:lang(zh) .stat-label, :lang(zh) .metric-label, :lang(zh) .position-label,
+:lang(zh) .gov-section-title, :lang(zh) .threshold-chip-label {
+  letter-spacing: var(--ls-cjk-wide);
+}
+:lang(zh-TW) { --font-sans-ds: var(--font-sans-tc); --font-mono-ds: var(--font-mono-tc); }
+
+/* ── G. 玻璃卡 + 悬停抬升 ─────────────────────────────── */
+.vault-card, .stat-card, .rec-card, .alert-panel, .table, .gov-timeline, .gov-vault-summary {
+  background: var(--glass-weak), var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+.stat-card { transition: transform var(--dur-base) var(--ease-out), border-color var(--dur-base), box-shadow var(--dur-base); }
+.stat-card:hover { transform: translateY(-3px); border-color: var(--border-light); box-shadow: var(--shadow-hover); }
+.vault-card:hover { border-color: var(--border-light); box-shadow: var(--shadow-hover); }
+/* 统计卡右上角光晕 —— 强度由 --glow-a 控制，白天收敛到 .07 */
+.stat-card { position: relative; overflow: hidden; }
+.stat-card::after {
+  content: ''; position: absolute; right: -32px; top: -32px;
+  width: 120px; height: 120px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, oklch(var(--L-solid) .16 var(--h-brand)/var(--glow-a)), transparent 70%);
+}
+.stat-card.green::after { background: radial-gradient(circle, oklch(var(--L-solid) .16 var(--h-success)/var(--glow-a)), transparent 70%); }
+.stat-card.red::after   { background: radial-gradient(circle, oklch(var(--L-solid) .19 var(--h-danger)/var(--glow-a)), transparent 70%); }
+
+/* ── H. 顶栏：玻璃 + 品牌渐变下沿 ─────────────────────── */
+header {
+  background: var(--surface-header);
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  position: relative;
+}
+header::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent,
+    oklch(var(--L-solid) .18 var(--h-brand)/.6),
+    oklch(78% .10 var(--h-info)/.35), transparent);
+}
+
+/* ── I. 主题切换按钮 ─────────────────────────────────── */
+#theme-btn {
+  width: 30px; height: 26px;
+  display: grid; place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--fill-1);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
+}
+#theme-btn:hover { color: var(--text-1); background: var(--fill-2); border-color: var(--border-light); }
+#theme-btn svg { width: 15px; height: 15px; display: block; }
+/* 图标随当前生效主题切换：显示「点了会变成什么」 */
+#theme-btn .i-sun  { display: none; }
+#theme-btn .i-moon { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) #theme-btn .i-sun  { display: block; }
+  :root:not([data-theme="light"]) #theme-btn .i-moon { display: none; }
+}
+:root[data-theme="dark"] #theme-btn .i-sun  { display: block; }
+:root[data-theme="dark"] #theme-btn .i-moon { display: none; }
+:root[data-theme="light"] #theme-btn .i-sun  { display: none; }
+:root[data-theme="light"] #theme-btn .i-moon { display: block; }
+
+/* ── J. 按钮扫光 650ms ───────────────────────────────── */
+.btn { position: relative; overflow: hidden; }
+.btn::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 32%, var(--sheen) 48%, transparent 64%);
+  transform: translateX(-130%);
+  transition: transform var(--dur-sheen) var(--ease-out);
+}
+.btn:hover::after { transform: translateX(130%); }
+
+/* ── K. 表单聚焦环 ───────────────────────────────────── */
+input:focus, select:focus, textarea:focus {
+  box-shadow: var(--ring-focus);
+}
+
+/* ── L. 滚动条（黑夜下默认滚动条太亮）────────────────── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--fill-2);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--fill-3); background-clip: content-box; }
+
+/* ── M. 治理弹窗背板跟随主题 ─────────────────────────── */
+.gov-modal-backdrop { background: oklch(8% .02 265 / .62); }
+.gov-modal { background: var(--glass-strong), var(--bg-card); box-shadow: var(--shadow-float); }
+
+/* ── N. 动效可访问性 ─────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  body::after { animation: none; }
+  .btn::after { transition: none; }
+  .stat-card:hover, .vault-card:hover { transform: none; }
+  * { transition-duration: .01ms !important; }
+}
+
+</style>
 </head>
 <body>
 
@@ -2278,6 +2631,16 @@ select option { background: var(--bg-2); }
         <button class="lang-btn" data-lang="zh-TW" onclick="switchLang('zh-TW')">繁</button>
         <button class="lang-btn" data-lang="en" onclick="switchLang('en')">EN</button>
       </div>
+      <!-- 主题切换：跟随系统 → 白天 → 黑夜 循环，记忆在 localStorage mm-theme。
+           图标显示「点下去会变成什么」，不是当前状态。 -->
+      <button id="theme-btn" type="button" onclick="cycleTheme()" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+        </svg>
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+        </svg>
+      </button>
       <!-- Sprint 2.7 — LIVE mode moved from stat-card to header. It's a
            GLOBAL data-source switch (API snapshot vs on-chain live), so it
            lives next to language switcher and monitor status. -->
@@ -2602,7 +2965,7 @@ select option { background: var(--bg-2); }
 // ────────────────────────────────────────────
 // Version
 // ────────────────────────────────────────────
-const APP_VERSION = '1.5.0';  // 2026-08 — post-audit Sprint 1 (deep-link + schema probe + LIVE fix + dark mode)
+const APP_VERSION = '2.0.0';  // 2026-08 — post-audit Sprint 1 (deep-link + schema probe + LIVE fix + dark mode)
 const EXPECTED_WORKER_VERSION = '1.6.0';  // matched against /api/health.version; mismatch shows ⚠️ in header
 
 // ────────────────────────────────────────────
@@ -7580,17 +7943,89 @@ fetchCurators();
 
 // Sprint 1.7 — sync <meta name="theme-color"> to the actual system scheme
 // so iOS Safari's status bar and Android's chrome UI match panel background.
-(function syncThemeColor() {
+// ── 主题：跟随系统 / 强制白天 / 强制黑夜 ──────────────────
+// 导入 Design 项目的三态模型（design-system/README.md）。
+// 之前只读 prefers-color-scheme，用户无法覆盖系统设置。
+const THEME_KEY = 'mm-theme';
+const THEME_ORDER = ['auto', 'light', 'dark'];
+
+function currentThemeMode() {
+  const v = localStorage.getItem(THEME_KEY);
+  return THEME_ORDER.includes(v) ? v : 'auto';
+}
+function effectiveDark() {
+  const m = currentThemeMode();
+  if (m === 'dark')  return true;
+  if (m === 'light') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function applyTheme(mode) {
+  const el = document.documentElement;
+  if (mode === 'auto') el.removeAttribute('data-theme');
+  else el.setAttribute('data-theme', mode);
+  // theme-color 要用「实际生效」的底色，否则 iOS 状态栏会和页面错开
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (!meta) return;
-  const apply = () => {
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    meta.setAttribute('content', dark ? '#0b0906' : '#fffcfa');
+  if (meta) meta.setAttribute('content', effectiveDark() ? '#05060b' : '#f7f3ee');
+  const btn = document.getElementById('theme-btn');
+  if (btn) {
+    const label = { auto: '主题：跟随系统', light: '主题：白天', dark: '主题：黑夜' }[mode];
+    btn.title = `${label}（点击切换）`;
+  }
+  if (typeof __repaintCharts === 'function') __repaintCharts();
+}
+function cycleTheme() {
+  const next = THEME_ORDER[(THEME_ORDER.indexOf(currentThemeMode()) + 1) % THEME_ORDER.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+applyTheme(currentThemeMode());
+try {
+  window.matchMedia('(prefers-color-scheme: dark)')
+    .addEventListener('change', () => applyTheme(currentThemeMode()));
+} catch { /* Safari < 14 lacks addEventListener on MediaQueryList */ }
+
+// ── Chart.js 取设计系统的值，不写死颜色 ────────────────────
+// 主题切换时 __repaintCharts() 遍历实例更新刻度/网格/tooltip 后重绘。
+function CHART_C() {
+  const cs = getComputedStyle(document.documentElement);
+  const V = n => cs.getPropertyValue(n).trim();
+  return {
+    mono:   V('--font-mono-ds') || 'monospace',
+    sans:   V('--font-sans-ds') || 'sans-serif',
+    text1:  V('--text-1'), text2: V('--text-2'), tick: V('--text-3'),
+    grid:   V('--border'), border: V('--border-light'),
+    panel:  V('--bg-card'),
+    brand:  V('--blue'), green: V('--green'), red: V('--red'),
   };
-  apply();
-  try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply); }
-  catch { /* Safari < 14 lacks addEventListener on MediaQueryList */ }
-})();
+}
+function __repaintCharts() {
+  if (typeof Chart === 'undefined' || !Chart.instances) return;
+  const c = CHART_C();
+  Chart.defaults.color = c.tick;
+  Chart.defaults.font.family = c.sans;
+  Object.values(Chart.instances).forEach(ch => {
+    try {
+      const sc = ch.options?.scales || {};
+      for (const k of Object.keys(sc)) {
+        if (sc[k].ticks) { sc[k].ticks.color = c.tick; sc[k].ticks.font = { ...(sc[k].ticks.font||{}), family: c.mono }; }
+        if (sc[k].grid)  { sc[k].grid.color = c.grid; }
+      }
+      const tt = ch.options?.plugins?.tooltip;
+      if (tt) {
+        tt.backgroundColor = c.panel;
+        tt.titleColor = c.text1;
+        tt.bodyColor  = c.text2;
+        tt.borderColor = c.border;
+        tt.borderWidth = 1;
+      }
+      ch.update('none');
+    } catch (e) { console.warn('[chart repaint]', e.message); }
+  });
+}
+if (typeof Chart !== 'undefined') {
+  Chart.defaults.font.family = CHART_C().sans;
+  Chart.defaults.color = CHART_C().tick;
+}
 
 // Sprint 1.2 — deep-link handler
 // Reads `?wallet=<addr>` and `#alert=<fp>` (or `#vault=<addr>` / `#market=<id>`)
