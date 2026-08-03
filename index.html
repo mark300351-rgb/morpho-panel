@@ -2528,13 +2528,17 @@ body > * { position: relative; z-index: 1; }
 .stat-card.red::after   { background: radial-gradient(circle, oklch(var(--L-solid) .19 var(--h-danger)/var(--glow-a)), transparent 70%); }
 
 /* ── H. 顶栏：玻璃 + 品牌渐变下沿 ─────────────────────── */
-header {
+/* 用 .header 而非 header：原样式表里 `.header` 写死了
+   rgba(255,253,250,.96)，类选择器权重压过元素选择器，暗色下顶栏会留白。
+   这是全表唯一一处写死浅色背景（其余 6 处写死的 #fff/white 都是实色按钮
+   与徽章上的白字，本来就该是白的，不需要覆盖）。 */
+header, .header {
   background: var(--surface-header);
   backdrop-filter: blur(22px) saturate(1.6);
   -webkit-backdrop-filter: blur(22px) saturate(1.6);
   position: relative;
 }
-header::after {
+header::after, .header::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
   background: linear-gradient(90deg, transparent,
     oklch(var(--L-solid) .18 var(--h-brand)/.6),
