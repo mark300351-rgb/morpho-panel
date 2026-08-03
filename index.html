@@ -996,6 +996,99 @@ select option { background: var(--bg-2); }
 }
 .alert-btn.primary:hover { background: var(--blue-dark); color: #fff; }
 
+/* Sprint 2.3 — V2 Governance Drawer (collapsible <details>) */
+.vault-governance {
+  margin: 12px 22px 4px;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.vault-governance > summary {
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+.vault-governance > summary::-webkit-details-marker { display: none; }
+.vault-governance > summary::before {
+  content: '▸';
+  font-size: 10px;
+  color: var(--text-3);
+  transition: transform .15s;
+}
+.vault-governance[open] > summary::before { transform: rotate(90deg); }
+.vault-governance > summary:hover { background: var(--bg-hover); }
+.gov-body {
+  padding: 8px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  border-top: 1px solid var(--border);
+}
+.gov-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 4px 0;
+}
+.gov-key {
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: .3px;
+}
+.gov-val {
+  color: var(--text-2);
+  word-break: break-all;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+}
+.gov-val code {
+  font-size: 11px;
+  background: var(--bg-3);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--text-1);
+  font-family: 'SF Mono','Menlo','Monaco',monospace;
+}
+.gov-timelock { font-size: 11px; opacity: .8; }
+.pending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+.pending-item {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: var(--bg-3);
+  border-radius: 4px;
+  border-left: 2px solid var(--yellow);
+}
+.pending-item.urgent {
+  border-left-color: var(--red);
+  background: rgba(220,38,38,0.06);
+}
+@media (max-width: 480px) {
+  .vault-governance { margin: 10px 12px 4px; }
+  .gov-row { grid-template-columns: 100px 1fr; gap: 8px; }
+  .gov-key { font-size: 10px; }
+  .gov-val { font-size: 11px; }
+}
+
 /* ===========================
    Recommendation Cards
 =========================== */
@@ -1864,6 +1957,14 @@ select option { background: var(--bg-2); }
         <button class="lang-btn" data-lang="zh-TW" onclick="switchLang('zh-TW')">繁</button>
         <button class="lang-btn" data-lang="en" onclick="switchLang('en')">EN</button>
       </div>
+      <!-- Sprint 2.7 — LIVE mode moved from stat-card to header. It's a
+           GLOBAL data-source switch (API snapshot vs on-chain live), so it
+           lives next to language switcher and monitor status. -->
+      <button id="live-mode-btn" type="button" onclick="toggleLiveMode()"
+        title="On: read balances from chain via maxWithdraw(user). Off: use Morpho API indexer snapshot."
+        style="font-size:10px;padding:3px 8px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text-3);cursor:pointer;letter-spacing:.4px;font-variant-numeric:tabular-nums;transition:all .15s">
+        LIVE: OFF
+      </button>
       <div class="countdown" id="countdown-display" style="display:none">
         <span data-i18n="nextRefresh">下次刷新</span>: <span id="countdown-val">--</span>
       </div>
@@ -2026,10 +2127,6 @@ select option { background: var(--bg-2); }
         <div class="stat-label" id="stat-label-total" data-i18n="statTotal">总持仓价值</div>
         <div class="stat-value" id="stat-total">$0</div>
         <div class="stat-sub" id="stat-vaults">0</div>
-        <button id="live-mode-btn" type="button" onclick="toggleLiveMode()" title="Read live balance from chain via previewRedeem(shares). Bypasses Morpho API snapshot lag."
-          style="margin-top:6px;font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text-3);cursor:pointer;letter-spacing:.4px;font-variant-numeric:tabular-nums;transition:all .15s">
-          LIVE: OFF
-        </button>
       </div>
       <div class="stat-card green">
         <div class="stat-label" id="stat-label-apy" data-i18n="statApy">加权平均 APY</div>
@@ -2147,7 +2244,8 @@ select option { background: var(--bg-2); }
 // ────────────────────────────────────────────
 // Version
 // ────────────────────────────────────────────
-const APP_VERSION = '1.3.2';
+const APP_VERSION = '1.4.0';  // 2026-08 — post-audit Sprint 1 (deep-link + schema probe + LIVE fix + dark mode)
+const EXPECTED_WORKER_VERSION = '1.5.0';  // matched against /api/health.version; mismatch shows ⚠️ in header
 
 // ────────────────────────────────────────────
 // Constants
@@ -2707,8 +2805,22 @@ query GetUserVaultV2Positions($address: String!, $chainId: Int!) {
         sharePrice
         performanceFee
         managementFee
+        maxRate
         warnings { type level }
         metadata { description image }
+        # Sprint 2.1 — governance surface (Sprint 2.3 renders these in the
+        # collapsible .vault-governance drawer; Sprint 2.4 uses the earliest
+        # non-abdicated pendingConfigs.validAt for the ⏳ T-Xd chip).
+        owner { address }
+        curator { address }
+        curators(first: 5) { items { name verified } }
+        allocators { allocator { address } }
+        sentinels { sentinel { address } }
+        timelocks { functionName duration abdicatedAt }
+        listingHistory { action timestamp }
+        pendingConfigs(first: 20) {
+          items { validAt functionName txHash }
+        }
       }
     }
   }
@@ -3317,6 +3429,75 @@ function isVerifiedCurator(addr) {
     if (k.toLowerCase() === lower) return v.verified;
   }
   return false;
+}
+
+// ────────────────────────────────────────────
+// Sprint 2.3 — Vault V2 Governance Drawer
+// Renders the collapsible <details> block under each V2 vault card showing
+// Owner / Curator / Allocator / Sentinel addresses, active timelocks, listing
+// status, and any pending config proposals. Data comes from the V2 query
+// governance surface added in Sprint 2.1.
+// ────────────────────────────────────────────
+function _govShortAddr(a) { return a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '—'; }
+function _govFmtDur(seconds) {
+  const s = Number(seconds) || 0;
+  if (s < 60)    return `${s}s`;
+  if (s < 3600)  return `${Math.round(s / 60)}m`;
+  if (s < 86400) return `${(s / 3600).toFixed(1)}h`;
+  return `${(s / 86400).toFixed(1)}d`;
+}
+function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
+  const owner        = vault.owner?.address || '';
+  const curatorAddr  = vault.curator?.address || '';
+  const curatorsList = vault.curators?.items || [];
+  const allocators   = (vault.allocators || []).map(a => a.allocator?.address).filter(Boolean);
+  const sentinels    = (vault.sentinels  || []).map(s => s.sentinel?.address).filter(Boolean);
+  const timelocks    = (vault.timelocks  || []).filter(t => !t.abdicatedAt);
+  const listingHist  = vault.listingHistory || [];
+  const latestListing = listingHist.slice().sort((a, b) => Number(b.timestamp) - Number(a.timestamp))[0];
+
+  const curatorChips = curatorsList.length > 0
+    ? curatorsList.map(c => `<span class="badge badge-blue" style="margin-right:4px">${c.verified ? '✓ ' : ''}${escHtml(c.name)}</span>`).join('')
+    : `<code>${escHtml(_govShortAddr(curatorAddr))}</code>`;
+
+  const timelocksHTML = timelocks.length > 0
+    ? timelocks
+        .slice()
+        .sort((a, b) => Number(b.duration) - Number(a.duration))
+        .map(t => `<span class="gov-timelock" title="${escHtml(t.functionName)}"><code>${escHtml(t.functionName)}</code>: ${_govFmtDur(t.duration)}</span>`)
+        .join(' ')
+    : '<span style="opacity:.55">全部已 abdicate（无法再更改）</span>';
+
+  const pendingHTML = pendingConfigs.length > 0
+    ? `<div class="gov-row"><span class="gov-key">Pending 提案</span><span class="gov-val"><div class="pending-list">${
+        pendingConfigs.slice(0, 8).map(pc => {
+          const validAtMs = Number(pc.validAt) * 1000;
+          const dh = Math.round((validAtMs - nowMs) / 3600_000);
+          const timeStr = dh < 0 ? `${-dh}h 前已到期 · 可执行` :
+                          dh < 24 ? `${dh}h 后生效` :
+                          `${Math.round(dh / 24)}d 后生效`;
+          const urgent = dh < 24;
+          return `<div class="pending-item ${urgent ? 'urgent' : ''}"><code>${escHtml(pc.functionName)}</code> · ${escHtml(timeStr)}</div>`;
+        }).join('')
+      }${pendingConfigs.length > 8 ? `<div style="opacity:.55;font-size:11px">+${pendingConfigs.length - 8} more</div>` : ''}</div></span></div>`
+    : '';
+
+  return `
+  <details class="vault-governance">
+    <summary>
+      <span>🏛 治理</span>
+      ${pendingConfigs.length > 0 ? `<span class="badge" style="background:#f9731622;color:#f97316;margin-left:6px">${pendingConfigs.length} pending</span>` : ''}
+    </summary>
+    <div class="gov-body">
+      <div class="gov-row"><span class="gov-key">Owner</span><span class="gov-val"><code>${escHtml(_govShortAddr(owner))}</code></span></div>
+      <div class="gov-row"><span class="gov-key">Curator</span><span class="gov-val">${curatorChips}</span></div>
+      <div class="gov-row"><span class="gov-key">Allocators (${allocators.length})</span><span class="gov-val">${allocators.length ? allocators.map(a => `<code>${escHtml(_govShortAddr(a))}</code>`).join(' ') : '<span style="opacity:.55">—</span>'}</span></div>
+      <div class="gov-row"><span class="gov-key">Sentinels (${sentinels.length})</span><span class="gov-val">${sentinels.length ? sentinels.map(a => `<code>${escHtml(_govShortAddr(a))}</code>`).join(' ') : '<span style="opacity:.55">—</span>'}</span></div>
+      <div class="gov-row"><span class="gov-key">Timelocks 生效中</span><span class="gov-val">${timelocksHTML}</span></div>
+      <div class="gov-row"><span class="gov-key">Listing</span><span class="gov-val">${latestListing ? `<code>${escHtml(latestListing.action)}</code> @ ${new Date(Number(latestListing.timestamp) * 1000).toLocaleDateString()}` : '<span style="opacity:.55">—</span>'}</span></div>
+      ${pendingHTML}
+    </div>
+  </details>`;
 }
 
 // ────────────────────────────────────────────
@@ -4219,6 +4400,23 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
         const v2Score = calcRiskScoreV2(vault, v2Allocs);
         const v2Risk  = getRiskLevel(v2Score);
 
+        // Sprint 2.3 / 2.4 — V2 governance surface (chip in header + drawer in body)
+        const pendingConfigsV2 = vault.pendingConfigs?.items || [];
+        const nowMsV2 = Date.now();
+        const earliestPendingV2 = pendingConfigsV2
+          .map(pc => ({ pc, validAtMs: Number(pc.validAt) * 1000 }))
+          .filter(x => x.validAtMs > nowMsV2 - 86400_000 && x.validAtMs < nowMsV2 + 7 * 86400_000)
+          .sort((a, b) => a.validAtMs - b.validAtMs)[0];
+        const pendingChipHTML = earliestPendingV2
+          ? (() => {
+              const untilH = Math.round((earliestPendingV2.validAtMs - nowMsV2) / 3600_000);
+              const label  = untilH < 0 ? `T+${-untilH}h` : untilH < 24 ? `T-${untilH}h` : `T-${Math.round(untilH / 24)}d`;
+              const color  = untilH < 24 ? '#ef4444' : untilH < 72 ? '#f97316' : '#f59e0b';
+              return `<span class="badge" style="background:${color}22;color:${color}" title="${escHtml(earliestPendingV2.pc.functionName)} 生效倒计时">⏳ ${label}</span>`;
+            })()
+          : '';
+        const govDrawerHTMLV2 = buildV2GovDrawer(vault, pendingConfigsV2, nowMsV2);
+
         return `<div class="vault-card ${hasAlert ? 'has-alert' : ''}" id="vault-${(vault.address || '').toLowerCase()}">
           <div class="vault-card-header">
             <div class="vault-info">
@@ -4234,6 +4432,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
                   <span class="badge badge-blue">${networkLabel(network)}</span>
                   ${warnings.some(w=>w.level==='RED') ? `<span class="badge badge-red">${t('labelHighRisk')}</span>` : warnings.some(w=>w.level==='YELLOW') ? `<span class="badge" style="background:#f59e0b22;color:#f59e0b">${t('labelCaution')}</span>` : ''}
                   ${hasAlert ? `<span class="badge badge-red">⚠️ ${t('labelAlert')}</span>` : ''}
+                  ${pendingChipHTML}
                 </div>
               </div>
             </div>
@@ -4290,6 +4489,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
                 <div class="alloc-list" style="flex:1">${v2AllocList}</div>
               </div>
             </div>` : ''}
+            ${govDrawerHTMLV2}
           </div>
         </div>`;
       }).join('')}
@@ -6582,8 +6782,35 @@ setTimeout(() => {
   });
   document.documentElement.lang = CURRENT_LANG;
   // Inject version badge
+  // Version badge — shows both frontend + worker version so mismatched deploys
+  // are visible at a glance. Yellow ⚠️ = worker version behind what the panel
+  // was written against. Red 'worker?' = worker unreachable.
   const vBadge = document.getElementById('app-version-badge');
-  if (vBadge) vBadge.textContent = 'v' + APP_VERSION;
+  if (vBadge) {
+    vBadge.textContent = 'v' + APP_VERSION;
+    (async () => {
+      try {
+        const r = await fetch('https://morpho-monitor.markli-mcgrp.workers.dev/api/health', { cache: 'no-store' });
+        const j = r.ok ? await r.json() : null;
+        const wv = j?.version;
+        if (!wv) {
+          vBadge.innerHTML = `v${APP_VERSION} · <span style="color:var(--red)">worker?</span>`;
+          vBadge.title = 'Worker /api/health did not return a version';
+          return;
+        }
+        const match = wv === EXPECTED_WORKER_VERSION;
+        const color = match ? 'var(--text-3)' : 'var(--yellow)';
+        const flag  = match ? '' : ' ⚠️';
+        vBadge.innerHTML = `v${APP_VERSION} · <span style="color:${color}">w${wv}${flag}</span>`;
+        vBadge.title = match
+          ? `Panel v${APP_VERSION} · Worker v${wv} (matched)`
+          : `Panel v${APP_VERSION} was built for Worker v${EXPECTED_WORKER_VERSION}, but Worker is v${wv}. Redeploy Worker to sync.`;
+      } catch (e) {
+        vBadge.innerHTML = `v${APP_VERSION} · <span style="color:var(--red)">worker?</span>`;
+        vBadge.title = `Worker unreachable: ${e.message}`;
+      }
+    })();
+  }
 })();
 
 // ────────────────────────────────────────────
