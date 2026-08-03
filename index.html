@@ -1116,6 +1116,122 @@ select option { background: var(--bg-2); }
   .gov-val { font-size: 11px; }
 }
 
+/* Sprint 4.1 — Governance overview tab */
+.gov-timeline {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px 0;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.gov-timeline-header {
+  padding: 12px 18px 8px;
+  font-size: 12px;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+.gov-timeline-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 18px;
+  border-left: 3px solid transparent;
+  align-items: flex-start;
+}
+.gov-timeline-item:hover { background: var(--bg-hover); }
+.gov-timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.gov-timeline-body { flex: 1; min-width: 0; }
+.gov-timeline-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.gov-timeline-vault {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-1);
+  text-decoration: none;
+}
+.gov-timeline-vault:hover { color: var(--blue); }
+.gov-timeline-time {
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.gov-timeline-meta {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.gov-timeline-fn {
+  font-size: 11px;
+  background: var(--bg-3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-1);
+}
+.gov-timeline-date {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.gov-vault-summary {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 18px 16px;
+}
+.gov-summary-title {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-bottom: 10px;
+}
+.gov-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.gov-summary-card {
+  padding: 12px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.gov-summary-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-1);
+  text-decoration: none;
+  display: block;
+}
+.gov-summary-name:hover { color: var(--blue); }
+.gov-summary-chain {
+  font-size: 10px;
+  color: var(--text-3);
+  margin-top: 2px;
+  letter-spacing: .3px;
+}
+.gov-summary-facts {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
 /* ===========================
    Recommendation Cards
 =========================== */
@@ -2190,6 +2306,14 @@ select option { background: var(--bg-2); }
         <span data-i18n="tabAlertsLog">警报记录</span>
         <span class="tab-badge" id="alert-badge" style="display:none">0</span>
       </div>
+      <!-- Sprint 4.1 — Governance tab (aggregated V2 pendingConfigs timeline).
+           Per-vault drawer (Sprint 2.3) shows one vault's governance; this
+           tab is the CROSS-VAULT view — one queue sorted by validAt so the
+           user sees "what's changing this week" at a glance. -->
+      <div class="tab" onclick="switchTab('governance')" id="tab-governance">
+        <span data-i18n="tabGovernance">治理</span>
+        <span class="tab-badge" id="governance-badge" style="display:none">0</span>
+      </div>
       <!-- Sprint 3.1 — Recommendations tab removed. Audit consensus: does not
            fit "personal AI copilot" positioning; users know which vaults they
            want to enter before opening Monitor. Preserved renderRecommendations()
@@ -2260,6 +2384,18 @@ select option { background: var(--bg-2); }
           <div class="empty-icon" style="font-size:28px;opacity:0.4">◎</div>
           <div class="empty-title" data-i18n="emptyAlerts">暂无警报</div>
           <div class="empty-desc" data-i18n="emptyAlertsDesc">当流动性或 APY 低于阈值时，此处将显示警报记录</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sprint 4.1 — Governance tab content: cross-vault timeline of
+         pending V2 config proposals sorted by execution time. -->
+    <div class="tab-content" id="tab-content-governance">
+      <div id="governance-container">
+        <div class="empty-state">
+          <div class="empty-icon" style="font-size:28px;opacity:0.4">🏛</div>
+          <div class="empty-title" data-i18n="emptyGovTitle">暂无治理提案</div>
+          <div class="empty-desc" data-i18n="emptyGovDesc">查询持仓后，此处将聚合所有 V2 vault 的 curator 治理提案（按生效时间排序）</div>
         </div>
       </div>
     </div>
@@ -3409,6 +3545,19 @@ const CURATOR_MAP = {
   '0x54d77dB767E54A71E72E6dBb8b20c5c7D7A3Cff6': { name: 'Usual', verified: true },
   // Alpha
   '0x6788c8ad65E85CCa7224a0B46D061EF7D81F9Da5': { name: 'ALPHA', verified: true },
+  // ── Sprint 3.9 — bootstrap top curators by AUM (2026-08 snapshot).
+  // Runtime fetchCurators() from Morpho API covers the full 200; this
+  // fallback only matters when API is unreachable or before it loads. ──
+  '0x3F32bC09d41eE699844F8296e806417D6bf61Bba': { name: 'Sky Money', verified: true },
+  '0x42d510edeB9257f8d920d5B9f5109d95CB22419d': { name: 'Galaxy Curation', verified: true },
+  '0xa13094ECed689B7419baba12851374424C1486f1': { name: 'Galaxy Curation', verified: true },
+  '0x4687e45bB5518A995913a24Bb2816fE2031d74D8': { name: 'Armitage by Wintermute', verified: true },
+  '0xB83A77677c51AaF6c45b0b64199eae6938559E5e': { name: 'Armitage by Wintermute', verified: true },
+  '0xBBACDcFB9691dfa1066AB29edFCC4A73f6DeF918': { name: 'RockawayX', verified: true },
+  '0xee7e9bB21d5589bF657b94083Db2Fa349A3918c8': { name: 'Hyperithm', verified: true },
+  '0x35E42a5cA87A4E4Fb235585B36D7c978ea72B290': { name: 'Hyperithm', verified: true },
+  '0x30988479C2e6a03e7fB65138B94762D41A733458': { name: 'Clearstar', verified: true },
+  '0xb3Cf59A5F12CA319861376c5E63EEF4790A42B44': { name: 'Clearstar', verified: true },
 };
 
 // F8 — runtime cache populated by fetchCurators() at boot. Keeps the
@@ -4886,6 +5035,8 @@ function renderStats(positions, marketPositions = [], v2Positions = []) {
   document.getElementById('stat-alerts').textContent = alertCount;
   document.getElementById('stat-alert-desc').textContent = alertCount > 0 ? `${alertCount} ${t('statNeedAttention')}` : t('statNormal');
   updateThresholdChip();
+  // Sprint 4.1 — keep governance badge & tab in sync with fresh positions
+  if (typeof renderGovernanceTab === 'function') renderGovernanceTab();
 }
 
 // Sprint 3.8 — inline threshold chip on the "活跃警报" stat card. Reflects
@@ -5672,6 +5823,144 @@ function switchTab(name) {
   }
   if (name === 'pnl') {
     if (APP.wallet) renderPnlTab();
+  }
+  if (name === 'governance') {
+    renderGovernanceTab();
+  }
+}
+
+// ────────────────────────────────────────────
+// Sprint 4.1 — Governance tab
+// Cross-vault aggregation of V2 pendingConfigs sorted by execution time.
+// The per-vault governance drawer (Sprint 2.3) answers "what's happening
+// on THIS vault"; this tab answers "what's changing across my portfolio
+// in the next few weeks" so the user can plan ahead.
+// ────────────────────────────────────────────
+function renderGovernanceTab() {
+  const container = document.getElementById('governance-container');
+  if (!container) return;
+  const allV2 = APP.v2Positions || [];
+  const isEn  = CURRENT_LANG === 'en';
+
+  if (allV2.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon" style="font-size:28px;opacity:0.4">🏛</div>
+        <div class="empty-title">${isEn ? 'No V2 positions' : '暂无 V2 持仓'}</div>
+        <div class="empty-desc">${isEn ? 'Governance timeline appears once you have V2 vault positions.' : '需要先查询持有 V2 vault 后才有治理提案时间轴'}</div>
+      </div>`;
+    updateGovernanceBadge(0);
+    return;
+  }
+
+  const nowMs = Date.now();
+  const rows = [];
+  const vaultSummary = [];
+
+  for (const p of allV2) {
+    const v = p.vault;
+    if (!v) continue;
+    const network = (v.chain?.network || 'Ethereum').toLowerCase();
+    const morphoUrl = `https://app.morpho.org/vault/${v.address}?network=${network}`;
+    const curators = v.curators?.items || [];
+    const sentinelCount = (v.sentinels || []).length;
+    const timelockCount = (v.timelocks || []).filter(t => !t.abdicatedAt).length;
+
+    vaultSummary.push({
+      name: v.name || v.symbol || 'V2 Vault',
+      chain: v.chain?.network || '',
+      curators,
+      sentinelCount,
+      timelockCount,
+      morphoUrl,
+      pendingCount: (v.pendingConfigs?.items || []).length,
+    });
+
+    for (const pc of (v.pendingConfigs?.items || [])) {
+      const validAtMs = Number(pc.validAt) * 1000;
+      rows.push({
+        vaultName: v.name || v.symbol || 'V2 Vault',
+        vaultAddr: v.address,
+        chain: v.chain?.network || '',
+        functionName: pc.functionName,
+        validAtMs,
+        txHash: pc.txHash,
+        morphoUrl,
+      });
+    }
+  }
+
+  rows.sort((a, b) => a.validAtMs - b.validAtMs);
+  updateGovernanceBadge(rows.length);
+
+  const timelineHTML = rows.length === 0
+    ? `<div class="empty-state" style="padding:32px 20px">
+         <div class="empty-icon" style="font-size:24px;opacity:0.4">✅</div>
+         <div class="empty-title">${isEn ? 'No pending proposals' : '当前无待生效治理提案'}</div>
+         <div class="empty-desc">${isEn ? 'You will see any timelocked curator proposal here, sorted by execution time.' : '任何 curator 提交的 timelock 提案会按生效时间在此排序展示'}</div>
+       </div>`
+    : `<div class="gov-timeline">
+         <div class="gov-timeline-header">
+           <span>${isEn ? 'Pending proposals across all your V2 vaults' : '你所有 V2 vault 的待生效提案（按生效时间）'} · ${rows.length}</span>
+         </div>
+         ${rows.map(r => {
+           const dh = Math.round((r.validAtMs - nowMs) / 3600_000);
+           const stateColor = dh < 0 ? '#ef4444' : dh < 24 ? '#f97316' : dh < 168 ? '#f59e0b' : '#8b5a2f';
+           const timeStr = dh < 0
+             ? `${-dh}h ${isEn ? 'ago · executable now' : '前已到期 · 可执行'}`
+             : dh < 24
+                ? `${dh}h ${isEn ? 'from now' : '后生效'}`
+                : `${Math.round(dh / 24)}d ${isEn ? 'from now' : '后生效'}`;
+           const dateStr = new Date(r.validAtMs).toLocaleString(isEn ? 'en-US' : 'zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+           const chSuffix = r.chain ? ` (${escHtml(r.chain)})` : '';
+           return `
+             <div class="gov-timeline-item">
+               <div class="gov-timeline-dot" style="background:${stateColor}"></div>
+               <div class="gov-timeline-body">
+                 <div class="gov-timeline-head">
+                   <a href="${escHtml(r.morphoUrl)}" target="_blank" rel="noopener" class="gov-timeline-vault">${escHtml(r.vaultName)}${chSuffix}</a>
+                   <span class="gov-timeline-time" style="color:${stateColor}">${escHtml(timeStr)}</span>
+                 </div>
+                 <div class="gov-timeline-meta">
+                   <code class="gov-timeline-fn">${escHtml(r.functionName)}</code>
+                   <span class="gov-timeline-date">${escHtml(dateStr)}</span>
+                 </div>
+               </div>
+             </div>`;
+         }).join('')}
+       </div>`;
+
+  const vaultSummaryHTML = `
+    <div class="gov-vault-summary">
+      <div class="gov-summary-title">${isEn ? 'V2 vaults in your portfolio' : '你持有的 V2 vault'}</div>
+      <div class="gov-summary-grid">
+        ${vaultSummary.map(vs => {
+          const curatorNames = vs.curators.length ? vs.curators.map(c => `${c.verified ? '✓ ' : ''}${escHtml(c.name)}`).join(', ') : '<span style="opacity:.55">—</span>';
+          return `<div class="gov-summary-card">
+            <a href="${escHtml(vs.morphoUrl)}" target="_blank" rel="noopener" class="gov-summary-name">${escHtml(vs.name)}</a>
+            <div class="gov-summary-chain">${escHtml(vs.chain || '')}</div>
+            <div class="gov-summary-facts">
+              <span title="Curator">👤 ${curatorNames}</span>
+              <span title="Sentinels">🛡 ${vs.sentinelCount}</span>
+              <span title="Active timelocks">⏱ ${vs.timelockCount}</span>
+              ${vs.pendingCount > 0 ? `<span class="badge" style="background:#f9731622;color:#f97316">⏳ ${vs.pendingCount}</span>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  container.innerHTML = `${timelineHTML}${vaultSummaryHTML}`;
+}
+
+function updateGovernanceBadge(count) {
+  const badge = document.getElementById('governance-badge');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = String(count);
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
   }
 }
 
