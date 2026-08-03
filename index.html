@@ -7953,10 +7953,12 @@ function currentThemeMode() {
   const v = localStorage.getItem(THEME_KEY);
   return THEME_ORDER.includes(v) ? v : 'auto';
 }
-function effectiveDark() {
-  const m = currentThemeMode();
-  if (m === 'dark')  return true;
-  if (m === 'light') return false;
+// Takes the mode explicitly — reading localStorage here instead meant
+// applyTheme('light') could still report dark if storage hadn't been
+// written yet, leaving meta[theme-color] out of sync with the page.
+function effectiveDark(mode = currentThemeMode()) {
+  if (mode === 'dark')  return true;
+  if (mode === 'light') return false;
   return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 function applyTheme(mode) {
@@ -7965,7 +7967,7 @@ function applyTheme(mode) {
   else el.setAttribute('data-theme', mode);
   // theme-color 要用「实际生效」的底色，否则 iOS 状态栏会和页面错开
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', effectiveDark() ? '#05060b' : '#f7f3ee');
+  if (meta) meta.setAttribute('content', effectiveDark(mode) ? '#05060b' : '#f7f3ee');
   const btn = document.getElementById('theme-btn');
   if (btn) {
     const label = { auto: '主题：跟随系统', light: '主题：白天', dark: '主题：黑夜' }[mode];
