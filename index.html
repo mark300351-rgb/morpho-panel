@@ -2779,7 +2779,12 @@ function switchLang(lang) {
   const stText = document.getElementById('status-text');
   if (stText && !APP.isMonitoring) stText.textContent = t('statusIdle');
   // Update tab labels
-  const tabs = { positions:'tabPositions', yield:'tabYield', pnl:'tabPnl', alerts:'tabAlerts', recommendations:'tabRecs' };
+  // Keep in sync with the tab buttons in markup. `alerts` uses tabAlertsLog
+  // (Sprint 3.7 renamed it to a log/history role) and `governance` was added
+  // in Sprint 4.1; `recommendations` was removed in Sprint 3.1. This map
+  // overwrites tab textContent, so a stale entry here silently defeats the
+  // data-i18n attribute on the button's inner span.
+  const tabs = { positions:'tabPositions', yield:'tabYield', pnl:'tabPnl', alerts:'tabAlertsLog', governance:'tabGovernance' };
   Object.entries(tabs).forEach(([id, key]) => {
     const el = document.getElementById(`tab-${id}`);
     if (el) {
@@ -7178,7 +7183,12 @@ setTimeout(() => {
     }
   }
   // Apply tab labels
-  const tabs = { positions:'tabPositions', yield:'tabYield', pnl:'tabPnl', alerts:'tabAlerts', recommendations:'tabRecs' };
+  // Keep in sync with the tab buttons in markup. `alerts` uses tabAlertsLog
+  // (Sprint 3.7 renamed it to a log/history role) and `governance` was added
+  // in Sprint 4.1; `recommendations` was removed in Sprint 3.1. This map
+  // overwrites tab textContent, so a stale entry here silently defeats the
+  // data-i18n attribute on the button's inner span.
+  const tabs = { positions:'tabPositions', yield:'tabYield', pnl:'tabPnl', alerts:'tabAlertsLog', governance:'tabGovernance' };
   Object.entries(tabs).forEach(([id, key]) => {
     const el = document.getElementById(`tab-${id}`);
     if (el) {
