@@ -2522,6 +2522,28 @@ const I18N = {
     tabPositions:'持仓', tabYield:'收益率曲线', tabPnl:'收益计算', tabAlerts:'警报', tabRecs:'推荐 Vault',
     tabAlertsLog:'警报记录', tabGovernance:'治理',
     emptyGovTitle:'暂无治理提案', emptyGovDesc:'查询持仓后，此处将聚合所有 V2 vault 的 curator 治理提案（按生效时间排序）',
+    // Governance drawer (per-vault)
+    govTitle:'治理', govPendingBadge:'项待生效',
+    govRoles:'相关角色',
+    govCurator:'策略管理人', govCuratorDesc:'决定钱投到哪些市场',
+    govOwner:'最高权限持有者', govOwnerDesc:'可更换管理人和哨兵',
+    govAllocator:'调仓执行', govAllocatorDesc:'日常在各市场之间搬钱',
+    govSentinel:'风控哨兵', govSentinelDesc:'出事时可紧急撤资、拦下提案',
+    govAddrCount:'个地址', govNone:'无', govNoSentinel:'无 — 无人可紧急干预',
+    govDelayTitle:'改动多久后才生效',
+    govDelayNote:'缓冲期越长越安全：管理人提交改动后必须等待，期间你可以先把钱取出来。',
+    govInstant:'立即生效', govInstantHint:'没有缓冲期，你来不及先撤出',
+    govAfterTpl:'{dur} 后生效', govBufferedHint:'提前公示，你有时间决定是否撤出',
+    govAllAbdicated:'所有权限都已永久放弃 — 管理人无法再改动这个 Vault 的任何参数。',
+    govPendingTitle:'已提交、等待生效的改动', govPendingMoreTpl:'还有 {n} 项',
+    govListingStatus:'Morpho 官方状态', govListed:'已收录', govSinceTpl:'（{date} 起）',
+    govDueNow:'已到期 · 随时可执行', govInHoursTpl:'{n} 小时后生效', govInDaysTpl:'{n} 天后生效',
+    // Governance tab (cross-vault)
+    govTabNoV2:'暂无 V2 持仓', govTabNoV2Desc:'需要先查询持有 V2 vault 后才有治理提案时间轴',
+    govTabNoPending:'当前无待生效治理提案', govTabNoPendingDesc:'任何管理人提交的缓冲期提案会按生效时间在此排序展示',
+    govTabTimelineTitle:'你所有 V2 vault 的待生效提案（按生效时间）',
+    govTabSummaryTitle:'你持有的 V2 vault',
+    govTabAgoTpl:'{n} 小时前已到期 · 可执行', govTabInHoursTpl:'{n} 小时后生效', govTabInDaysTpl:'{n} 天后生效',
     tabBgm:'⏰ 后台监控',
     bgmStatusInactive:'未启用后台监控', bgmStatusActive:'后台监控运行中', bgmStatusStopped:'后台监控已停止',
     bgmDesc:'后台监控由 Cloudflare Worker 驱动，每 5 分钟自动检查你的 Morpho 持仓。即使关闭浏览器、锁屏或关机，监控不会中断。警报通过 Telegram 实时推送。',
@@ -2621,6 +2643,28 @@ const I18N = {
     tabPositions:'持倉', tabYield:'收益率曲線', tabPnl:'收益計算', tabAlerts:'警報', tabRecs:'推薦 Vault',
     tabAlertsLog:'警報記錄', tabGovernance:'治理',
     emptyGovTitle:'暫無治理提案', emptyGovDesc:'查詢持倉後，此處將匯總所有 V2 vault 的 curator 治理提案（按生效時間排序）',
+    // Governance drawer (per-vault)
+    govTitle:'治理', govPendingBadge:'項待生效',
+    govRoles:'相關角色',
+    govCurator:'策略管理人', govCuratorDesc:'決定錢投到哪些市場',
+    govOwner:'最高權限持有者', govOwnerDesc:'可更換管理人和哨兵',
+    govAllocator:'調倉執行', govAllocatorDesc:'日常在各市場之間搬錢',
+    govSentinel:'風控哨兵', govSentinelDesc:'出事時可緊急撤資、攔下提案',
+    govAddrCount:'個地址', govNone:'無', govNoSentinel:'無 — 無人可緊急干預',
+    govDelayTitle:'改動多久後才生效',
+    govDelayNote:'緩衝期越長越安全：管理人提交改動後必須等待，期間你可以先把錢取出來。',
+    govInstant:'立即生效', govInstantHint:'沒有緩衝期，你來不及先撤出',
+    govAfterTpl:'{dur} 後生效', govBufferedHint:'提前公示，你有時間決定是否撤出',
+    govAllAbdicated:'所有權限都已永久放棄 — 管理人無法再改動這個 Vault 的任何參數。',
+    govPendingTitle:'已提交、等待生效的改動', govPendingMoreTpl:'還有 {n} 項',
+    govListingStatus:'Morpho 官方狀態', govListed:'已收錄', govSinceTpl:'（{date} 起）',
+    govDueNow:'已到期 · 隨時可執行', govInHoursTpl:'{n} 小時後生效', govInDaysTpl:'{n} 天後生效',
+    // Governance tab (cross-vault)
+    govTabNoV2:'暫無 V2 持倉', govTabNoV2Desc:'需要先查詢持有 V2 vault 後才有治理提案時間軸',
+    govTabNoPending:'當前無待生效治理提案', govTabNoPendingDesc:'任何管理人提交的緩衝期提案會按生效時間在此排序展示',
+    govTabTimelineTitle:'你所有 V2 vault 的待生效提案（按生效時間）',
+    govTabSummaryTitle:'你持有的 V2 vault',
+    govTabAgoTpl:'{n} 小時前已到期 · 可執行', govTabInHoursTpl:'{n} 小時後生效', govTabInDaysTpl:'{n} 天後生效',
     tabBgm:'⏰ 後台監控',
     bgmStatusInactive:'未啟用後台監控', bgmStatusActive:'後台監控運行中', bgmStatusStopped:'後台監控已停止',
     bgmDesc:'後台監控由 Cloudflare Worker 驅動，每 5 分鐘自動檢查你的 Morpho 持倉。即使關閉瀏覽器、鎖屏或關機，監控不會中斷。警報通過 Telegram 即時推送。',
@@ -2719,6 +2763,28 @@ const I18N = {
     tabPositions:'Positions', tabYield:'Return Rate', tabPnl:'P&L', tabAlerts:'Alerts', tabRecs:'Recommended',
     tabAlertsLog:'Alert Log', tabGovernance:'Governance',
     emptyGovTitle:'No governance proposals', emptyGovDesc:'After fetching positions, pending curator proposals across all your V2 vaults appear here, sorted by execution time',
+    // Governance drawer (per-vault)
+    govTitle:'Governance', govPendingBadge:'pending',
+    govRoles:'Roles',
+    govCurator:'Curator', govCuratorDesc:'Decides which markets funds go into',
+    govOwner:'Owner', govOwnerDesc:'Can replace the curator and sentinels',
+    govAllocator:'Allocators', govAllocatorDesc:'Move funds between markets day to day',
+    govSentinel:'Sentinels', govSentinelDesc:'Can pull funds and veto proposals in an emergency',
+    govAddrCount:'addresses', govNone:'None', govNoSentinel:'None — nobody can intervene in an emergency',
+    govDelayTitle:'How long before changes take effect',
+    govDelayNote:'A longer delay is safer: after the curator submits a change they must wait, and you can withdraw during that window.',
+    govInstant:'Takes effect immediately', govInstantHint:'No delay — no time for you to exit first',
+    govAfterTpl:'After {dur}', govBufferedHint:'Announced in advance — you have time to decide whether to exit',
+    govAllAbdicated:'All powers permanently abdicated — the curator can no longer change any parameter of this vault.',
+    govPendingTitle:'Submitted, awaiting execution', govPendingMoreTpl:'{n} more',
+    govListingStatus:'Morpho listing status', govListed:'Listed', govSinceTpl:'(since {date})',
+    govDueNow:'Due — executable now', govInHoursTpl:'in {n}h', govInDaysTpl:'in {n}d',
+    // Governance tab (cross-vault)
+    govTabNoV2:'No V2 positions', govTabNoV2Desc:'The governance timeline appears once you hold V2 vault positions',
+    govTabNoPending:'No pending proposals', govTabNoPendingDesc:'Any timelocked curator proposal shows up here, sorted by execution time',
+    govTabTimelineTitle:'Pending proposals across all your V2 vaults',
+    govTabSummaryTitle:'V2 vaults in your portfolio',
+    govTabAgoTpl:'{n}h ago · executable now', govTabInHoursTpl:'in {n}h', govTabInDaysTpl:'in {n}d',
     tabBgm:'⏰ Background',
     bgmStatusInactive:'Background monitor inactive', bgmStatusActive:'Background monitor running', bgmStatusStopped:'Background monitor stopped',
     bgmDesc:'Background monitoring is powered by Cloudflare Worker, checking your Morpho positions every 5 minutes. It runs even when you close the browser, lock the screen, or turn off your phone. Alerts are pushed via Telegram.',
@@ -3757,30 +3823,78 @@ function _govFmtDur(seconds) {
 // Contract function name → plain-language description of what the change
 // actually means for a depositor. The raw Solidity names (setIsAllocator,
 // setForceDeallocatePenalty, abdicate…) told the user nothing, which is why
-// the first version of this drawer was unreadable.
-const GOV_ACTION_ZH = {
-  setisallocator:              '换调仓执行人',
-  setreceivesharesgate:        '改「谁能收到份额」的限制',
-  setsendsharesgate:           '改「谁能转出份额」的限制',
-  setreceiveassetsgate:        '改「谁能存入」的限制',
-  setsendassetsgate:           '改「谁能取出」的限制',
-  setadapterregistry:          '换投放渠道的白名单来源',
-  addadapter:                  '新增一个投放渠道',
-  removeadapter:               '移除一个投放渠道',
-  increasetimelock:            '延长改动缓冲期',
-  decreasetimelock:            '缩短改动缓冲期',
-  setperformancefee:           '改绩效费',
-  setmanagementfee:            '改管理费',
-  setperformancefeerecipient:  '改绩效费收款地址',
-  setmanagementfeerecipient:   '改管理费收款地址',
-  increaseabsolutecap:         '提高单个市场的投放上限',
-  increaserelativecap:         '提高单个市场的占比上限',
-  setforcedeallocatepenalty:   '改强制赎回的罚金比例',
-  abdicate:                    '永久放弃某项权限（不可逆）',
+// the first version of this drawer was unreadable. Kept as its own table
+// rather than individual i18n keys — 18 actions × 3 locales reads better
+// grouped by locale.
+const GOV_ACTIONS_I18N = {
+  'zh-CN': {
+    setisallocator:             '换调仓执行人',
+    setreceivesharesgate:       '改「谁能收到份额」的限制',
+    setsendsharesgate:          '改「谁能转出份额」的限制',
+    setreceiveassetsgate:       '改「谁能存入」的限制',
+    setsendassetsgate:          '改「谁能取出」的限制',
+    setadapterregistry:         '换投放渠道的白名单来源',
+    addadapter:                 '新增一个投放渠道',
+    removeadapter:              '移除一个投放渠道',
+    increasetimelock:           '延长改动缓冲期',
+    decreasetimelock:           '缩短改动缓冲期',
+    setperformancefee:          '改绩效费',
+    setmanagementfee:           '改管理费',
+    setperformancefeerecipient: '改绩效费收款地址',
+    setmanagementfeerecipient:  '改管理费收款地址',
+    increaseabsolutecap:        '提高单个市场的投放上限',
+    increaserelativecap:        '提高单个市场的占比上限',
+    setforcedeallocatepenalty:  '改强制赎回的罚金比例',
+    abdicate:                   '永久放弃某项权限（不可逆）',
+    _unknown:                   '未知操作',
+  },
+  'zh-TW': {
+    setisallocator:             '換調倉執行人',
+    setreceivesharesgate:       '改「誰能收到份額」的限制',
+    setsendsharesgate:          '改「誰能轉出份額」的限制',
+    setreceiveassetsgate:       '改「誰能存入」的限制',
+    setsendassetsgate:          '改「誰能取出」的限制',
+    setadapterregistry:         '換投放渠道的白名單來源',
+    addadapter:                 '新增一個投放渠道',
+    removeadapter:              '移除一個投放渠道',
+    increasetimelock:           '延長改動緩衝期',
+    decreasetimelock:           '縮短改動緩衝期',
+    setperformancefee:          '改績效費',
+    setmanagementfee:           '改管理費',
+    setperformancefeerecipient: '改績效費收款地址',
+    setmanagementfeerecipient:  '改管理費收款地址',
+    increaseabsolutecap:        '提高單個市場的投放上限',
+    increaserelativecap:        '提高單個市場的佔比上限',
+    setforcedeallocatepenalty:  '改強制贖回的罰金比例',
+    abdicate:                   '永久放棄某項權限（不可逆）',
+    _unknown:                   '未知操作',
+  },
+  'en': {
+    setisallocator:             'Replace an allocator',
+    setreceivesharesgate:       'Change who can receive shares',
+    setsendsharesgate:          'Change who can transfer shares out',
+    setreceiveassetsgate:       'Change who can deposit',
+    setsendassetsgate:          'Change who can withdraw',
+    setadapterregistry:         'Change the venue allow-list source',
+    addadapter:                 'Add a deployment venue',
+    removeadapter:              'Remove a deployment venue',
+    increasetimelock:           'Lengthen the change delay',
+    decreasetimelock:           'Shorten the change delay',
+    setperformancefee:          'Change the performance fee',
+    setmanagementfee:           'Change the management fee',
+    setperformancefeerecipient: 'Change performance-fee recipient',
+    setmanagementfeerecipient:  'Change management-fee recipient',
+    increaseabsolutecap:        'Raise a market\'s absolute cap',
+    increaserelativecap:        'Raise a market\'s share-of-vault cap',
+    setforcedeallocatepenalty:  'Change the forced-redemption penalty',
+    abdicate:                   'Permanently give up a power (irreversible)',
+    _unknown:                   'Unknown action',
+  },
 };
 function govActionLabel(fnName) {
+  const table = GOV_ACTIONS_I18N[CURRENT_LANG] || GOV_ACTIONS_I18N['zh-CN'];
   const key = String(fnName || '').toLowerCase();
-  return GOV_ACTION_ZH[key] || fnName || '未知操作';
+  return table[key] || fnName || table._unknown;
 }
 
 function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
@@ -3809,16 +3923,20 @@ function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
   }
   const durationGroups = [...byDuration.entries()].sort((a, b) => a[0] - b[0]);
 
+  const locale = CURRENT_LANG === 'en' ? 'en-US' : CURRENT_LANG;
+  const addrList = arr => `${arr.length} ${t('govAddrCount')} ` +
+    arr.map(a => `<code>${escHtml(_govShortAddr(a))}</code>`).join(' ');
+
   const timelockGroupsHTML = durationGroups.length === 0
-    ? `<div class="gov-note">所有权限都已永久放弃 — curator 无法再改动这个 Vault 的任何参数。</div>`
+    ? `<div class="gov-note">${t('govAllAbdicated')}</div>`
     : durationGroups.map(([dur, actions]) => {
         const instant = dur === 0;
         return `
         <div class="gov-tl-group ${instant ? 'instant' : 'buffered'}">
           <div class="gov-tl-head">
             ${instant
-              ? '<span class="gov-tl-badge risk">⚠️ 立即生效</span><span class="gov-tl-hint">没有缓冲期，你来不及先撤出</span>'
-              : `<span class="gov-tl-badge safe">🛡 ${_govFmtDur(dur)} 后生效</span><span class="gov-tl-hint">提前公示，你有时间决定是否撤出</span>`}
+              ? `<span class="gov-tl-badge risk">⚠️ ${t('govInstant')}</span><span class="gov-tl-hint">${t('govInstantHint')}</span>`
+              : `<span class="gov-tl-badge safe">🛡 ${t('govAfterTpl').replace('{dur}', _govFmtDur(dur))}</span><span class="gov-tl-hint">${t('govBufferedHint')}</span>`}
           </div>
           <ul class="gov-tl-list">${actions.map(a => `<li>${escHtml(a)}</li>`).join('')}</ul>
         </div>`;
@@ -3826,56 +3944,56 @@ function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
 
   const pendingHTML = pendingConfigs.length > 0
     ? `<div class="gov-section">
-         <div class="gov-section-title">⏳ 已提交、等待生效的改动</div>
+         <div class="gov-section-title">⏳ ${t('govPendingTitle')}</div>
          <div class="pending-list">${
         pendingConfigs.slice(0, 8).map(pc => {
           const validAtMs = Number(pc.validAt) * 1000;
           const dh = Math.round((validAtMs - nowMs) / 3600_000);
-          const timeStr = dh < 0 ? `已到期 · 随时可执行` :
-                          dh < 24 ? `${dh} 小时后生效` :
-                          `${Math.round(dh / 24)} 天后生效`;
-          const dateStr = new Date(validAtMs).toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+          const timeStr = dh < 0  ? t('govDueNow')
+                        : dh < 24 ? t('govInHoursTpl').replace('{n}', dh)
+                        :           t('govInDaysTpl').replace('{n}', Math.round(dh / 24));
+          const dateStr = new Date(validAtMs).toLocaleString(locale, { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
           const urgent = dh < 24;
           return `<div class="pending-item ${urgent ? 'urgent' : ''}">
             <div class="pending-what">${escHtml(govActionLabel(pc.functionName))}</div>
             <div class="pending-when">${escHtml(timeStr)} · ${escHtml(dateStr)}</div>
           </div>`;
         }).join('')
-      }${pendingConfigs.length > 8 ? `<div style="opacity:.55;font-size:11px">还有 ${pendingConfigs.length - 8} 项</div>` : ''}</div>
+      }${pendingConfigs.length > 8 ? `<div style="opacity:.55;font-size:11px">${t('govPendingMoreTpl').replace('{n}', pendingConfigs.length - 8)}</div>` : ''}</div>
        </div>`
     : '';
 
   return `
   <details class="vault-governance">
     <summary>
-      <span>🏛 谁能改动这个 Vault</span>
-      ${pendingConfigs.length > 0 ? `<span class="badge" style="background:#f9731622;color:#f97316;margin-left:6px">${pendingConfigs.length} 项待生效</span>` : ''}
+      <span>${t('govTitle')}</span>
+      ${pendingConfigs.length > 0 ? `<span class="badge" style="background:#f9731622;color:#f97316;margin-left:6px">${pendingConfigs.length} ${t('govPendingBadge')}</span>` : ''}
     </summary>
     <div class="gov-body">
 
       <div class="gov-section">
-        <div class="gov-section-title">相关角色</div>
+        <div class="gov-section-title">${t('govRoles')}</div>
         <div class="gov-row">
-          <span class="gov-key">策略管理人<em>决定钱投到哪些市场</em></span>
+          <span class="gov-key">${t('govCurator')}<em>${t('govCuratorDesc')}</em></span>
           <span class="gov-val">${curatorChips}</span>
         </div>
         <div class="gov-row">
-          <span class="gov-key">最高权限持有者<em>可更换管理人和哨兵</em></span>
+          <span class="gov-key">${t('govOwner')}<em>${t('govOwnerDesc')}</em></span>
           <span class="gov-val"><code>${escHtml(_govShortAddr(owner))}</code></span>
         </div>
         <div class="gov-row">
-          <span class="gov-key">调仓执行<em>日常在各市场之间搬钱</em></span>
-          <span class="gov-val">${allocators.length ? `${allocators.length} 个地址 ` + allocators.map(a => `<code>${escHtml(_govShortAddr(a))}</code>`).join(' ') : '<span style="opacity:.55">无</span>'}</span>
+          <span class="gov-key">${t('govAllocator')}<em>${t('govAllocatorDesc')}</em></span>
+          <span class="gov-val">${allocators.length ? addrList(allocators) : `<span style="opacity:.55">${t('govNone')}</span>`}</span>
         </div>
         <div class="gov-row">
-          <span class="gov-key">风控哨兵<em>出事时可紧急撤资、拦下提案</em></span>
-          <span class="gov-val">${sentinels.length ? `${sentinels.length} 个地址 ` + sentinels.map(a => `<code>${escHtml(_govShortAddr(a))}</code>`).join(' ') : '<span style="opacity:.55">无 — 无人可紧急干预</span>'}</span>
+          <span class="gov-key">${t('govSentinel')}<em>${t('govSentinelDesc')}</em></span>
+          <span class="gov-val">${sentinels.length ? addrList(sentinels) : `<span style="opacity:.55">${t('govNoSentinel')}</span>`}</span>
         </div>
       </div>
 
       <div class="gov-section">
-        <div class="gov-section-title">改动多久后才生效</div>
-        <div class="gov-note">缓冲期越长越安全：管理人提交改动后必须等待，期间你可以先把钱取出来。</div>
+        <div class="gov-section-title">${t('govDelayTitle')}</div>
+        <div class="gov-note">${t('govDelayNote')}</div>
         ${timelockGroupsHTML}
       </div>
 
@@ -3883,9 +4001,9 @@ function buildV2GovDrawer(vault, pendingConfigs, nowMs) {
 
       <div class="gov-section">
         <div class="gov-row">
-          <span class="gov-key">Morpho 官方状态</span>
+          <span class="gov-key">${t('govListingStatus')}</span>
           <span class="gov-val">${latestListing
-            ? `${latestListing.action === 'Added' ? '✅ 已收录' : `⚠️ ${escHtml(latestListing.action)}`}（${new Date(Number(latestListing.timestamp) * 1000).toLocaleDateString('zh-CN')} 起）`
+            ? `${latestListing.action === 'Added' ? `✅ ${t('govListed')}` : `⚠️ ${escHtml(latestListing.action)}`}${t('govSinceTpl').replace('{date}', new Date(Number(latestListing.timestamp) * 1000).toLocaleDateString(locale))}`
             : '<span style="opacity:.55">—</span>'}</span>
         </div>
       </div>
@@ -6088,15 +6206,15 @@ function switchTab(name) {
 function renderGovernanceTab() {
   const container = document.getElementById('governance-container');
   if (!container) return;
-  const allV2 = APP.v2Positions || [];
-  const isEn  = CURRENT_LANG === 'en';
+  const allV2  = APP.v2Positions || [];
+  const locale = CURRENT_LANG === 'en' ? 'en-US' : CURRENT_LANG;
 
   if (allV2.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon" style="font-size:28px;opacity:0.4">🏛</div>
-        <div class="empty-title">${isEn ? 'No V2 positions' : '暂无 V2 持仓'}</div>
-        <div class="empty-desc">${isEn ? 'Governance timeline appears once you have V2 vault positions.' : '需要先查询持有 V2 vault 后才有治理提案时间轴'}</div>
+        <div class="empty-title">${t('govTabNoV2')}</div>
+        <div class="empty-desc">${t('govTabNoV2Desc')}</div>
       </div>`;
     updateGovernanceBadge(0);
     return;
@@ -6145,22 +6263,22 @@ function renderGovernanceTab() {
   const timelineHTML = rows.length === 0
     ? `<div class="empty-state" style="padding:32px 20px">
          <div class="empty-icon" style="font-size:24px;opacity:0.4">✅</div>
-         <div class="empty-title">${isEn ? 'No pending proposals' : '当前无待生效治理提案'}</div>
-         <div class="empty-desc">${isEn ? 'You will see any timelocked curator proposal here, sorted by execution time.' : '任何 curator 提交的 timelock 提案会按生效时间在此排序展示'}</div>
+         <div class="empty-title">${t('govTabNoPending')}</div>
+         <div class="empty-desc">${t('govTabNoPendingDesc')}</div>
        </div>`
     : `<div class="gov-timeline">
          <div class="gov-timeline-header">
-           <span>${isEn ? 'Pending proposals across all your V2 vaults' : '你所有 V2 vault 的待生效提案（按生效时间）'} · ${rows.length}</span>
+           <span>${t('govTabTimelineTitle')} · ${rows.length}</span>
          </div>
          ${rows.map(r => {
            const dh = Math.round((r.validAtMs - nowMs) / 3600_000);
            const stateColor = dh < 0 ? '#ef4444' : dh < 24 ? '#f97316' : dh < 168 ? '#f59e0b' : '#8b5a2f';
            const timeStr = dh < 0
-             ? `${-dh}h ${isEn ? 'ago · executable now' : '前已到期 · 可执行'}`
+             ? t('govTabAgoTpl').replace('{n}', -dh)
              : dh < 24
-                ? `${dh}h ${isEn ? 'from now' : '后生效'}`
-                : `${Math.round(dh / 24)}d ${isEn ? 'from now' : '后生效'}`;
-           const dateStr = new Date(r.validAtMs).toLocaleString(isEn ? 'en-US' : 'zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+                ? t('govTabInHoursTpl').replace('{n}', dh)
+                : t('govTabInDaysTpl').replace('{n}', Math.round(dh / 24));
+           const dateStr = new Date(r.validAtMs).toLocaleString(locale, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
            const chSuffix = r.chain ? ` (${escHtml(r.chain)})` : '';
            return `
              <div class="gov-timeline-item">
@@ -6181,7 +6299,7 @@ function renderGovernanceTab() {
 
   const vaultSummaryHTML = `
     <div class="gov-vault-summary">
-      <div class="gov-summary-title">${isEn ? 'V2 vaults in your portfolio' : '你持有的 V2 vault'}</div>
+      <div class="gov-summary-title">${t('govTabSummaryTitle')}</div>
       <div class="gov-summary-grid">
         ${vaultSummary.map(vs => {
           const curatorNames = vs.curators.length ? vs.curators.map(c => `${c.verified ? '✓ ' : ''}${escHtml(c.name)}`).join(', ') : '<span style="opacity:.55">—</span>';
