@@ -2602,7 +2602,7 @@ select option { background: var(--bg-2); }
 // Version
 // ────────────────────────────────────────────
 const APP_VERSION = '1.4.0';  // 2026-08 — post-audit Sprint 1 (deep-link + schema probe + LIVE fix + dark mode)
-const EXPECTED_WORKER_VERSION = '1.5.0';  // matched against /api/health.version; mismatch shows ⚠️ in header
+const EXPECTED_WORKER_VERSION = '1.6.0';  // matched against /api/health.version; mismatch shows ⚠️ in header
 
 // ────────────────────────────────────────────
 // Constants
@@ -4072,35 +4072,55 @@ document.addEventListener('keydown', e => {
 
 // Click/tap-to-reveal tooltips. Positioned in fixed coords so the tip is
 // never clipped by the modal's own overflow.
+let _govTipAnchor = null;
+
+function _govPositionTip() {
+  const tip = document.getElementById('gov-tip');
+  if (!tip || !_govTipAnchor || !tip.classList.contains('show')) return;
+  const r = _govTipAnchor.getBoundingClientRect();
+  if (r.width === 0 && r.height === 0) return;   // anchor detached / not laid out
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = r.left + r.width / 2 - tw / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+  let top = r.top - th - 8;
+  if (top < 8) top = r.bottom + 8;              // flip below when clipped at top
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+  tip.style.visibility = '';
+}
+
 function initGovTooltips(scope) {
   const tip = document.getElementById('gov-tip');
   if (!tip) return;
+  // Measure and place on the next frame: clicking a dot while the modal's
+  // open animation is still running gave a stale anchor rect, which clamped
+  // the tip to the left screen edge.
   const show = el => {
+    _govTipAnchor = el;
     tip.textContent = el.dataset.tip || '';
-    tip.classList.add('show');
-    const r = el.getBoundingClientRect();
     tip.style.visibility = 'hidden';
     tip.style.left = '0px';
-    const tw = tip.offsetWidth, th = tip.offsetHeight;
-    let left = r.left + r.width / 2 - tw / 2;
-    left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
-    let top = r.top - th - 8;
-    if (top < 8) top = r.bottom + 8;          // flip below when clipped at top
-    tip.style.left = left + 'px';
-    tip.style.top = top + 'px';
-    tip.style.visibility = '';
+    tip.style.top = '0px';
+    tip.classList.add('show');
+    requestAnimationFrame(_govPositionTip);
   };
-  const hide = () => tip.classList.remove('show');
+  const hide = () => { tip.classList.remove('show'); _govTipAnchor = null; };
   scope.querySelectorAll('.info-dot').forEach(el => {
     el.addEventListener('click', e => {
       e.stopPropagation();
-      if (tip.classList.contains('show') && tip.textContent === el.dataset.tip) hide();
+      if (tip.classList.contains('show') && _govTipAnchor === el) hide();
       else show(el);
     });
     el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(el); } });
   });
-  scope.addEventListener('click', e => { if (!e.target.classList.contains('info-dot')) hide(); });
+  // Bound to the modal panel (rebuilt on every open) rather than the
+  // persistent #gov-modal-host, so listeners don't accumulate per open.
+  const panel = scope.querySelector('.gov-modal');
+  panel?.addEventListener('click', e => { if (!e.target.classList.contains('info-dot')) hide(); });
+  scope.querySelector('.gov-modal-body')?.addEventListener('scroll', hide, { passive: true });
 }
+
+window.addEventListener('resize', _govPositionTip);
 
 function buildV2GovModal(vault, pendingConfigs, nowMs) {
   const owner        = vault.owner?.address || '';
