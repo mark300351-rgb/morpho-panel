@@ -11,8 +11,13 @@
      否则主屏上一块亮白方块在暗色 dock 里很突兀。 -->
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180-dark.png" media="(prefers-color-scheme: dark)">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-<link rel="icon" type="image/png" sizes="180x180" href="icon-180.png">
+<!-- 标签页 favicon 用透明底的盾牌本体，不用上面那两张磁贴：
+     icon-180/512 是给 iOS 主屏用的，必须不透明（iOS 不支持透明，
+     否则会自己填成黑底），所以烘死了暖纸底。拿它当 favicon 会在
+     深色标签栏里显示成一块白方块。 -->
+<link rel="icon" type="image/png" sizes="32x32"   href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64"   href="favicon-64.png">
+<link rel="icon" type="image/png" sizes="256x256" href="favicon-256.png">
 <title>Morpho Vault Monitor · ML</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
