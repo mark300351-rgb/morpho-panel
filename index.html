@@ -2565,30 +2565,15 @@ header::after, .header::after {
   .logo-icon { width: 30px !important; height: 35px !important; }
 }
 
-/* ── I. 主题切换按钮 ─────────────────────────────────── */
-#theme-btn {
-  width: 30px; height: 26px;
-  display: grid; place-items: center;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--fill-1);
-  color: var(--text-2);
-  cursor: pointer;
-  transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
+/* ── I. 主题分段控件 ─────────────────────────────────
+   完全复用 .lang-switcher / .lang-btn，只补一点尺寸微调，
+   这样它和语言切换在视觉上是同一类控件。 */
+.theme-switcher .lang-btn { padding: 3px 7px; }
+@media (max-width: 640px) {
+  /* 顶栏在手机上很挤：主题控件只留当前态 + 一个「自动」，
+     其余两个仍可点，但字号收到最小可读的 10px。 */
+  .theme-switcher .lang-btn { padding: 2px 5px; font-size: 10px; }
 }
-#theme-btn:hover { color: var(--text-1); background: var(--fill-2); border-color: var(--border-light); }
-#theme-btn svg { width: 15px; height: 15px; display: block; }
-/* 图标随当前生效主题切换：显示「点了会变成什么」 */
-#theme-btn .i-sun  { display: none; }
-#theme-btn .i-moon { display: block; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) #theme-btn .i-sun  { display: block; }
-  :root:not([data-theme="light"]) #theme-btn .i-moon { display: none; }
-}
-:root[data-theme="dark"] #theme-btn .i-sun  { display: block; }
-:root[data-theme="dark"] #theme-btn .i-moon { display: none; }
-:root[data-theme="light"] #theme-btn .i-sun  { display: none; }
-:root[data-theme="light"] #theme-btn .i-moon { display: block; }
 
 /* ── J. 按钮扫光 650ms ───────────────────────────────── */
 .btn { position: relative; overflow: hidden; }
@@ -2659,16 +2644,14 @@ input:focus, select:focus, textarea:focus {
         <button class="lang-btn" data-lang="zh-TW" onclick="switchLang('zh-TW')">繁</button>
         <button class="lang-btn" data-lang="en" onclick="switchLang('en')">EN</button>
       </div>
-      <!-- 主题切换：跟随系统 → 白天 → 黑夜 循环，记忆在 localStorage mm-theme。
-           图标显示「点下去会变成什么」，不是当前状态。 -->
-      <button id="theme-btn" type="button" onclick="cycleTheme()" aria-label="切换主题">
-        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
-        </svg>
-        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
-        </svg>
-      </button>
+      <!-- 主题：三个状态并列，当前态高亮。之前做成单键循环，「跟随系统」
+           这个默认态在界面上完全看不出来，用户根本发现不了它存在。
+           复用 .lang-switcher / .lang-btn 的视觉语言，和旁边语言切换一致。 -->
+      <div class="lang-switcher theme-switcher" id="theme-switcher" role="group" aria-label="主题">
+        <button class="lang-btn" data-theme-set="auto"  onclick="setTheme('auto')"><span data-i18n="themeAuto">自动</span></button>
+        <button class="lang-btn" data-theme-set="light" onclick="setTheme('light')"><span data-i18n="themeLight">白天</span></button>
+        <button class="lang-btn" data-theme-set="dark"  onclick="setTheme('dark')"><span data-i18n="themeDark">黑夜</span></button>
+      </div>
       <!-- Sprint 2.7 — LIVE mode moved from stat-card to header. It's a
            GLOBAL data-source switch (API snapshot vs on-chain live), so it
            lives next to language switcher and monitor status. -->
@@ -3022,6 +3005,7 @@ const I18N = {
     appName:'Morpho Vault 监控', appSub:'Mark Li · 实时持仓监控 · 风险评级 · 智能推荐',
     tabPositions:'持仓', tabYield:'收益率曲线', tabPnl:'收益计算', tabAlerts:'警报', tabRecs:'推荐 Vault',
     tabAlertsLog:'警报记录', tabGovernance:'治理',
+    themeAuto:'自动', themeLight:'白天', themeDark:'黑夜',
     emptyGovTitle:'暂无治理提案', emptyGovDesc:'查询持仓后，此处将聚合所有 V2 vault 的 curator 治理提案（按生效时间排序）',
     // Governance drawer (per-vault)
     govTitle:'治理', govPendingBadge:'项待生效',
@@ -3145,6 +3129,7 @@ const I18N = {
     appName:'Morpho Vault 監控', appSub:'Mark Li · 即時持倉監控 · 風險評級 · 智能推薦',
     tabPositions:'持倉', tabYield:'收益率曲線', tabPnl:'收益計算', tabAlerts:'警報', tabRecs:'推薦 Vault',
     tabAlertsLog:'警報記錄', tabGovernance:'治理',
+    themeAuto:'自動', themeLight:'白天', themeDark:'黑夜',
     emptyGovTitle:'暫無治理提案', emptyGovDesc:'查詢持倉後，此處將匯總所有 V2 vault 的 curator 治理提案（按生效時間排序）',
     // Governance drawer (per-vault)
     govTitle:'治理', govPendingBadge:'項待生效',
@@ -3267,6 +3252,7 @@ const I18N = {
     appName:'Morpho Vault Monitor', appSub:'Mark Li · Live Portfolio · Risk Rating · Smart Recs',
     tabPositions:'Positions', tabYield:'Return Rate', tabPnl:'P&L', tabAlerts:'Alerts', tabRecs:'Recommended',
     tabAlertsLog:'Alert Log', tabGovernance:'Governance',
+    themeAuto:'Auto', themeLight:'Light', themeDark:'Dark',
     emptyGovTitle:'No governance proposals', emptyGovDesc:'After fetching positions, pending curator proposals across all your V2 vaults appear here, sorted by execution time',
     // Governance drawer (per-vault)
     govTitle:'Governance', govPendingBadge:'pending',
@@ -7996,17 +7982,19 @@ function applyTheme(mode) {
   // theme-color 要用「实际生效」的底色，否则 iOS 状态栏会和页面错开
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', effectiveDark(mode) ? '#05060b' : '#f7f3ee');
-  const btn = document.getElementById('theme-btn');
-  if (btn) {
-    const label = { auto: '主题：跟随系统', light: '主题：白天', dark: '主题：黑夜' }[mode];
-    btn.title = `${label}（点击切换）`;
-  }
+  document.querySelectorAll('#theme-switcher .lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.themeSet === mode);
+  });
+  const sw = document.getElementById('theme-switcher');
+  if (sw) sw.title = mode === 'auto'
+    ? `跟随系统外观（当前：${effectiveDark(mode) ? '黑夜' : '白天'}）`
+    : '已手动锁定主题；选「自动」可交回系统';
   if (typeof __repaintCharts === 'function') __repaintCharts();
 }
-function cycleTheme() {
-  const next = THEME_ORDER[(THEME_ORDER.indexOf(currentThemeMode()) + 1) % THEME_ORDER.length];
-  localStorage.setItem(THEME_KEY, next);
-  applyTheme(next);
+function setTheme(mode) {
+  if (!THEME_ORDER.includes(mode)) mode = 'auto';
+  localStorage.setItem(THEME_KEY, mode);
+  applyTheme(mode);
 }
 applyTheme(currentThemeMode());
 try {
