@@ -3236,7 +3236,13 @@ function updateConnectStatus(mode) {
 
 async function gql(query, variables = {}) {
   const body = JSON.stringify({ query, variables });
-  const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+  // 2026-08 CORS fix: dropped `Accept: application/json`. It's redundant
+  // (server always responds application/json) AND triggers a stricter CORS
+  // preflight — Chrome that had cached the old worker's `Allow-Headers:
+  // Content-Type` (without Accept) would silently drop the request until
+  // that cache expired (~2h). Removing Accept both sidesteps the cache
+  // mismatch and requires one fewer header to negotiate.
+  const headers = { 'Content-Type': 'application/json' };
 
   // If we already know which method works, use it directly
   if (_proxyResolved) {
