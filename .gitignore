@@ -1,0 +1,7 @@
+# OMC 会话状态，不属于产物
+.omc/
+# 早期图标试验版（已被 icon-180/512 + favicon-* 取代）
+apple-touch-icon.png
+icon-v2.png
+icon-v3.png
+icon-v4.png

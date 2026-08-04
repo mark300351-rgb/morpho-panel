@@ -18,7 +18,7 @@
 <link rel="icon" type="image/png" sizes="32x32"   href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="64x64"   href="favicon-64.png">
 <link rel="icon" type="image/png" sizes="256x256" href="favicon-256.png">
-<title>Morpho Vault Monitor · ML</title>
+<title>Morpho Monitor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -137,14 +137,6 @@ body {
   font-weight: 400;
   color: var(--text-1);
   letter-spacing: -0.3px;
-}
-
-.logo-sub {
-  font-size: 11.5px;
-  color: var(--text-3);
-  font-weight: 400;
-  margin-top: 2px;
-  letter-spacing: 0;
 }
 
 .header-right {
@@ -454,7 +446,7 @@ select option { background: var(--bg-2); }
 .stat-card.red   { border-left-color: var(--red); }
 #live-mode-btn:hover { color: var(--text-2); border-color: var(--text-3); }
 #live-mode-btn.live-on {
-  color: #fff; border-color: #ef4444; background: #ef4444;
+  color: #fff; border-color: var(--red); background: var(--red);
   animation: livePulse 1.6s ease-in-out infinite;
 }
 #live-mode-btn.live-loading { opacity: .55; cursor: wait; }
@@ -1897,7 +1889,6 @@ select option { background: var(--bg-2); }
     overflow: visible;
   }
   .logo-name { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .logo-sub { display: none; }
   .header-right {
     gap: 5px;
     flex-wrap: wrap;
@@ -2269,6 +2260,7 @@ select option { background: var(--bg-2); }
   --ease-out:   cubic-bezier(.2,.7,.3,1);
   --dur-fast:   .18s;
   --dur-base:   .25s;
+  --dur-slow:   .3s;
   --dur-sheen:  .65s;
   --dur-grid:   44s;
   --dur-theme:  .35s;
@@ -2313,6 +2305,8 @@ select option { background: var(--bg-2); }
   --shadow-card:inset 0 1px 0 rgba(255,255,255,.05),0 12px 40px -18px rgba(0,0,0,.9);
   --shadow-hover:inset 0 1px 0 rgba(255,255,255,.06),0 24px 54px -24px #000;
   --shadow-float:0 24px 60px -20px #000;
+  --shadow-lift:0 28px 64px -28px #000;
+  --border-danger:oklch(var(--L-solid) .18 var(--h-danger)/.42);
   --glow-brand:0 0 46px -24px oklch(var(--L-solid) .18 var(--h-brand)/.95);
   --glow-text-brand:0 0 26px oklch(var(--L-solid) .18 var(--h-brand)/.45);
   --glow-text-success:0 0 18px oklch(var(--L-solid) .16 var(--h-success)/.40);
@@ -2325,6 +2319,10 @@ select option { background: var(--bg-2); }
   --ambient-grid-color:rgba(255,255,255,.05);
   --ambient-grid-opacity:.32;
   --glow-a:.16;
+  /* 图表面积填充：必须是 CSS 里已解析好的值 —— canvas 的 addColorStop
+     不认 var()，直接把带 var() 的字符串塞进去会抛 SyntaxError。 */
+  --chart-fill-0:oklch(var(--L-solid) .17 var(--h-brand)/.18);
+  --chart-fill-1:oklch(var(--L-solid) .17 var(--h-brand)/.01);
 
   /* ↓↓↓ App 原生变量重映射 —— 组件层无需改动 ↓↓↓ */
   --bg-0:      var(--surface-void);
@@ -2373,6 +2371,8 @@ select option { background: var(--bg-2); }
   --shadow-card:inset 0 1px 0 rgba(255,255,255,.05),0 12px 40px -18px rgba(0,0,0,.9);
   --shadow-hover:inset 0 1px 0 rgba(255,255,255,.06),0 24px 54px -24px #000;
   --shadow-float:0 24px 60px -20px #000;
+  --shadow-lift:0 28px 64px -28px #000;
+  --border-danger:oklch(var(--L-solid) .18 var(--h-danger)/.42);
   --glow-brand:0 0 46px -24px oklch(var(--L-solid) .18 var(--h-brand)/.95);
   --glow-text-brand:0 0 26px oklch(var(--L-solid) .18 var(--h-brand)/.45);
   --glow-text-success:0 0 18px oklch(var(--L-solid) .16 var(--h-success)/.40);
@@ -2385,6 +2385,10 @@ select option { background: var(--bg-2); }
   --ambient-grid-color:rgba(255,255,255,.05);
   --ambient-grid-opacity:.32;
   --glow-a:.16;
+  /* 图表面积填充：必须是 CSS 里已解析好的值 —— canvas 的 addColorStop
+     不认 var()，直接把带 var() 的字符串塞进去会抛 SyntaxError。 */
+  --chart-fill-0:oklch(var(--L-solid) .17 var(--h-brand)/.18);
+  --chart-fill-1:oklch(var(--L-solid) .17 var(--h-brand)/.01);
 
   --bg-0:var(--surface-void); --bg-1:var(--surface-base); --bg-2:var(--surface-raised);
   --bg-3:var(--surface-overlay); --bg-card:var(--surface-base); --bg-hover:var(--surface-hover);
@@ -2426,6 +2430,8 @@ select option { background: var(--bg-2); }
   --shadow-card:0 1px 2px oklch(30% .02 58/.05),0 12px 32px -20px oklch(30% .02 58/.26);
   --shadow-hover:0 2px 6px oklch(30% .02 58/.07),0 22px 46px -24px oklch(30% .02 58/.28);
   --shadow-float:0 20px 50px -18px oklch(30% .02 58/.26);
+  --shadow-lift:0 26px 56px -28px oklch(30% .02 58/.30);
+  --border-danger:oklch(52% .19 var(--h-danger)/.45);
   --glow-brand:0 0 34px -20px oklch(58% .17 var(--h-brand)/.7);
   --glow-text-brand:none; --glow-text-success:none; --glow-text-danger:none;
   --ring-focus:0 0 0 3px oklch(65% .16 var(--h-brand)/.20);
@@ -2434,6 +2440,9 @@ select option { background: var(--bg-2); }
   --ambient-grid-color:oklch(30% .018 58/.045);
   --ambient-grid-opacity:.22;
   --glow-a:.07;
+  /* 白天填充彩度收敛一档，浅底上 .18 会读作橙污渍 */
+  --chart-fill-0:oklch(58% .17 var(--h-brand)/.16);
+  --chart-fill-1:oklch(58% .17 var(--h-brand)/.01);
 
   /* App 原生变量 —— 白天 */
   --bg-0:var(--surface-raised); --bg-1:var(--surface-base); --bg-2:var(--surface-void);
@@ -2506,35 +2515,245 @@ body > * { position: relative; z-index: 1; }
 
 /* ── F. 微标签：mono + uppercase + 宽字距 ─────────────── */
 .stat-label, .metric-label, .position-label, .gov-section-title,
-.label-micro, .threshold-chip-label {
+.label-micro, .threshold-chip-label, .allocation-title {
   font-family: var(--font-mono-ds);
   text-transform: uppercase;
   letter-spacing: var(--ls-widest);
 }
 /* 汉字不吃拉丁的宽字距，收窄；且不做负字距 */
 :lang(zh) .stat-label, :lang(zh) .metric-label, :lang(zh) .position-label,
-:lang(zh) .gov-section-title, :lang(zh) .threshold-chip-label {
+:lang(zh) .gov-section-title, :lang(zh) .threshold-chip-label,
+:lang(zh) .allocation-title {
   letter-spacing: var(--ls-cjk-wide);
 }
 :lang(zh-TW) { --font-sans-ds: var(--font-sans-tc); --font-mono-ds: var(--font-mono-tc); }
 
-/* ── G. 玻璃卡 + 悬停抬升 ─────────────────────────────── */
+/* ── G. 卡片几何 —— 对齐 components.css 的 .stat / .vault ──────
+   ⚠ 这里是「棱角很粗糙」的根因。早前有一轮把卡片改成了无边框平铺列表：
+     .stat-card  { background:transparent; border:none; border-radius:0 }
+     .vault-card { background:transparent; border:none; border-radius:0 }
+   我第一次导入设计时只加了玻璃底和投影，没把几何一起恢复 —— 给一个
+   直角、无描边的块加玻璃+投影，出来就是硬邦邦的方板加一团光斑。
+   设计规范里 .stat 是 16px 圆角 + 1px 描边 + 2px 顶部色轨，
+   .vault 是 18px 圆角 + 1px 描边，卡与卡之间靠 12px 间距分开，
+   不是靠分隔线。下面按规范把这些数值补回去。
+   ──────────────────────────────────────────────────────── */
 .vault-card, .stat-card, .rec-card, .alert-panel, .table, .gov-timeline, .gov-vault-summary {
   background: var(--glass-weak), var(--bg-card);
   box-shadow: var(--shadow-card);
 }
-.stat-card { transition: transform var(--dur-base) var(--ease-out), border-color var(--dur-base), box-shadow var(--dur-base); }
-.stat-card:hover { transform: translateY(-3px); border-color: var(--border-light); box-shadow: var(--shadow-hover); }
-.vault-card:hover { border-color: var(--border-light); box-shadow: var(--shadow-hover); }
-/* 统计卡右上角光晕 —— 强度由 --glow-a 控制，白天收敛到 .07 */
-.stat-card { position: relative; overflow: hidden; }
+
+/* ── 统计卡 .stat ─────────────────────────────────────── */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;                       /* --r-2xl */
+  padding: 16px 18px 18px 20px;
+  transition: transform var(--dur-base) var(--ease-out),
+              border-color var(--dur-base), box-shadow var(--dur-base);
+}
+/* 变体色从左描边挪到顶部色轨；左边 1px 交回中性色，
+   否则彩色左边 + 彩色顶轨两个信号打架，看着脏。 */
+.stat-card.blue, .stat-card.green, .stat-card.yellow, .stat-card.red {
+  border-left-color: var(--border-subtle);
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--blue);
+}
+.stat-card.blue::before   { background: linear-gradient(90deg, var(--fire-bright), var(--fire-deep)); }
+.stat-card.green::before  { background: linear-gradient(90deg, var(--green), var(--green-dark)); }
+.stat-card.yellow::before { background: linear-gradient(90deg, var(--yellow), var(--ember)); }
+.stat-card.red::before    { background: linear-gradient(90deg, var(--red), oklch(58% .19 var(--h-danger))); }
+/* 右上角光晕 —— 强度由 --glow-a 控制，白天收敛到 .07 免得读作污渍 */
 .stat-card::after {
   content: ''; position: absolute; right: -32px; top: -32px;
   width: 120px; height: 120px; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle, oklch(var(--L-solid) .16 var(--h-brand)/var(--glow-a)), transparent 70%);
 }
-.stat-card.green::after { background: radial-gradient(circle, oklch(var(--L-solid) .16 var(--h-success)/var(--glow-a)), transparent 70%); }
-.stat-card.red::after   { background: radial-gradient(circle, oklch(var(--L-solid) .19 var(--h-danger)/var(--glow-a)), transparent 70%); }
+.stat-card.green::after  { background: radial-gradient(circle, oklch(var(--L-solid) .16 var(--h-success)/var(--glow-a)), transparent 70%); }
+.stat-card.yellow::after { background: radial-gradient(circle, oklch(var(--L-solid) .15 var(--h-warning)/var(--glow-a)), transparent 70%); }
+.stat-card.red::after    { background: radial-gradient(circle, oklch(var(--L-solid) .19 var(--h-danger)/var(--glow-a)), transparent 70%); }
+.stat-card:hover {
+  opacity: 1;                                /* 盖掉旧的 hover{opacity:.85} */
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-hover);
+}
+/* 规范是 minmax(210px,1fr) / 14px 间距 */
+.stats-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+
+/* ── 持仓卡 .vault ────────────────────────────────────── */
+.vault-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;                       /* --r-3xl */
+  overflow: hidden;
+  margin-bottom: 12px;                       /* 卡间距代替分隔线 */
+  transition: transform var(--dur-slow, .3s) var(--ease-out),
+              border-color var(--dur-slow, .3s), box-shadow var(--dur-slow, .3s);
+}
+/* 旧的卡间分隔线：现在靠间距分开，线要撤掉，否则卡里凭空多一道横杠 */
+.vault-card { border-top-color: var(--border-subtle); }
+.vault-card + .vault-card::before { display: none; }
+.vault-card:hover {
+  transform: translateY(-3px);
+  border-color: oklch(var(--L-solid) .16 var(--h-brand)/.38);
+  /* 跟随指针的径向辉光 —— --mx/--my 由下面的 mousemove 写入 */
+  background: radial-gradient(460px circle at var(--mx, 50%) var(--my, 0%),
+              oklch(var(--L-solid) .17 var(--h-brand)/.11), transparent 60%),
+              var(--glass-strong), var(--bg-card);
+  box-shadow: inset 0 1px 0 var(--fill-3), var(--shadow-lift, var(--shadow-hover)), var(--glow-brand);
+  border-radius: 18px;                       /* 盖掉旧 hover 的 16px */
+}
+/* 警报卡左侧 2px 危险轨（规范 .vault--alert::before） */
+.vault-card.has-alert { border-color: var(--border-danger, oklch(var(--L-solid) .18 var(--h-danger)/.42)); }
+.vault-card.has-alert::after {
+  left: 0; top: 0; bottom: 0; width: 2px;
+  border-radius: 0; opacity: 1;
+  background: linear-gradient(180deg, var(--red), oklch(var(--L-solid) .19 var(--h-danger)/.08));
+  box-shadow: 0 0 16px oklch(var(--L-solid) .19 var(--h-danger)/.75);
+}
+.vault-card.pulse-highlight { border-radius: 18px; }
+
+/* 卡内指标区顶部发丝线（规范 .metrics border-top） */
+.vault-metrics { border-top: 1px solid var(--border-hair); padding-top: 14px; }
+
+/* ── 标签页 .tab ──────────────────────────────────────── */
+.tab {
+  font-family: var(--font-mono-ds);
+  font-size: 11.5px; text-transform: uppercase;
+  letter-spacing: var(--ls-cjk-wide);
+}
+.tab:hover { background: var(--fill-3); color: var(--text-1); }
+.tab.active {
+  background: linear-gradient(180deg,
+    oklch(var(--L-solid) .16 var(--h-brand)/.24),
+    oklch(var(--L-solid) .16 var(--h-brand)/.07));
+  color: var(--blue);
+  border-color: oklch(var(--L-solid) .16 var(--h-brand)/.45);
+  box-shadow: 0 0 22px -6px oklch(var(--L-solid) .18 var(--h-brand)/.9),
+              inset 0 1px 0 rgba(255,255,255,.10);
+}
+.tabs { background: var(--fill-1); backdrop-filter: blur(10px); }
+
+/* ── 分组标题尾随发丝线（规范 .group-title::after）───── */
+.section-title {
+  font-family: var(--font-mono-ds);
+  font-size: 11px; letter-spacing: var(--ls-cjk-wide);
+  color: var(--text-3);
+}
+.section-title::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border-subtle), transparent);
+}
+
+/* ── 查询面板顶部品牌发丝线（规范 .panel--accent::before）── */
+.input-bar { position: relative; overflow: hidden; }
+.input-bar::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent,
+    oklch(var(--L-solid) .18 var(--h-brand)/.85),
+    oklch(78% .10 var(--h-info)/.5), transparent);
+}
+
+/* ── 警报卡圆角对齐 --r-xl 14px ───────────────────────── */
+.alert-item { border-radius: 14px; }
+
+/* ── CORS 排查页 ───────────────────────────────────────
+   原来这一整块是内联 style + 写死的 rgba(239,68,68,…)，暗色下红底
+   偏亮、代码块底色和卡片撞在一起。提成 class 走令牌。 */
+.cors-guide { padding: 24px; max-width: 780px; }
+.cors-alert {
+  background: var(--red-glow); border: 1px solid var(--border-danger);
+  border-radius: 14px; padding: 20px 22px; margin-bottom: 20px;
+}
+.cors-alert__title { font-size: 15px; color: var(--red); margin-bottom: 8px; }
+.cors-alert__body  { font-size: 13px; color: var(--text-2); line-height: 1.7; }
+.cors-card {
+  background: var(--glass-weak), var(--bg-card);
+  border: 1px solid var(--border-subtle); border-radius: 14px;
+  padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow-card);
+}
+.cors-card__head  { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.cors-card__title { font-size: 14px; color: var(--text-1); margin-bottom: 12px; }
+.cors-card__head .cors-card__title { margin-bottom: 0; }
+.cors-card__desc  { font-size: 12px; color: var(--text-3); margin-bottom: 10px; line-height: 1.6; }
+.cors-card__fine  { font-size: 11px; color: var(--text-3); line-height: 1.5; }
+.cors-card__warn  { font-size: 11px; color: var(--red); margin-top: 8px; }
+.cors-badge {
+  font-family: var(--font-mono-ds); font-size: 10.5px;
+  letter-spacing: var(--ls-cjk-wide); padding: 2px 7px; border-radius: 5px;
+  color: var(--text-on-brand, #fff); white-space: nowrap;
+}
+.cors-badge--brand { background: var(--blue); }
+.cors-badge--ok    { background: var(--green); }
+.cors-code { background: var(--fill-3); border: 1px solid var(--border-subtle);
+             padding: 1px 5px; border-radius: 4px; font-family: var(--font-mono-ds); font-size: .92em; }
+.cors-cmd {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+  background: var(--bg-0); border: 1px solid var(--border-subtle); border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 8px;
+  font-family: var(--font-mono-ds); font-size: 12.5px; color: var(--green);
+  word-break: break-all;
+}
+.cors-cmd.is-warn { color: var(--yellow); font-size: 11px; }
+.cors-cmd > span  { flex: 1; }
+.cors-copy {
+  flex-shrink: 0; background: var(--fill-1); border: 1px solid var(--border-subtle);
+  border-radius: 6px; padding: 4px 10px; color: var(--text-2);
+  cursor: pointer; font-size: 11px; font-family: inherit;
+}
+.cors-copy:hover { background: var(--fill-2); color: var(--text-1); border-color: var(--border-strong); }
+.cors-link {
+  background: var(--bg-0); border: 1px solid var(--border-subtle);
+  border-radius: 8px; padding: 10px 14px; margin-bottom: 8px;
+}
+.cors-link a { font-size: 13px; word-break: break-all; }
+.cors-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cors-input {
+  flex: 1; min-width: 240px; background: var(--fill-1);
+  border: 1px solid var(--border-subtle); border-radius: 8px;
+  padding: 8px 12px; color: var(--text-1); font-size: 12px;
+  font-family: var(--font-mono-ds); outline: none;
+}
+@media (max-width: 640px) {
+  .cors-guide { padding: 14px; }
+  .cors-card { padding: 14px 16px; }
+  .cors-cmd { flex-direction: column; align-items: stretch; }
+  .cors-copy { align-self: flex-end; }
+  .cors-actions .btn { width: 100%; min-height: 46px; }
+}
+
+/* ── 空状态 —— 规范 .empty__icon 是 40px / .45，不带彩色投影
+   （原来 48px + 橙色 drop-shadow，emoji 边上糊一圈橙光，很脏）── */
+.empty-icon { font-size: 40px; opacity: .45; filter: none; margin-bottom: 14px; }
+.empty-title { font-size: 15px; color: var(--text-1); }
+.empty-desc  { font-size: 13px; color: var(--text-3); }
+
+/* ── 卡片入场：错峰上浮（规范 .neo-in）──────────────── */
+@keyframes neoIn { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
+.neo-in { animation: neoIn .5s var(--ease-out) both; }
+
+/* ── 键盘焦点环（规范 --ring-keyboard）────────────────── */
+.btn:focus-visible, .tab:focus-visible, .icon-btn:focus-visible,
+.lang-btn:focus-visible, .live-pill:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-0), 0 0 0 4px oklch(var(--L-solid) .18 var(--h-brand)/.85);
+}
+
+/* ── H5：卡片几何按规范收窄 ──────────────────────────── */
+@media (max-width: 640px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-card { padding: 12px 12px 14px 14px; border-radius: 14px; }
+  .stat-card::after { width: 80px; height: 80px; right: -24px; top: -24px; }
+  .vault-card { border-radius: 16px; margin-bottom: 10px; }
+  .vault-card:hover { transform: none; border-radius: 16px; }
+  .stat-card:hover { transform: none; }
+  .tab { font-size: 10.5px; padding: 10px 14px; min-height: 42px; }
+  .tabs { width: 100%; border-radius: 12px; padding: 4px; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+}
 
 /* ── H. 顶栏：玻璃 + 品牌渐变下沿 ─────────────────────── */
 /* 用 .header 而非 header：原样式表里 `.header` 写死了
@@ -2570,14 +2789,162 @@ header::after, .header::after {
   .logo-icon { width: 30px !important; height: 35px !important; }
 }
 
-/* ── I. 主题分段控件 ─────────────────────────────────
-   完全复用 .lang-switcher / .lang-btn，只补一点尺寸微调，
-   这样它和语言切换在视觉上是同一类控件。 */
-.theme-switcher .lang-btn { padding: 3px 7px; }
+/* ── I. 顶栏组件 —— 对齐 components.css 的 .hdr__* / .seg / .icon-btn ──
+   顶栏之前塞了 8 样东西（名字＋副标题＋版本＋语言×3＋主题×3＋LIVE＋倒计时
+   ＋状态），横向排不下。现在只留四组：品牌｜语言｜LIVE｜主题｜状态。 */
+
+/* 品牌名与版本号同一行 */
+.logo-title { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.logo-name  { white-space: nowrap; }
+
+/* 版本 pill —— components.css 的 .pill */
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 1px 6px; border-radius: 5px;
+  font-family: var(--font-mono-ds); font-size: 10.5px; letter-spacing: .3px;
+  white-space: nowrap;
+  background: oklch(var(--L-solid) .10 var(--h-info)/.10);
+  color: oklch(var(--L-text) .09 var(--h-info));
+  border: 1px solid oklch(var(--L-solid) .10 var(--h-info)/.28);
+}
+:root[data-theme="light"] .pill, :root:not([data-theme="dark"]) .pill {
+  color: oklch(46% .10 var(--h-info));
+}
+.pill i { font-style: normal; opacity: .38; }
+
+/* 图标按钮 —— components.css 的 .icon-btn，32×32 */
+.icon-btn {
+  width: 32px; height: 32px; flex-shrink: 0;
+  display: grid; place-items: center;
+  border-radius: 10px; border: 1px solid var(--border-subtle);
+  background: var(--fill-1); color: var(--text-2); cursor: pointer;
+  transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
+}
+.icon-btn:hover { color: var(--text-1); background: var(--fill-2); border-color: var(--border-strong); }
+.icon-btn svg { width: 16px; height: 16px; display: block; }
+/* 日/月互斥：按「实际生效」的主题切，不是按 data-theme（自动态下要看系统） */
+.icon-btn .i-sun { display: none; } .icon-btn .i-moon { display: block; }
+:root[data-theme="light"] .icon-btn .i-sun { display: block; }
+:root[data-theme="light"] .icon-btn .i-moon { display: none; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .icon-btn .i-sun  { display: block; }
+  :root:not([data-theme="dark"]) .icon-btn .i-moon { display: none; }
+}
+
+/* 主题小菜单 —— 三个状态都写明白，「跟随系统」不会再被藏掉 */
+.theme-wrap { position: relative; display: flex; }
+.theme-menu {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  min-width: 148px; padding: 5px; z-index: 9999;
+  display: none; flex-direction: column; gap: 1px;
+  background: var(--glass-strong), var(--bg-card);
+  border: 1px solid var(--border-strong); border-radius: 12px;
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+}
+.theme-wrap.is-open .theme-menu { display: flex; animation: themeMenuIn .14s var(--ease-out) both; }
+@keyframes themeMenuIn { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: none } }
+.theme-menu button {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 9px; border: 0; border-radius: 8px;
+  background: none; color: var(--text-2); cursor: pointer;
+  font-family: inherit; font-size: 12px; text-align: left; white-space: nowrap;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.theme-menu button:hover { background: var(--fill-2); color: var(--text-1); }
+.theme-menu button.is-on { color: var(--blue); }
+.theme-menu__tick { width: 11px; font-style: normal; font-size: 11px; opacity: 0; flex-shrink: 0; }
+.theme-menu button.is-on .theme-menu__tick { opacity: 1; }
+
+/* LIVE 胶囊 —— 关态不再写「: OFF」，状态靠那颗点 */
+.live-pill {
+  display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+  padding: 4px 9px; border-radius: 999px;
+  border: 1px solid var(--border-subtle); background: var(--fill-1);
+  color: var(--text-3); cursor: pointer;
+  font-family: var(--font-mono-ds); font-size: 10.5px;
+  letter-spacing: var(--ls-widest); text-transform: uppercase;
+  transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
+}
+.live-pill:hover { color: var(--text-1); background: var(--fill-2); border-color: var(--border-strong); }
+.live-pill__dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  background: var(--text-3); transition: background var(--dur-fast), box-shadow var(--dur-fast);
+}
+.live-pill.live-on { color: var(--red); border-color: var(--border-danger, oklch(var(--L-solid) .18 var(--h-danger)/.42)); }
+.live-pill.live-on .live-pill__dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.live-pill.live-loading { opacity: .55; cursor: wait; }
+
+/* 状态胶囊 —— components.css 的 .status：mono / 10.5px / 大写 / 宽字距 */
+.monitor-status {
+  font-family: var(--font-mono-ds); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: var(--ls-widest);
+  border-radius: 999px; background: var(--fill-1);
+  border-color: var(--border-subtle); color: var(--text-2);
+  flex-shrink: 0; white-space: nowrap;
+}
+:lang(zh) .monitor-status { letter-spacing: var(--ls-cjk-wide); }
+/* 倒计时并进状态胶囊，读作「运行中 · 4:32」 */
+.monitor-status .countdown {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: none; border: 0; padding: 0; margin: 0;
+  font-family: var(--font-mono-ds); font-variant-numeric: tabular-nums;
+  color: var(--text-3); letter-spacing: 0; text-transform: none;
+}
+.monitor-status .countdown i { font-style: normal; opacity: .45; }
+/* 在线点：雷达脉冲（components.css 的 .dot--live::after） */
+.status-dot { position: relative; }
+.status-dot.active::after {
+  content: ''; position: absolute; inset: -4px; border-radius: 50%;
+  border: 1px solid var(--green); animation: neoRadar 2s ease-out infinite;
+}
+@keyframes neoRadar {
+  0%   { transform: scale(.6); opacity: .75 }
+  100% { transform: scale(2.2); opacity: 0 }
+}
+
+/* ── I1. 顶栏 H5 收窄 ─────────────────────────────────
+   照 components.css 的 @container app (max-width:640px)：版本 pill 收起、
+   状态文字只留那颗点，品牌名允许省略号，控件间距收到 6px。 */
 @media (max-width: 640px) {
-  /* 顶栏在手机上很挤：主题控件只留当前态 + 一个「自动」，
-     其余两个仍可点，但字号收到最小可读的 10px。 */
-  .theme-switcher .lang-btn { padding: 2px 5px; font-size: 10px; }
+  /* 单行，60px（规范 --header-h-mobile）。原样式在 480px 下是
+     height:auto + flex-wrap:wrap，一换行顶栏就 75px 起、内容越多越高。
+     禁止换行后，宽度不够时由品牌名自己省略号收缩，顶栏高度是定的。 */
+  .header { padding: 0 12px; gap: 8px; height: 60px; flex-wrap: nowrap; }
+  .logo { min-width: 0; overflow: hidden; flex: 1 1 auto; gap: 8px; }
+  .logo-title { min-width: 0; flex-wrap: nowrap; }
+  .logo-title .pill { display: none; }
+  .logo-name { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .header-right { flex-shrink: 0; gap: 5px; flex-wrap: nowrap; }
+  .lang-switcher { padding: 2px; }
+  .lang-btn { padding: 3px 5px; font-size: 10px; }
+  .live-pill { padding: 4px 6px; gap: 4px; font-size: 10px; letter-spacing: .06em; }
+  .logo-name { font-size: 14px; }
+  .monitor-status { padding: 5px 7px; gap: 0; }
+  .monitor-status #status-text { display: none; }
+  .monitor-status .countdown i { display: none; }
+  .monitor-status .countdown { margin-left: 5px; }
+}
+/* 极窄屏（≤340px）：LIVE 文字才收掉。
+   阈值定在 380px 时，375px 的 iPhone 上「LIVE」会变成一个裸圆点，
+   和旁边的监控状态点长得一模一样，分不清谁是谁。 */
+@media (max-width: 340px) {
+  .live-pill { padding: 4px 6px; font-size: 0; }
+  .live-pill__dot { width: 7px; height: 7px; }
+}
+
+/* ── I2. H5 表单：整行铺满 ─────────────────────────────
+   规范 .row 在移动端是 column + align-items:stretch，.btn 占满宽、
+   最小触控高 46px。原样式只把 .input-row 改成 column，没改对齐方式，
+   两个按钮就贴在右边缘、左侧空一大片。 */
+@media (max-width: 640px) {
+  .input-row { flex-direction: column; align-items: stretch; }
+  .input-row .btn, .config-row .btn { width: 100%; min-height: 46px; justify-content: center; }
+  .input-bar { border-radius: 16px; }
+  /* 阈值 chip 在窄屏里会折成两行，把「阈值」二字劈开；收字号并禁止折行 */
+  .threshold-chip { font-size: 9.5px; white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .threshold-chip::-webkit-scrollbar { display: none; }
 }
 
 /* ── J. 按钮扫光 650ms ───────────────────────────────── */
@@ -2634,12 +3001,12 @@ input:focus, select:focus, textarea:focus {
         <img src="logo-shield.png" alt="Morpho Monitor" width="36" height="42"
              style="width:100%;height:100%;object-fit:contain;display:block">
       </div>
-      <div>
-        <div class="logo-name" data-i18n="appName">Morpho Vault Monitor</div>
-        <div class="logo-sub">
-          <span data-i18n="appSub">Mark Li · 实时持仓监控 · 风险评级 · 智能推荐</span>
-          <span id="app-version-badge" style="margin-left:6px;font-size:10px;padding:1px 5px;background:var(--blue-glow);color:var(--blue);border-radius:3px;font-variant-numeric:tabular-nums;letter-spacing:.3px"></span>
-        </div>
+      <!-- 顶栏只保留品牌名 + 版本号。原来的副标题（"Mark Li · 实时持仓监控 ·
+           风险评级 · 智能推荐"）是纯填充文案，占掉一整行还把版本号挤到看不清；
+           设计规范 .hdr__title 就是「名字 + 一个 pill」两件东西。 -->
+      <div class="logo-title">
+        <span class="logo-name" data-i18n="appName">Morpho Monitor</span>
+        <span id="app-version-badge" class="pill"></span>
       </div>
     </div>
     <div class="header-right">
@@ -2649,28 +3016,39 @@ input:focus, select:focus, textarea:focus {
         <button class="lang-btn" data-lang="zh-TW" onclick="switchLang('zh-TW')">繁</button>
         <button class="lang-btn" data-lang="en" onclick="switchLang('en')">EN</button>
       </div>
-      <!-- 主题：三个状态并列，当前态高亮。之前做成单键循环，「跟随系统」
-           这个默认态在界面上完全看不出来，用户根本发现不了它存在。
-           复用 .lang-switcher / .lang-btn 的视觉语言，和旁边语言切换一致。 -->
-      <div class="lang-switcher theme-switcher" id="theme-switcher" role="group" aria-label="主题">
-        <button class="lang-btn" data-theme-set="auto"  onclick="setTheme('auto')"><span data-i18n="themeAuto">自动</span></button>
-        <button class="lang-btn" data-theme-set="light" onclick="setTheme('light')"><span data-i18n="themeLight">白天</span></button>
-        <button class="lang-btn" data-theme-set="dark"  onclick="setTheme('dark')"><span data-i18n="themeDark">黑夜</span></button>
+      <!-- 主题：设计规范 .hdr__right 里主题只占一个 .icon-btn（日/月图标）。
+           但单独一个图标按钮会藏掉「跟随系统」这个默认态 —— 之前就因为这个被
+           退回过一次。所以做成「图标按钮 + 点开的小菜单」：顶栏只花 32px，
+           三个状态在菜单里全部写明，当前态打勾。 -->
+      <div class="theme-wrap">
+        <button class="icon-btn" id="theme-btn" type="button" onclick="toggleThemeMenu(event)"
+                data-i18n="themeAria" data-i18n-attr="aria-label" aria-label="主题"
+                aria-haspopup="true" aria-expanded="false">
+          <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </button>
+        <div class="theme-menu" id="theme-menu" role="menu" aria-labelledby="theme-btn">
+          <button role="menuitemradio" data-theme-set="auto"  onclick="setTheme('auto')"><i class="theme-menu__tick">✓</i><span data-i18n="themeAuto">跟随系统</span></button>
+          <button role="menuitemradio" data-theme-set="light" onclick="setTheme('light')"><i class="theme-menu__tick">✓</i><span data-i18n="themeLight">白天</span></button>
+          <button role="menuitemradio" data-theme-set="dark"  onclick="setTheme('dark')"><i class="theme-menu__tick">✓</i><span data-i18n="themeDark">黑夜</span></button>
+        </div>
       </div>
       <!-- Sprint 2.7 — LIVE mode moved from stat-card to header. It's a
            GLOBAL data-source switch (API snapshot vs on-chain live), so it
            lives next to language switcher and monitor status. -->
-      <button id="live-mode-btn" type="button" onclick="toggleLiveMode()"
-        title="On: read balances from chain via maxWithdraw(user). Off: use Morpho API indexer snapshot."
-        style="font-size:10px;padding:3px 8px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text-3);cursor:pointer;letter-spacing:.4px;font-variant-numeric:tabular-nums;transition:all .15s">
-        LIVE: OFF
+      <!-- 链上直读开关。原来写「LIVE: OFF」两个词，关态时也占满宽度；
+           现在只留「LIVE」，开关状态靠左边那颗点的颜色表示。 -->
+      <button id="live-mode-btn" class="live-pill" type="button" onclick="toggleLiveMode()"
+        data-i18n="liveTip" data-i18n-attr="title"
+        title="开：用 maxWithdraw(user) 直接读链上余额。关：用 Morpho API 的索引快照。">
+        <i class="live-pill__dot"></i>LIVE
       </button>
-      <div class="countdown" id="countdown-display" style="display:none">
-        <span data-i18n="nextRefresh">下次刷新</span>: <span id="countdown-val">--</span>
-      </div>
+      <!-- 倒计时并进状态胶囊，不再单独占一块 —— 读作「运行中 · 4:32」，
+           和设计规范里的 .status「Live · 5m」是同一个形状。 -->
       <div class="monitor-status" id="monitor-status">
         <div class="status-dot" id="status-dot"></div>
         <span id="status-text" data-i18n="statusIdle">未启动</span>
+        <span class="countdown" id="countdown-display" style="display:none"><i>·</i><span id="countdown-val">--</span></span>
       </div>
     </div>
   </header>
@@ -2721,6 +3099,7 @@ input:focus, select:focus, textarea:focus {
           <span data-i18n="btnFetch">查询持仓</span>
         </button>
         <button class="btn btn-success" id="monitor-btn" onclick="toggleMonitor()" disabled
+          data-i18n="autoRefreshTip" data-i18n-attr="title"
           title="仅自动刷新本页显示的数据。Telegram 告警由下方「后台持续监控」负责，与此按钮无关。">
           <span id="monitor-btn-text" data-i18n="btnAutoRefreshStart">自动刷新</span>
         </button>
@@ -2842,7 +3221,7 @@ input:focus, select:focus, textarea:focus {
              cut-off without expanding the config panel. Text is refreshed by
              updateThresholdChip() when the inputs change. -->
         <div id="threshold-chip" class="threshold-chip" style="display:none">
-          <span class="threshold-chip-label">阈值</span>
+          <span class="threshold-chip-label" data-i18n="thresholdLabel">阈值</span>
           <span id="threshold-chip-liq">$200K</span>
           <span class="threshold-chip-sep">·</span>
           <span id="threshold-chip-apy">5%</span>
@@ -2883,7 +3262,7 @@ input:focus, select:focus, textarea:focus {
     <div class="tab-content active" id="tab-content-positions">
       <div id="positions-container">
         <div class="empty-state">
-          <div class="empty-icon" style="font-size:28px;opacity:0.4">◎</div>
+          <div class="empty-icon">🛡️</div>
           <div class="empty-title" data-i18n="emptySearch">输入钱包地址开始查询</div>
           <div class="empty-desc" data-i18n="emptySearchDesc">支持 Ethereum、Base、Arbitrum One、Monad 上的 Morpho Vault 持仓</div>
         </div>
@@ -2929,8 +3308,8 @@ input:focus, select:focus, textarea:focus {
     <div class="tab-content" id="tab-content-pnl">
       <div id="pnl-container">
         <div class="empty-state">
-          <div class="empty-icon" style="font-size:28px;opacity:0.4">◎</div>
-          <div class="empty-title">查询持仓后查看收益计算</div>
+          <div class="empty-icon">🛡️</div>
+          <div class="empty-title" data-i18n="emptyPnl">查询持仓后查看收益计算</div>
         </div>
       </div>
     </div>
@@ -2939,7 +3318,7 @@ input:focus, select:focus, textarea:focus {
     <div class="tab-content" id="tab-content-alerts">
       <div id="alerts-container">
         <div class="empty-state">
-          <div class="empty-icon" style="font-size:28px;opacity:0.4">◎</div>
+          <div class="empty-icon">🛡️</div>
           <div class="empty-title" data-i18n="emptyAlerts">暂无警报</div>
           <div class="empty-desc" data-i18n="emptyAlertsDesc">当流动性或 APY 低于阈值时，此处将显示警报记录</div>
         </div>
@@ -2981,7 +3360,7 @@ input:focus, select:focus, textarea:focus {
 // ────────────────────────────────────────────
 // Version
 // ────────────────────────────────────────────
-const APP_VERSION = '2.0.0';  // 2026-08 — post-audit Sprint 1 (deep-link + schema probe + LIVE fix + dark mode)
+const APP_VERSION = '2.1.0';  // 2026-08-04 — 顶栏精简 + 卡片几何对齐设计规范 + i18n/硬编码清理
 const EXPECTED_WORKER_VERSION = '1.6.0';  // matched against /api/health.version; mismatch shows ⚠️ in header
 
 // ────────────────────────────────────────────
@@ -2995,9 +3374,13 @@ const EXPECTED_WORKER_VERSION = '1.6.0';  // matched against /api/health.version
 // The third-party CORS_PROXIES list below is kept as belt-and-suspenders:
 // if our Worker is ever down, _doFetch will still try those as fallback.
 const MORPHO_UPSTREAM = 'https://api.morpho.org/graphql'; // canonical source
-const MORPHO_API      = 'https://morpho-monitor.markli-mcgrp.workers.dev/api/morpho-proxy';
+// Worker 基址只在这里写一次。之前散在 4 处字面量里（proxy / health / BGM /
+// CORS 指引文案），换域名会漏改。
+const WORKER_BASE     = 'https://morpho-monitor.markli-mcgrp.workers.dev';
+const MORPHO_API      = WORKER_BASE + '/api/morpho-proxy';
 
-const RISK_COLORS = ['#10b981','#22c55e','#f59e0b','#f97316','#ef4444'];
+// 风险五档：UI 信号色，必须跟主题走（图表分类色见 ALLOC_COLORS，那个才该写死）
+const RISK_COLORS = ['var(--green)','var(--green)','var(--yellow)','var(--orange)','var(--red)'];
 const ALLOC_COLORS = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#f97316','#ef4444','#06b6d4','#ec4899'];
 
 // ────────────────────────────────────────────
@@ -3007,13 +3390,107 @@ let CURRENT_LANG = localStorage.getItem('morpho_lang') || 'zh-CN';
 
 const I18N = {
   'zh-CN': {
-    appName:'Morpho Vault 监控', appSub:'Mark Li · 实时持仓监控 · 风险评级 · 智能推荐',
-    tabPositions:'持仓', tabYield:'收益率曲线', tabPnl:'收益计算', tabAlerts:'警报', tabRecs:'推荐 Vault',
+    // 品牌名三语一致，不翻译 —— 设计规范原型里中文版也写 Morpho Monitor
+    appName:'Morpho Monitor',
+    tabPositions:'持仓', tabYield:'收益率曲线', tabPnl:'收益计算', 
     tabAlertsLog:'警报记录', tabGovernance:'治理',
-    themeAuto:'自动', themeLight:'白天', themeDark:'黑夜',
+    welcomeToast:'欢迎使用 Morpho Monitor',
+    thresholdLabel:'阈值', emptyPnl:'查询持仓后查看收益计算',
+    toastProxySwitched:'🔄 已切换代理模式（{name}）', toastProxyNoInput:'找不到代理输入框',
+    toastProxyEmpty:'请先输入代理 URL', toastProxyScheme:'代理 URL 必须以 http:// 或 https:// 开头',
+    toastProxyAdded:'🔗 自定义代理已添加，正在重试…', toastRetrying:'🔄 正在重试连接…',
+    bgmTriggerResult:'{pos} 个持仓，{alerts} 条警报',
+    // CORS 排查页三语（原来整块只有简体）
+    corsCauseFile:'从本地文件（<code class="cors-code">file://</code>）打开时，浏览器会阻止跨域 API 请求（CORS 限制）。自动代理也未能连通，请使用以下任一方案解决：',
+    corsCauseAll:'所有请求路径（自家 Worker + 三个 CORS 代理）都失败了。先确认 <a href="{url}" target="_blank" style="color:var(--blue)">Worker 健康检查</a> 是否返回 <code class="cors-code">{"ok":true}</code>：能返回说明后端正常，问题在本机网络（VPN／代理／DNS 拦截 <code class="cors-code">*.workers.dev</code>）；打不开则是后端或网络出口的问题。下面几个方案可作备选。',
+    corsTitle:'🚫 网络请求被浏览器阻止',
+    corsRecommended:'推荐',
+    corsCopy:'复制',
+    corsSol0Title:'🔄 方案 0：清 PWA 缓存 + 加随机参数',
+    corsSol0Desc:'iPhone 主屏 PWA 会激进缓存 HTML。在 Safari 打开一个带随机参数的 URL 强制拿新版：',
+    corsSol0Hint:'若还是失败：设置 → Safari → 高级 → 网站数据 → 搜 <code class="cors-code">{host}</code> → 滑动删除。<br>然后长按主屏图标 → 移除 App → Safari 重开 → 分享 → 添加到主屏幕。',
+    corsSol1Title:'🐍 方案 1：起一个本地服务器（一条命令）',
+    corsSol1Desc:'在 HTML 文件所在目录打开终端，运行：',
+    corsSol1After:'然后浏览器访问：',
+    corsSol2Title:'📦 方案 2：Node.js 快速服务器',
+    corsSol2Desc:'需已安装 Node.js。然后访问终端提示的地址。',
+    corsSol3Title:'🔧 方案 3：Chrome 关掉安全限制（仅测试用）',
+    corsSol3Desc:'完全退出 Chrome，再用以下命令重启：',
+    corsSol3Warn:'⚠️ 这样开有安全风险，只用于测试，别在这个浏览器里登录任何账户',
+    corsSol4Title:'🌐 方案 4：手动指定 CORS 代理',
+    corsSol4Desc:'如果你有可用的 CORS 代理，填在下面然后点重试：',
+    corsSol4Use:'用这个代理重试',
+    corsSol4Retry:'🔄 直接重试',
+    liveTip:'开：用 maxWithdraw(user) 直接读链上余额。关：用 Morpho API 的索引快照。',
+    autoRefreshTip:'仅自动刷新本页显示的数据。Telegram 告警由下方「后台持续监控」负责，与此按钮无关。',
+    btnClose:'关闭', themeAria:'主题',
+    // ↓ 以下键位是把 `isEn ? A : B` 二元判断改成三语时补的（繁体原本拿到简体）
+    netDirect:'直连模式',
+    netProxy:'代理模式',
+    durSec:'{n} 秒',
+    durMin:'{n} 分钟',
+    durHour:'{n} 小时',
+    durDay:'{n} 天',
+    toastActivePos:'✅ {n} 个活跃持仓（V1:{v1} V2:{v2} 市场:{mk}）',
+    toastNoActivePos:'📋 无活跃持仓，显示 {n} 条历史记录',
+    toastFetchFirst:'请先查询持仓数据',
+    toastSummarySent:'📬 摘要已发送到 Telegram',
+    toastNetBlocked:'❌ 网络请求被阻止，请查看解决方案',
+    toastSnoozed:'已延迟 {h} 小时',
+    toastIgnored:'此警报已永久忽略',
+    errRenderApi:'渲染或 API 错误',
+    errRenderApiHint:'数据可能已正常加载，这更像是界面渲染 bug。打开浏览器控制台可看到完整堆栈。',
+    alertResolve:'→ 去处理',
+    alertSnooze:'💤 延迟 24h',
+    alertIgnore:'🚫 永久忽略',
+    pnlLoading:'正在加载交易历史…',
+    pnlLoadFail:'加载交易记录失败',
+    pnlLoadingHint:'加载历史…',
+    pnlTxDeposit:'存入',
+    pnlTxWithdraw:'取出',
+    pnlNoTx:'该区间内无交易记录。',
+    pnlShowing:'第 {from}–{to} 条，共 {total} 条',
+    pnlRangeAll:'全部',
+    pnlRange30D:'近30天',
+    pnlRange90D:'近90天',
+    pnlRange180D:'近180天',
+    pnlRange1Y:'近1年',
+    pnlRangeCustom:'自定义',
+    pnlPeriodLabel:'区间：',
+    pnlTo:'至',
+    pnlApply:'应用',
+    pnlTxCount:'{n} 笔交易',
+    pnlRefresh:'刷新',
+    pnlStartValue:'期初持仓价值',
+    pnlStartValueSub:'区间起始时的资产价值',
+    pnlTotalDeposited:'累计存入',
+    pnlPeriodDeposits:'期间存入',
+    pnlDepositsN:'{n} 笔',
+    pnlTotalWithdrawn:'累计取出',
+    pnlWithdrawalsN:'{n} 笔',
+    pnlCurrentValue:'当前持仓价值',
+    pnlCurrentValueSub:'活跃持仓',
+    pnlRealised:'已实现收益',
+    pnlRealisedSub:'提款时已落袋的收益',
+    pnlAccrued:'在存收益',
+    pnlAccruedSub:'持仓价值 − 存入成本',
+    pnlAccruedDesc:'仍在 Vault 内尚未提取的收益 = 当前持仓价值 − 存入成本。提款后转为已实现收益。',
+    pnlPeriodPnl:'区间收益',
+    pnlTotalPnl:'总收益',
+    pnlColDate:'时间',
+    pnlColType:'类型',
+    pnlColVault:'Vault',
+    pnlColAmount:'数量',
+    pnlColHash:'交易哈希',
+    verMatch:'界面 v{ui} · 后台 Worker v{worker}（版本一致）',
+    verMismatch:'界面 v{ui} 是按后台 v{expected} 写的，但线上后台是 v{worker}。重新部署 Worker 即可同步。',
+    verNoVersion:'后台 /api/health 没有返回版本号', verOffline:'后台离线',
+    verUnreachable:'后台不可达：{err}',
+    themeAuto:'跟随系统', themeLight:'白天', themeDark:'黑夜',
+    themeTipAuto:'跟随系统外观（现在是{now}）', themeTipLocked:'已手动锁定；选「跟随系统」交回系统',
     emptyGovTitle:'暂无治理提案', emptyGovDesc:'查询持仓后，此处将聚合所有 V2 vault 的 curator 治理提案（按生效时间排序）',
     // Governance drawer (per-vault)
-    govTitle:'治理', govPendingBadge:'项待生效',
+    govTitle:'治理', 
     govRoles:'相关角色',
     govCurator:'策略管理人', govCuratorDesc:'决定钱投到哪些市场',
     govOwner:'最高权限持有者', govOwnerDesc:'可更换管理人和哨兵',
@@ -3034,53 +3511,45 @@ const I18N = {
     govTabTimelineTitle:'你所有 V2 vault 的待生效提案（按生效时间）',
     govTabSummaryTitle:'你持有的 V2 vault',
     govTabAgoTpl:'{n} 小时前已到期 · 可执行', govTabInHoursTpl:'{n} 小时后生效', govTabInDaysTpl:'{n} 天后生效',
-    tabBgm:'⏰ 后台监控',
-    bgmStatusInactive:'未启用后台监控', bgmStatusActive:'后台监控运行中', bgmStatusStopped:'后台监控已停止',
+    bgmStatusInactive:'未启用后台监控', bgmStatusActive:'后台监控运行中', 
     bgmDesc:'后台监控由 Cloudflare Worker 驱动，每 5 分钟自动检查你的 Morpho 持仓。即使关闭浏览器、锁屏或关机，监控不会中断。警报通过 Telegram 实时推送。',
-    bgmWallet:'监控钱包地址', bgmWalletHint:'输入后点击上方「查询持仓」可同步使用',
-    bgmTitle:'⏰ 后台持续监控', bgmTgConfig:'配置', bgmThresholds:'🎯 警报阈值',
-    bgmThLiq:'流动性 (USD)', bgmThApy:'APY (%)', bgmThHf:'健康因子',
+    bgmTitle:'⏰ 后台持续监控', 
+    bgmThHf:'健康因子',
     bgmStart:'启动后台监控', bgmStop:'停止后台监控', bgmTrigger:'立即检查一次',
     bgmNote:'ⓘ 你的 Telegram 凭证仅发送到 Cloudflare Worker 并加密存储在 KV 中，不经过任何第三方。每个钱包地址独立监控，多人可同时使用。',
     bgmOkSubscribe:'✅ 后台监控已启动，请查看 Telegram 确认消息', bgmOkUnsubscribe:'⏹ 后台监控已停止',
     bgmOkTrigger:'🔍 检查完成', bgmErrWallet:'请输入有效的钱包地址', bgmErrTg:'请填写 Telegram Bot Token 和 Chat ID',
     bgmLastCheck:'上次检查',
     labelWallet:'钱包地址', labelNetwork:'网络', placeholderWallet:'0x... 输入以太坊钱包地址',
-    netAll:'全部网络', netEth:'🔷 Ethereum', netBase:'🔵 Base', netArb:'🔶 Arbitrum One', netMonad:'🟣 Monad',
-    btnFetch:'查询持仓', btnMonitorStart:'开始监控', btnMonitorStop:'停止监控', btnConnect:'连接钱包',
+    netAll:'全部网络', 
+    btnFetch:'查询持仓', 
     btnAutoRefreshStart:'自动刷新', btnAutoRefreshStop:'停止刷新',
-    statusAutoRefresh:'自动刷新中', autoRefreshStarted:'自动刷新已开启 — 告警仍由后台监控负责', autoRefreshStopped:'已停止自动刷新',
+    autoRefreshStarted:'自动刷新已开启 — 告警仍由后台监控负责', autoRefreshStopped:'已停止自动刷新',
     configToggleOpen:'展开配置（Telegram 报警 & 监控参数）', configToggleClose:'收起配置',
-    labelTgToken:'Telegram Bot Token', labelTgChat:'Telegram Chat ID',
+    labelTgChat:'Telegram Chat ID',
     labelInterval:'监控间隔', labelLiqTh:'流动性警戒线（USD）', labelApyTh:'APY 警戒线（%）',
     statTotal:'总持仓价值', statApy:'加权平均 APY', statLiq:'总可用流动性', statAlerts:'活跃警报',
-    statIncRewards:'含奖励收益', statAcross:'跨所有持仓', statNormal:'无异常',
-    statusInactive:'未启动', statusMonitoring:'监控中', statusStopped:'已停止',
+    statIncRewards:'含奖励收益', statNormal:'无异常',
     emptySearch:'输入钱包地址开始查询',
     emptySearchDesc:'支持 Ethereum、Base、Arbitrum One、Monad 上的 Morpho Vault 持仓',
     emptyAlerts:'暂无警报', emptyAlertsDesc:'当流动性或 APY 低于阈值时，此处将显示警报记录',
-    emptyRecs:'查询持仓后获取推荐', emptyRecsDesc:'系统将根据资产类型、APY 和风险偏好推荐更优 Vault',
     // Yield curve
     yieldTitle:'收益率曲线', yieldSubtitle:'各持仓历史日 APY 按 USD 持仓权重加权平均（波动为真实 APY 波动）',
-    yieldEarnings:'累计收益率', yieldCumEarnings:'累计收益率', yieldReturnRate:'收益率',
-    yieldPortfolioVal:'持仓总值', yieldCurrentVal:'当前持仓总值', yieldPrincipal:'估算本金（期初）',
-    yieldPeriodEarnings:'周期累计收益率', yieldWeightedApy:'加权平均 APY',
-    yieldV2RealPnl:'V2 实际收益率 (真实数据)', yieldPeriod:'周期', yieldDays:'天',
+    yieldWeightedApy:'加权平均 APY',
+    yieldPeriod:'周期', yieldDays:'天',
     yieldCurrentApy:'当前 APY', yieldPeriodAvg:'区间均值 APY', yieldMaxApy:'最高 APY', yieldMinApy:'最低 APY', yieldPortfolio:'持仓总值', yieldVaultCount:'个持仓 · USD 加权平均 APY',
     yieldLoading:'正在加载历史 APY 数据…', yieldNoData:'该时间段无历史 APY 数据。', yieldAnnualised:'年化净 APY',
-    yieldApyBased:'基于加权', yieldTogglePortfolio:'切换：持仓总值视图', yieldToggleEarnings:'切换：收益率视图',
-    yieldInitialCapital:'初始本金', yieldInitialCapitalPlaceholder:'输入初始投入金额（USD）', yieldRealEarnings:'实际收益率（期末 − 初始本金）/ 本金',
-    nextRefresh:'下次刷新', statusIdle:'未启动',
+    statusIdle:'未启动',
     // Risk levels
     riskMinimal:'极低风险', riskLow:'低风险', riskModerate:'中等风险', riskHigh:'较高风险', riskCritical:'高风险',
     // Alert types
     alertLiqTitle:'流动性不足警报', alertApyTitle:'APY 过低警报', alertRiskTitle:'高风险敞口警报',
     // Metric labels
-    labelMyPosition:'我的持仓', labelAvgApy:'均值', labelAvailLiq:'可用流动性', labelTotalAssets:'总资产',
-    labelCumEarnings:'累计收益', labelPerfFee:'绩效费', labelMgmtFee:'管理费',
+    labelMyPosition:'我的持仓', labelAvgApy:'均值', labelAvailLiq:'可用流动性', 
+    labelPerfFee:'绩效费', labelMgmtFee:'管理费',
     labelRiskRating:'风险评级', labelRiskScore:'风险评分', labelProtocolFee:'手续费',
     labelMarkets:'市场数量', labelActiveAlloc:'活跃分配', labelMarketExposure:'市场敞口分布',
-    labelUtil:'利用率', labelSupply:'供应', labelBorrow:'借款',
+    labelSupply:'供应', labelBorrow:'借款',
     labelSupplyApy:'供应 APY', labelBorrowApr:'借款 APR', labelCollateral:'抵押品',
     labelHealthFactor:'健康因子', labelHealthy:'✓ 健康', labelCaution:'⚠️ 注意',
     labelHighRisk:'⚠️ 高风险', labelMarketUtil:'市场利用率', labelLow:'低', labelAlert:'警报', labelEarnings:'收益',
@@ -3099,7 +3568,6 @@ const I18N = {
     // Alerts panel
     alertsPanelEmpty:'暂无警报记录', alertsPanelEmptyDesc:'系统正在监控中，一旦触发阈值将在此显示',
     // Recommendations
-    recSameAssetTitle:'同资产类型推荐', recOtherTitle:'其他高潜力 Vault',
     recEmptyTitle:'暂无推荐数据', recEmptyDesc:'API 未返回可用 Vault 数据',
     recReasonSameAsset:'同资产类型', recReasonPureStable:'纯U收益', recReasonStable:'稳定收益',
     recReasonRewards:'奖励', recReasonLiq:'充足流动性', recReasonLowRisk:'低风险', recReasonVerified:'认证策展人',
@@ -3127,17 +3595,109 @@ const I18N = {
     // Unknown fallbacks
     unknownVault:'未知 Vault', unknownCurator:'未知策展人', unknownName:'未知', noCollateral:'无',
     // Monitor toasts
-    monitorStarted:'监控已启动', monitorStopped:'⏹ 监控已停止', monitorError:'监控刷新失败',
     copied:'✅ 已复制到剪贴板',
   },
   'zh-TW': {
-    appName:'Morpho Vault 監控', appSub:'Mark Li · 即時持倉監控 · 風險評級 · 智能推薦',
-    tabPositions:'持倉', tabYield:'收益率曲線', tabPnl:'收益計算', tabAlerts:'警報', tabRecs:'推薦 Vault',
+    appName:'Morpho Monitor',
+    tabPositions:'持倉', tabYield:'收益率曲線', tabPnl:'收益計算', 
     tabAlertsLog:'警報記錄', tabGovernance:'治理',
-    themeAuto:'自動', themeLight:'白天', themeDark:'黑夜',
+    welcomeToast:'歡迎使用 Morpho Monitor',
+    thresholdLabel:'閾值', emptyPnl:'查詢持倉後查看收益計算',
+    toastProxySwitched:'🔄 已切換代理模式（{name}）', toastProxyNoInput:'找不到代理輸入框',
+    toastProxyEmpty:'請先輸入代理 URL', toastProxyScheme:'代理 URL 必須以 http:// 或 https:// 開頭',
+    toastProxyAdded:'🔗 自訂代理已新增，正在重試…', toastRetrying:'🔄 正在重試連線…',
+    bgmTriggerResult:'{pos} 個持倉，{alerts} 筆警報',
+    // CORS 排查页三语（原来整块只有简体）
+    corsCauseFile:'從本機檔案（<code class="cors-code">file://</code>）開啟時，瀏覽器會阻擋跨來源 API 請求（CORS 限制）。自動代理也無法連通，請使用以下任一方案解決：',
+    corsCauseAll:'所有請求路徑（自家 Worker + 三個 CORS 代理）都失敗了。先確認 <a href="{url}" target="_blank" style="color:var(--blue)">Worker 健康檢查</a> 是否回傳 <code class="cors-code">{"ok":true}</code>：能回傳說明後端正常，問題在本機網路（VPN／代理／DNS 攔截 <code class="cors-code">*.workers.dev</code>）；打不開則是後端或網路出口的問題。下面幾個方案可作備選。',
+    corsTitle:'🚫 網路請求被瀏覽器阻擋',
+    corsRecommended:'建議',
+    corsCopy:'複製',
+    corsSol0Title:'🔄 方案 0：清 PWA 快取 + 加隨機參數',
+    corsSol0Desc:'iPhone 主畫面 PWA 會積極快取 HTML。在 Safari 開啟一個帶隨機參數的網址強制取得新版：',
+    corsSol0Hint:'若還是失敗：設定 → Safari → 進階 → 網站資料 → 搜 <code class="cors-code">{host}</code> → 滑動刪除。<br>然後長按主畫面圖示 → 移除 App → Safari 重開 → 分享 → 加入主畫面。',
+    corsSol1Title:'🐍 方案 1：起一個本機伺服器（一條命令）',
+    corsSol1Desc:'在 HTML 檔案所在目錄開啟終端機，執行：',
+    corsSol1After:'然後用瀏覽器開啟：',
+    corsSol2Title:'📦 方案 2：Node.js 快速伺服器',
+    corsSol2Desc:'需已安裝 Node.js。然後開啟終端機提示的網址。',
+    corsSol3Title:'🔧 方案 3：Chrome 關掉安全限制（僅測試用）',
+    corsSol3Desc:'完全結束 Chrome，再用以下命令重新啟動：',
+    corsSol3Warn:'⚠️ 這樣開有安全風險，只用於測試，別在這個瀏覽器裡登入任何帳號',
+    corsSol4Title:'🌐 方案 4：手動指定 CORS 代理',
+    corsSol4Desc:'如果你有可用的 CORS 代理，填在下面然後點重試：',
+    corsSol4Use:'用這個代理重試',
+    corsSol4Retry:'🔄 直接重試',
+    liveTip:'開：用 maxWithdraw(user) 直接讀鏈上餘額。關：用 Morpho API 的索引快照。',
+    autoRefreshTip:'僅自動刷新本頁顯示的資料。Telegram 告警由下方「後台持續監控」負責，與此按鈕無關。',
+    btnClose:'關閉', themeAria:'主題',
+    // ↓ 以下键位是把 `isEn ? A : B` 二元判断改成三语时补的（繁体原本拿到简体）
+    netDirect:'直連模式',
+    netProxy:'代理模式',
+    durSec:'{n} 秒',
+    durMin:'{n} 分鐘',
+    durHour:'{n} 小時',
+    durDay:'{n} 天',
+    toastActivePos:'✅ {n} 個活躍持倉（V1:{v1} V2:{v2} 市場:{mk}）',
+    toastNoActivePos:'📋 無活躍持倉，顯示 {n} 筆歷史記錄',
+    toastFetchFirst:'請先查詢持倉資料',
+    toastSummarySent:'📬 摘要已傳送到 Telegram',
+    toastNetBlocked:'❌ 網路請求被阻擋，請查看解決方案',
+    toastSnoozed:'已延後 {h} 小時',
+    toastIgnored:'此警報已永久忽略',
+    errRenderApi:'算繪或 API 錯誤',
+    errRenderApiHint:'資料可能已正常載入，這更像是介面算繪 bug。打開瀏覽器主控台可看到完整堆疊。',
+    alertResolve:'→ 去處理',
+    alertSnooze:'💤 延後 24h',
+    alertIgnore:'🚫 永久忽略',
+    pnlLoading:'正在載入交易歷史…',
+    pnlLoadFail:'載入交易記錄失敗',
+    pnlLoadingHint:'載入歷史…',
+    pnlTxDeposit:'存入',
+    pnlTxWithdraw:'取出',
+    pnlNoTx:'該區間內無交易記錄。',
+    pnlShowing:'第 {from}–{to} 筆，共 {total} 筆',
+    pnlRangeAll:'全部',
+    pnlRange30D:'近30天',
+    pnlRange90D:'近90天',
+    pnlRange180D:'近180天',
+    pnlRange1Y:'近1年',
+    pnlRangeCustom:'自訂',
+    pnlPeriodLabel:'區間：',
+    pnlTo:'至',
+    pnlApply:'套用',
+    pnlTxCount:'{n} 筆交易',
+    pnlRefresh:'重新載入',
+    pnlStartValue:'期初持倉價值',
+    pnlStartValueSub:'區間起始時的資產價值',
+    pnlTotalDeposited:'累計存入',
+    pnlPeriodDeposits:'期間存入',
+    pnlDepositsN:'{n} 筆',
+    pnlTotalWithdrawn:'累計取出',
+    pnlWithdrawalsN:'{n} 筆',
+    pnlCurrentValue:'目前持倉價值',
+    pnlCurrentValueSub:'活躍持倉',
+    pnlRealised:'已實現收益',
+    pnlRealisedSub:'提款時已落袋的收益',
+    pnlAccrued:'在存收益',
+    pnlAccruedSub:'持倉價值 − 存入成本',
+    pnlAccruedDesc:'仍在 Vault 內尚未提取的收益 = 目前持倉價值 − 存入成本。提款後轉為已實現收益。',
+    pnlPeriodPnl:'區間收益',
+    pnlTotalPnl:'總收益',
+    pnlColDate:'時間',
+    pnlColType:'類型',
+    pnlColVault:'Vault',
+    pnlColAmount:'數量',
+    pnlColHash:'交易雜湊',
+    verMatch:'介面 v{ui} · 後台 Worker v{worker}（版本一致）',
+    verMismatch:'介面 v{ui} 是按後台 v{expected} 寫的，但線上後台是 v{worker}。重新部署 Worker 即可同步。',
+    verNoVersion:'後台 /api/health 沒有回傳版本號', verOffline:'後台離線',
+    verUnreachable:'後台無法連線：{err}',
+    themeAuto:'跟隨系統', themeLight:'白天', themeDark:'黑夜',
+    themeTipAuto:'跟隨系統外觀（現在是{now}）', themeTipLocked:'已手動鎖定；選「跟隨系統」交回系統',
     emptyGovTitle:'暫無治理提案', emptyGovDesc:'查詢持倉後，此處將匯總所有 V2 vault 的 curator 治理提案（按生效時間排序）',
     // Governance drawer (per-vault)
-    govTitle:'治理', govPendingBadge:'項待生效',
+    govTitle:'治理', 
     govRoles:'相關角色',
     govCurator:'策略管理人', govCuratorDesc:'決定錢投到哪些市場',
     govOwner:'最高權限持有者', govOwnerDesc:'可更換管理人和哨兵',
@@ -3158,52 +3718,44 @@ const I18N = {
     govTabTimelineTitle:'你所有 V2 vault 的待生效提案（按生效時間）',
     govTabSummaryTitle:'你持有的 V2 vault',
     govTabAgoTpl:'{n} 小時前已到期 · 可執行', govTabInHoursTpl:'{n} 小時後生效', govTabInDaysTpl:'{n} 天後生效',
-    tabBgm:'⏰ 後台監控',
-    bgmStatusInactive:'未啟用後台監控', bgmStatusActive:'後台監控運行中', bgmStatusStopped:'後台監控已停止',
+    bgmStatusInactive:'未啟用後台監控', bgmStatusActive:'後台監控運行中', 
     bgmDesc:'後台監控由 Cloudflare Worker 驅動，每 5 分鐘自動檢查你的 Morpho 持倉。即使關閉瀏覽器、鎖屏或關機，監控不會中斷。警報通過 Telegram 即時推送。',
-    bgmWallet:'監控錢包地址', bgmWalletHint:'輸入後點擊上方「查詢持倉」可同步使用',
-    bgmTitle:'⏰ 後台持續監控', bgmTgConfig:'配置', bgmThresholds:'🎯 警報閾值',
-    bgmThLiq:'流動性 (USD)', bgmThApy:'APY (%)', bgmThHf:'健康因子',
+    bgmTitle:'⏰ 後台持續監控', 
+    bgmThHf:'健康因子',
     bgmStart:'啟動後台監控', bgmStop:'停止後台監控', bgmTrigger:'立即檢查一次',
     bgmNote:'ⓘ 你的 Telegram 憑證僅發送到 Cloudflare Worker 並加密存儲，不經過任何第三方。每個錢包地址獨立監控，多人可同時使用。',
     bgmOkSubscribe:'✅ 後台監控已啟動，請查看 Telegram 確認消息', bgmOkUnsubscribe:'⏹ 後台監控已停止',
     bgmOkTrigger:'🔍 檢查完成', bgmErrWallet:'請輸入有效的錢包地址', bgmErrTg:'請填寫 Telegram Bot Token 和 Chat ID',
     bgmLastCheck:'上次檢查',
     labelWallet:'錢包地址', labelNetwork:'網絡', placeholderWallet:'0x... 輸入以太坊錢包地址',
-    netAll:'全部網絡', netEth:'🔷 Ethereum', netBase:'🔵 Base', netArb:'🔶 Arbitrum One', netMonad:'🟣 Monad',
-    btnFetch:'查詢持倉', btnMonitorStart:'開始監控', btnMonitorStop:'停止監控', btnConnect:'連接錢包',
+    netAll:'全部網絡', 
+    btnFetch:'查詢持倉', 
     btnAutoRefreshStart:'自動刷新', btnAutoRefreshStop:'停止刷新',
-    statusAutoRefresh:'自動刷新中', autoRefreshStarted:'自動刷新已開啟 — 告警仍由後台監控負責', autoRefreshStopped:'已停止自動刷新',
+    autoRefreshStarted:'自動刷新已開啟 — 告警仍由後台監控負責', autoRefreshStopped:'已停止自動刷新',
     configToggleOpen:'展開配置（Telegram 報警 & 監控參數）', configToggleClose:'收起配置',
-    labelTgToken:'Telegram Bot Token', labelTgChat:'Telegram Chat ID',
+    labelTgChat:'Telegram Chat ID',
     labelInterval:'監控間隔', labelLiqTh:'流動性警戒線（USD）', labelApyTh:'APY 警戒線（%）',
     statTotal:'總持倉價值', statApy:'加權平均 APY', statLiq:'總可用流動性', statAlerts:'活躍警報',
-    statIncRewards:'含獎勵收益', statAcross:'跨所有持倉', statNormal:'無異常',
-    statusInactive:'未啟動', statusMonitoring:'監控中', statusStopped:'已停止',
+    statIncRewards:'含獎勵收益', statNormal:'無異常',
     emptySearch:'輸入錢包地址開始查詢',
     emptySearchDesc:'支援 Ethereum、Base、Arbitrum One、Monad 上的 Morpho Vault 持倉',
     emptyAlerts:'暫無警報', emptyAlertsDesc:'當流動性或 APY 低於閾值時，此處將顯示警報記錄',
-    emptyRecs:'查詢持倉後獲取推薦', emptyRecsDesc:'系統將根據資產類型、APY 和風險偏好推薦更優 Vault',
     yieldTitle:'收益率曲線', yieldSubtitle:'各持倉歷史日 APY 按 USD 持倉權重加權平均（波動為真實 APY 波動）',
-    yieldEarnings:'累計收益率', yieldCumEarnings:'累計收益率', yieldReturnRate:'收益率',
-    yieldPortfolioVal:'持倉總值', yieldCurrentVal:'當前持倉總值', yieldPrincipal:'估算本金（期初）',
-    yieldPeriodEarnings:'週期累計收益率', yieldWeightedApy:'加權平均 APY',
-    yieldV2RealPnl:'V2 實際收益率 (真實數據)', yieldPeriod:'週期', yieldDays:'天',
+    yieldWeightedApy:'加權平均 APY',
+    yieldPeriod:'週期', yieldDays:'天',
     yieldCurrentApy:'當前 APY', yieldPeriodAvg:'區間均值 APY', yieldMaxApy:'最高 APY', yieldMinApy:'最低 APY', yieldPortfolio:'持倉總值', yieldVaultCount:'個持倉 · USD 加權平均 APY',
     yieldLoading:'正在加載歷史 APY 數據…', yieldNoData:'該時間段無歷史 APY 數據。', yieldAnnualised:'年化淨 APY',
-    yieldApyBased:'基於加權', yieldTogglePortfolio:'切換：持倉總值視圖', yieldToggleEarnings:'切換：收益率視圖',
-    yieldInitialCapital:'初始本金', yieldInitialCapitalPlaceholder:'輸入初始投入金額（USD）', yieldRealEarnings:'實際收益率（期末 − 初始本金）/ 本金',
-    nextRefresh:'下次刷新', statusIdle:'未啟動',
+    statusIdle:'未啟動',
     // Risk levels
     riskMinimal:'極低風險', riskLow:'低風險', riskModerate:'中等風險', riskHigh:'較高風險', riskCritical:'高風險',
     // Alert types
     alertLiqTitle:'流動性不足警報', alertApyTitle:'APY 過低警報', alertRiskTitle:'高風險敞口警報',
     // Metric labels
-    labelMyPosition:'我的持倉', labelAvgApy:'均值', labelAvailLiq:'可用流動性', labelTotalAssets:'總資產',
-    labelCumEarnings:'累計收益', labelPerfFee:'績效費', labelMgmtFee:'管理費',
+    labelMyPosition:'我的持倉', labelAvgApy:'均值', labelAvailLiq:'可用流動性', 
+    labelPerfFee:'績效費', labelMgmtFee:'管理費',
     labelRiskRating:'風險評級', labelRiskScore:'風險評分', labelProtocolFee:'手續費',
     labelMarkets:'市場數量', labelActiveAlloc:'活躍分配', labelMarketExposure:'市場敞口分布',
-    labelUtil:'利用率', labelSupply:'供應', labelBorrow:'借款',
+    labelSupply:'供應', labelBorrow:'借款',
     labelSupplyApy:'供應 APY', labelBorrowApr:'借款 APR', labelCollateral:'抵押品',
     labelHealthFactor:'健康因子', labelHealthy:'✓ 健康', labelCaution:'⚠️ 注意',
     labelHighRisk:'⚠️ 高風險', labelMarketUtil:'市場利用率', labelLow:'低', labelAlert:'警報', labelEarnings:'收益',
@@ -3222,7 +3774,6 @@ const I18N = {
     // Alerts panel
     alertsPanelEmpty:'暫無警報記錄', alertsPanelEmptyDesc:'系統正在監控中，一旦觸發閾值將在此顯示',
     // Recommendations
-    recSameAssetTitle:'同資產類型推薦', recOtherTitle:'其他高潛力 Vault',
     recEmptyTitle:'暫無推薦數據', recEmptyDesc:'API 未返回可用 Vault 數據',
     recReasonSameAsset:'同資產類型', recReasonPureStable:'純U收益', recReasonStable:'穩定收益',
     recReasonRewards:'獎勵', recReasonLiq:'充足流動性', recReasonLowRisk:'低風險', recReasonVerified:'認證策展人',
@@ -3250,17 +3801,109 @@ const I18N = {
     // Unknown fallbacks
     unknownVault:'未知 Vault', unknownCurator:'未知策展人', unknownName:'未知', noCollateral:'無',
     // Monitor toasts
-    monitorStarted:'監控已啟動', monitorStopped:'⏹ 監控已停止', monitorError:'監控刷新失敗',
     copied:'✅ 已複製到剪貼板',
   },
   'en': {
-    appName:'Morpho Vault Monitor', appSub:'Mark Li · Live Portfolio · Risk Rating · Smart Recs',
-    tabPositions:'Positions', tabYield:'Return Rate', tabPnl:'P&L', tabAlerts:'Alerts', tabRecs:'Recommended',
+    appName:'Morpho Monitor',
+    tabPositions:'Positions', tabYield:'Return Rate', tabPnl:'P&L', 
     tabAlertsLog:'Alert Log', tabGovernance:'Governance',
-    themeAuto:'Auto', themeLight:'Light', themeDark:'Dark',
+    welcomeToast:'Welcome to Morpho Monitor',
+    thresholdLabel:'Thresholds', emptyPnl:'Fetch positions to see P&L',
+    toastProxySwitched:'🔄 Switched to proxy mode ({name})', toastProxyNoInput:'Proxy input not found',
+    toastProxyEmpty:'Enter a proxy URL first', toastProxyScheme:'Proxy URL must start with http:// or https://',
+    toastProxyAdded:'🔗 Custom proxy added — retrying…', toastRetrying:'🔄 Retrying…',
+    bgmTriggerResult:'{pos} positions, {alerts} alerts',
+    // CORS 排查页三语（原来整块只有简体）
+    corsCauseFile:'Opened from a local file (<code class="cors-code">file://</code>), the browser blocks cross-origin API requests (CORS). The automatic proxies could not connect either. Use one of the options below.',
+    corsCauseAll:'Every request path failed (our own Worker plus three CORS proxies). First check whether <a href="{url}" target="_blank" style="color:var(--blue)">the Worker health endpoint</a> returns <code class="cors-code">{"ok":true}</code>. If it does, the backend is fine and the problem is your local network (VPN, proxy, or DNS blocking <code class="cors-code">*.workers.dev</code>). If it does not load, the problem is the backend or your network egress. The options below are fallbacks.',
+    corsTitle:'🚫 Request blocked by the browser',
+    corsRecommended:'Recommended',
+    corsCopy:'Copy',
+    corsSol0Title:'🔄 Option 0: clear the PWA cache and add a cache-buster',
+    corsSol0Desc:'A PWA on the iPhone home screen caches HTML aggressively. Open a URL with a random query parameter in Safari to force a fresh copy:',
+    corsSol0Hint:'Still failing? Settings → Safari → Advanced → Website Data → search <code class="cors-code">{host}</code> → swipe to delete.<br>Then long-press the home-screen icon → Remove App → reopen in Safari → Share → Add to Home Screen.',
+    corsSol1Title:'🐍 Option 1: run a local server (one command)',
+    corsSol1Desc:'Open a terminal in the folder containing the HTML file and run:',
+    corsSol1After:'Then open in your browser:',
+    corsSol2Title:'📦 Option 2: quick Node.js server',
+    corsSol2Desc:'Requires Node.js. Then open the address the terminal prints.',
+    corsSol3Title:'🔧 Option 3: disable Chrome security (testing only)',
+    corsSol3Desc:'Quit Chrome completely, then relaunch it with:',
+    corsSol3Warn:'⚠️ This is unsafe. Use it for testing only, and do not sign in to any account in that browser.',
+    corsSol4Title:'🌐 Option 4: point at your own CORS proxy',
+    corsSol4Desc:'If you have a working CORS proxy, enter it below and retry:',
+    corsSol4Use:'Retry via proxy',
+    corsSol4Retry:'🔄 Retry directly',
+    liveTip:'On: read balances straight from chain via maxWithdraw(user). Off: use the Morpho API indexer snapshot.',
+    autoRefreshTip:'Only refreshes what this page shows. Telegram alerts come from “Background monitoring” below — unrelated to this button.',
+    btnClose:'Close', themeAria:'Theme',
+    // ↓ 以下键位是把 `isEn ? A : B` 二元判断改成三语时补的（繁体原本拿到简体）
+    netDirect:'Direct',
+    netProxy:'Proxy',
+    durSec:'{n}s',
+    durMin:'{n}m',
+    durHour:'{n}h',
+    durDay:'{n}d',
+    toastActivePos:'✅ {n} active positions (V1:{v1} V2:{v2} Markets:{mk})',
+    toastNoActivePos:'📋 No active positions · {n} historical records',
+    toastFetchFirst:'Please fetch position data first',
+    toastSummarySent:'📬 Portfolio summary sent to Telegram',
+    toastNetBlocked:'❌ Network request blocked — see solutions',
+    toastSnoozed:'Snoozed {h}h',
+    toastIgnored:'Alert permanently ignored',
+    errRenderApi:'Render / API error',
+    errRenderApiHint:'Data may have loaded correctly — this is likely a UI bug. Check the browser console for the stack trace.',
+    alertResolve:'→ Handle',
+    alertSnooze:'💤 24h',
+    alertIgnore:'🚫 Ignore',
+    pnlLoading:'Loading transaction history…',
+    pnlLoadFail:'Failed to load transactions',
+    pnlLoadingHint:'loading history…',
+    pnlTxDeposit:'Deposit',
+    pnlTxWithdraw:'Withdraw',
+    pnlNoTx:'No transactions in this period.',
+    pnlShowing:'Showing {from}–{to} of {total}',
+    pnlRangeAll:'All',
+    pnlRange30D:'30D',
+    pnlRange90D:'90D',
+    pnlRange180D:'180D',
+    pnlRange1Y:'1Y',
+    pnlRangeCustom:'Custom',
+    pnlPeriodLabel:'Period:',
+    pnlTo:'to',
+    pnlApply:'Apply',
+    pnlTxCount:'{n} transactions',
+    pnlRefresh:'Refresh',
+    pnlStartValue:'Start Value',
+    pnlStartValueSub:'Capital at period start',
+    pnlTotalDeposited:'Total Deposited',
+    pnlPeriodDeposits:'Period Deposits',
+    pnlDepositsN:'{n} deposits',
+    pnlTotalWithdrawn:'Total Withdrawn',
+    pnlWithdrawalsN:'{n} withdrawals',
+    pnlCurrentValue:'Current Value',
+    pnlCurrentValueSub:'Active positions',
+    pnlRealised:'Realised P&L',
+    pnlRealisedSub:'Profit locked in via withdrawals',
+    pnlAccrued:'Accrued Yield',
+    pnlAccruedSub:'Value − cost in vault',
+    pnlAccruedDesc:'Yield still inside the vault (not yet withdrawn): current position value minus your deposit cost. Becomes Realised P&L once withdrawn.',
+    pnlPeriodPnl:'Period P&L',
+    pnlTotalPnl:'Total P&L',
+    pnlColDate:'Date',
+    pnlColType:'Type',
+    pnlColVault:'Vault',
+    pnlColAmount:'Amount',
+    pnlColHash:'Tx Hash',
+    verMatch:'UI v{ui} · Worker v{worker} (in sync)',
+    verMismatch:'UI v{ui} was written against Worker v{expected}, but the live Worker is v{worker}. Redeploy the Worker to sync.',
+    verNoVersion:'Worker /api/health returned no version', verOffline:'Worker offline',
+    verUnreachable:'Worker unreachable: {err}',
+    themeAuto:'Follow system', themeLight:'Light', themeDark:'Dark',
+    themeTipAuto:'Following your system appearance (now {now})', themeTipLocked:'Locked manually — pick “Follow system” to hand it back',
     emptyGovTitle:'No governance proposals', emptyGovDesc:'After fetching positions, pending curator proposals across all your V2 vaults appear here, sorted by execution time',
     // Governance drawer (per-vault)
-    govTitle:'Governance', govPendingBadge:'pending',
+    govTitle:'Governance', 
     govRoles:'Roles',
     govCurator:'Curator', govCuratorDesc:'Decides which markets funds go into',
     govOwner:'Owner', govOwnerDesc:'Can replace the curator and sentinels',
@@ -3281,52 +3924,44 @@ const I18N = {
     govTabTimelineTitle:'Pending proposals across all your V2 vaults',
     govTabSummaryTitle:'V2 vaults in your portfolio',
     govTabAgoTpl:'{n}h ago · executable now', govTabInHoursTpl:'in {n}h', govTabInDaysTpl:'in {n}d',
-    tabBgm:'⏰ Background',
-    bgmStatusInactive:'Background monitor inactive', bgmStatusActive:'Background monitor running', bgmStatusStopped:'Background monitor stopped',
+    bgmStatusInactive:'Background monitor inactive', bgmStatusActive:'Background monitor running', 
     bgmDesc:'Background monitoring is powered by Cloudflare Worker, checking your Morpho positions every 5 minutes. It runs even when you close the browser, lock the screen, or turn off your phone. Alerts are pushed via Telegram.',
-    bgmWallet:'Wallet address', bgmWalletHint:'Enter address then click "Fetch Positions" above to sync',
-    bgmTitle:'⏰ Background Monitoring', bgmTgConfig:'Config', bgmThresholds:'🎯 Alert Thresholds',
-    bgmThLiq:'Liquidity (USD)', bgmThApy:'APY (%)', bgmThHf:'Health Factor',
+    bgmTitle:'⏰ Background Monitoring', 
+    bgmThHf:'Health Factor',
     bgmStart:'Start Background Monitor', bgmStop:'Stop Monitor', bgmTrigger:'Check Now',
     bgmNote:'ⓘ Your Telegram credentials are only sent to the Cloudflare Worker and stored in encrypted KV. No third parties involved. Each wallet is monitored independently.',
     bgmOkSubscribe:'✅ Background monitor started. Check Telegram for confirmation.', bgmOkUnsubscribe:'⏹ Background monitor stopped.',
     bgmOkTrigger:'🔍 Check complete', bgmErrWallet:'Please enter a valid wallet address', bgmErrTg:'Please fill in Telegram Bot Token and Chat ID',
     bgmLastCheck:'Last check',
     labelWallet:'Wallet Address', labelNetwork:'Network', placeholderWallet:'0x... Enter wallet address',
-    netAll:'All Networks', netEth:'🔷 Ethereum', netBase:'🔵 Base', netArb:'🔶 Arbitrum One', netMonad:'🟣 Monad',
-    btnFetch:'Fetch Positions', btnMonitorStart:'Start Monitor', btnMonitorStop:'Stop Monitor', btnConnect:'Connect Wallet',
+    netAll:'All Networks', 
+    btnFetch:'Fetch Positions', 
     btnAutoRefreshStart:'Auto-refresh', btnAutoRefreshStop:'Stop refresh',
-    statusAutoRefresh:'Auto-refreshing', autoRefreshStarted:'Auto-refresh on — alerts still come from the background monitor', autoRefreshStopped:'Auto-refresh stopped',
+    autoRefreshStarted:'Auto-refresh on — alerts still come from the background monitor', autoRefreshStopped:'Auto-refresh stopped',
     configToggleOpen:'Expand Settings (Telegram & Monitor)', configToggleClose:'Collapse Settings',
-    labelTgToken:'Telegram Bot Token', labelTgChat:'Telegram Chat ID',
+    labelTgChat:'Telegram Chat ID',
     labelInterval:'Refresh Interval', labelLiqTh:'Liquidity Alert (USD)', labelApyTh:'APY Alert (%)',
     statTotal:'Total Portfolio', statApy:'Weighted Avg APY', statLiq:'Total Liquidity', statAlerts:'Active Alerts',
-    statIncRewards:'incl. reward yield', statAcross:'across all positions', statNormal:'No issues',
-    statusInactive:'Idle', statusMonitoring:'Monitoring', statusStopped:'Stopped',
+    statIncRewards:'incl. reward yield', statNormal:'No issues',
     emptySearch:'Enter a wallet address to start',
     emptySearchDesc:'Supports Morpho Vault positions on Ethereum, Base, Arbitrum One & Monad',
     emptyAlerts:'No Alerts', emptyAlertsDesc:'Alerts appear here when liquidity or APY drop below your thresholds',
-    emptyRecs:'Fetch positions to see recommendations', emptyRecsDesc:'System recommends Vaults based on your assets, APY and risk tolerance',
     yieldTitle:'Return Rate Curve', yieldSubtitle:'USD-weighted avg of daily APY across all positions — true market fluctuations',
-    yieldEarnings:'Cumulative Return %', yieldCumEarnings:'Cum. Return %', yieldReturnRate:'Return %',
-    yieldPortfolioVal:'Portfolio Value', yieldCurrentVal:'Current Portfolio Value', yieldPrincipal:'Est. Principal (period start)',
-    yieldPeriodEarnings:'Period Return %', yieldWeightedApy:'Weighted Avg APY',
-    yieldV2RealPnl:'V2 Actual Return % (real data)', yieldPeriod:'Period', yieldDays:'days',
+    yieldWeightedApy:'Weighted Avg APY',
+    yieldPeriod:'Period', yieldDays:'days',
     yieldCurrentApy:'Current APY', yieldPeriodAvg:'Period Avg APY', yieldMaxApy:'Max APY', yieldMinApy:'Min APY', yieldPortfolio:'Portfolio', yieldVaultCount:'vault(s) · USD-weighted avg APY',
     yieldLoading:'Loading APY history…', yieldNoData:'No APY history available for this period.', yieldAnnualised:'Annualised net APY',
-    yieldApyBased:'Based on weighted', yieldTogglePortfolio:'Switch: Portfolio Value view', yieldToggleEarnings:'Switch: Return Rate view',
-    yieldInitialCapital:'Initial Capital', yieldInitialCapitalPlaceholder:'Enter initial investment (USD)', yieldRealEarnings:'Actual Return % (final − initial) / initial',
-    nextRefresh:'Next refresh', statusIdle:'Idle',
+    statusIdle:'Idle',
     // Risk levels
     riskMinimal:'Minimal Risk', riskLow:'Low Risk', riskModerate:'Moderate Risk', riskHigh:'High Risk', riskCritical:'Critical Risk',
     // Alert types
     alertLiqTitle:'Low Liquidity Alert', alertApyTitle:'Low APY Alert', alertRiskTitle:'High Risk Alert',
     // Metric labels
-    labelMyPosition:'My Position', labelAvgApy:'Avg', labelAvailLiq:'Available Liq.', labelTotalAssets:'Total Assets',
-    labelCumEarnings:'Cum. Earnings', labelPerfFee:'Perf. Fee', labelMgmtFee:'Mgmt Fee',
+    labelMyPosition:'My Position', labelAvgApy:'Avg', labelAvailLiq:'Available Liq.', 
+    labelPerfFee:'Perf. Fee', labelMgmtFee:'Mgmt Fee',
     labelRiskRating:'Risk Rating', labelRiskScore:'Risk Score', labelProtocolFee:'Protocol Fee',
     labelMarkets:'Markets', labelActiveAlloc:'Active Alloc.', labelMarketExposure:'Market Exposure',
-    labelUtil:'Util.', labelSupply:'Supply', labelBorrow:'Borrow',
+    labelSupply:'Supply', labelBorrow:'Borrow',
     labelSupplyApy:'Supply APY', labelBorrowApr:'Borrow APR', labelCollateral:'Collateral',
     labelHealthFactor:'Health Factor', labelHealthy:'✓ Healthy', labelCaution:'⚠️ Caution',
     labelHighRisk:'⚠️ High Risk', labelMarketUtil:'Market Util.', labelLow:'Low', labelAlert:'Alert', labelEarnings:'Earnings',
@@ -3345,7 +3980,6 @@ const I18N = {
     // Alerts panel
     alertsPanelEmpty:'No alerts yet', alertsPanelEmptyDesc:'Alerts appear here when thresholds are triggered',
     // Recommendations
-    recSameAssetTitle:'Same Asset Recommendations', recOtherTitle:'Other High-Potential Vaults',
     recEmptyTitle:'No recommendations yet', recEmptyDesc:'No Vault data returned from API',
     recReasonSameAsset:'Same asset', recReasonPureStable:'Pure stable', recReasonStable:'Stable yield',
     recReasonRewards:'Rewards', recReasonLiq:'High liquidity', recReasonLowRisk:'Low risk', recReasonVerified:'Verified curator',
@@ -3373,13 +4007,22 @@ const I18N = {
     // Unknown fallbacks
     unknownVault:'Unknown Vault', unknownCurator:'Unknown Curator', unknownName:'Unknown', noCollateral:'None',
     // Monitor toasts
-    monitorStarted:'Monitoring started', monitorStopped:'⏹ Monitoring stopped', monitorError:'Monitor refresh failed',
     copied:'✅ Copied to clipboard',
   }
 };
 
-function t(key) {
-  return (I18N[CURRENT_LANG] || I18N['zh-CN'])[key] ?? I18N['zh-CN'][key] ?? key;
+// 日期/数字的 locale 跟随当前语言。之前多处写死 'zh-CN'，
+// 繁体用户看到的是简体中国区格式。
+function dateLocale() {
+  return CURRENT_LANG === 'en' ? 'en-US' : CURRENT_LANG;
+}
+
+// vars 可选：文案里写 {name}，这里按 key 替换。没有它的时候，凡是需要
+// 拼变量的句子就只能在 JS 里用 + 号硬接，中英文语序不同就接不出来。
+function t(key, vars) {
+  let s = (I18N[CURRENT_LANG] || I18N['zh-CN'])[key] ?? I18N['zh-CN'][key] ?? key;
+  if (vars) s = String(s).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+  return s;
 }
 
 // F2 — HTML escape for any external string interpolated into innerHTML.
@@ -3393,52 +4036,65 @@ function escHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function switchLang(lang) {
-  CURRENT_LANG = lang;
-  localStorage.setItem('morpho_lang', lang);
-  document.documentElement.lang = lang;
-  // Update lang buttons
+// 标签页 id → i18n 键。这张表会用 textContent 覆盖按钮文字，所以一旦
+// 和标记里的 data-i18n 不同步，按钮上就会显示成键名本身。
+// `alerts` 用 tabAlertsLog（Sprint 3.7 改成了记录/历史的角色）；
+// `governance` 是 Sprint 4.1 新增；`recommendations` 在 Sprint 3.1 删掉了。
+const TAB_I18N = { positions:'tabPositions', yield:'tabYield', pnl:'tabPnl',
+                   alerts:'tabAlertsLog', governance:'tabGovernance' };
+const STAT_LABEL_I18N = { 'stat-label-total':'statTotal', 'stat-label-apy':'statApy',
+                          'stat-label-liq':'statLiq', 'stat-label-alerts':'statAlerts' };
+
+// 把当前语言刷到 DOM 上。
+// 以前这段逻辑在 switchLang() 和 initI18n() 里各写了一份，标签页那张表
+// 是两份独立的字面量 —— 改了一处忘另一处，按钮就显示键名。合成一份。
+function applyI18nToDom() {
+  document.documentElement.lang = CURRENT_LANG;
   document.querySelectorAll('.lang-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.lang === lang);
+    b.classList.toggle('active', b.dataset.lang === CURRENT_LANG);
   });
-  // Re-apply all data-i18n elements
   document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
+    const key  = el.dataset.i18n;
     const attr = el.dataset.i18nAttr;
     if (attr) el.setAttribute(attr, t(key));
     else el.textContent = t(key);
   });
-  // Update monitor button text
+  // 网络下拉是自绘的，不是原生 select，得单独刷一遍
+  const netMenu = document.getElementById('net-dropdown-menu');
+  if (netMenu) {
+    netMenu.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+    const sel = document.getElementById('network-select');
+    if (sel && sel.value === 'all') {
+      const lbl = document.getElementById('net-dropdown-label');
+      if (lbl) lbl.textContent = t('netAll');
+    }
+  }
   const monBtnText = document.getElementById('monitor-btn-text');
   if (monBtnText) {
     monBtnText.textContent = APP.isMonitoring ? t('btnAutoRefreshStop') : t('btnAutoRefreshStart');
   }
-  // Header status follows the background monitor (APP.bgmActive), not the
-  // in-page refresh timer.
+  // 顶栏状态跟的是后台监控（APP.bgmActive），不是页内刷新定时器
   const stText = document.getElementById('status-text');
   if (stText) stText.textContent = t(APP.bgmActive ? 'bgmStatusActive' : 'bgmStatusInactive');
-  // Update tab labels
-  // Keep in sync with the tab buttons in markup. `alerts` uses tabAlertsLog
-  // (Sprint 3.7 renamed it to a log/history role) and `governance` was added
-  // in Sprint 4.1; `recommendations` was removed in Sprint 3.1. This map
-  // overwrites tab textContent, so a stale entry here silently defeats the
-  // data-i18n attribute on the button's inner span.
-  const tabs = { positions:'tabPositions', yield:'tabYield', pnl:'tabPnl', alerts:'tabAlertsLog', governance:'tabGovernance' };
-  Object.entries(tabs).forEach(([id, key]) => {
+  Object.entries(TAB_I18N).forEach(([id, key]) => {
     const el = document.getElementById(`tab-${id}`);
-    if (el) {
-      // preserve badge HTML inside alerts tab
-      const badge = el.querySelector('.tab-badge');
-      el.textContent = t(key);
-      if (badge) el.appendChild(badge);
-    }
+    if (!el) return;
+    const badge = el.querySelector('.tab-badge');   // 警报页的角标要留住
+    el.textContent = t(key);
+    if (badge) el.appendChild(badge);
   });
-  // Update stats labels
-  const statsMap = { 'stat-label-total':'statTotal','stat-label-apy':'statApy','stat-label-liq':'statLiq','stat-label-alerts':'statAlerts' };
-  Object.entries(statsMap).forEach(([id, key]) => {
+  Object.entries(STAT_LABEL_I18N).forEach(([id, key]) => {
     const el = document.getElementById(id);
     if (el) el.textContent = t(key);
   });
+  // 主题按钮的 title 也是文案，跟着语言走
+  if (typeof applyTheme === 'function') applyTheme(currentThemeMode());
+}
+
+function switchLang(lang) {
+  CURRENT_LANG = lang;
+  localStorage.setItem('morpho_lang', lang);
+  applyI18nToDom();
   // Re-render positions & stats (so t() calls inside render functions update)
   if (APP.lastFetch) {
     renderStats(APP.positions, APP.marketPositions, APP.v2Positions);
@@ -3453,6 +4109,12 @@ function switchLang(lang) {
     }
     const yieldTab = document.getElementById('tab-content-yield');
     if (yieldTab?.classList.contains('active')) renderYieldChart();
+    // P&L 和治理这两页的文字全在 render 函数里，不带 data-i18n，
+    // 所以必须显式重渲 —— 否则在这两页切语言，内容一动不动。
+    if (document.getElementById('tab-content-pnl')?.classList.contains('active')
+        && typeof renderPnlContent === 'function') renderPnlContent();
+    if (document.getElementById('tab-content-governance')?.classList.contains('active')
+        && typeof renderGovernanceTab === 'function') renderGovernanceTab();
   }
 }
 
@@ -3875,11 +4537,11 @@ function updateConnectStatus(mode) {
   const el = document.getElementById('connect-mode');
   if (!el) return;
   if (mode === 'direct') {
-    el.innerHTML = `<span style="color:var(--green)">⚡ ${CURRENT_LANG === 'en' ? 'Direct' : '直连模式'}</span>`;
+    el.innerHTML = `<span style="color:var(--green)">⚡ ${t('netDirect')}</span>`;
   } else if (mode.startsWith('proxy')) {
     const idx = parseInt(mode.replace('proxy', ''));
     const names = ['corsproxy.io', 'proxy.cors.sh', 'crossorigin.me'];
-    el.innerHTML = `<span style="color:var(--yellow)">🔄 ${CURRENT_LANG === 'en' ? 'Proxy' : '代理模式'} (${names[idx] || 'proxy'})</span>`;
+    el.innerHTML = `<span style="color:var(--yellow)">🔄 ${t('netProxy')} (${names[idx] || 'proxy'})</span>`;
   } else {
     el.innerHTML = `<span style="color:var(--text-3)">${t('tgConnecting')}</span>`;
   }
@@ -3916,7 +4578,7 @@ async function gql(query, variables = {}) {
     try {
       const data = await _doFetch(`proxy${i}`, body, headers);
       setProxyMode(`proxy${i}`);
-      showToast('info', `🔄 已切换代理模式 (${['corsproxy.io','proxy.cors.sh','crossorigin.me'][i]})`);
+      showToast('info', t('toastProxySwitched', { name: ['corsproxy.io','proxy.cors.sh','crossorigin.me'][i] }));
       return data;
     } catch (pErr) {
       console.warn(`Proxy ${i} failed:`, pErr.message);
@@ -4142,7 +4804,9 @@ function _liveBtnState(loading) {
   if (!btn) return;
   btn.classList.toggle('live-on', !!APP.liveMode);
   btn.classList.toggle('live-loading', !!loading);
-  btn.textContent = APP.liveMode ? (loading ? '⏳ LIVE…' : '🔴 LIVE') : 'LIVE: OFF';
+  // 只改文字节点，别用 textContent —— 那会把前面那颗状态点一起抹掉
+  const lbl = btn.lastChild;
+  if (lbl && lbl.nodeType === 3) lbl.nodeValue = loading ? 'LIVE…' : 'LIVE';
 }
 
 function setLiveMode(on, refetch = true) {
@@ -4313,12 +4977,11 @@ function morphoMarketUrl(marketId, chainId, networkName) {
 function _govShortAddr(a) { return a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '—'; }
 function _govFmtDur(seconds) {
   const s = Number(seconds) || 0;
-  const en = CURRENT_LANG === 'en';
   const trim = n => (n % 1 === 0 ? String(n) : n.toFixed(1));  // 3 天, not 3.0 天
-  if (s < 60)    return en ? `${s}s`                  : `${s} 秒`;
-  if (s < 3600)  return en ? `${Math.round(s/60)}m`   : `${Math.round(s / 60)} 分钟`;
-  if (s < 86400) return en ? `${trim(s/3600)}h`       : `${trim(s / 3600)} 小时`;
-  return           en ? `${trim(s/86400)}d`           : `${trim(s / 86400)} 天`;
+  if (s < 60)    return t('durSec',  { n: s });
+  if (s < 3600)  return t('durMin',  { n: Math.round(s / 60) });
+  if (s < 86400) return t('durHour', { n: trim(s / 3600) });
+  return           t('durDay',  { n: trim(s / 86400) });
 }
 // Contract function name → plain-language description of what the change
 // actually means for a depositor. The raw Solidity names (setIsAllocator,
@@ -4522,7 +5185,7 @@ function buildV2GovModal(vault, pendingConfigs, nowMs) {
   const timelocks    = (vault.timelocks  || []).filter(t => !t.abdicatedAt);
   const listingHist  = vault.listingHistory || [];
   const latestListing = listingHist.slice().sort((a, b) => Number(b.timestamp) - Number(a.timestamp))[0];
-  const locale = CURRENT_LANG === 'en' ? 'en-US' : CURRENT_LANG;
+  const locale = dateLocale();
   const vaultName = vault.name || vault.symbol || 'V2 Vault';
 
   const curatorChips = curatorsList.length > 0
@@ -4585,7 +5248,7 @@ function buildV2GovModal(vault, pendingConfigs, nowMs) {
           <span>${t('govTitle')}</span>
           <small>${escHtml(vaultName)}</small>
         </div>
-        <button type="button" class="gov-modal-close" onclick="closeGovModal(event)" aria-label="close">✕</button>
+        <button type="button" class="gov-modal-close" onclick="closeGovModal(event)" data-i18n="btnClose" data-i18n-attr="aria-label" aria-label="关闭">✕</button>
       </div>
       <div class="gov-modal-body">
 
@@ -4700,11 +5363,11 @@ function calcRiskScore(vault) {
 }
 
 function getRiskLevel(score) {
-  if (score <= 20) return { label: t('riskMinimal'), grade: 'A+', stars: 5, color: '#10b981', class: 'badge-green', starClass: '' };
-  if (score <= 38) return { label: t('riskLow'),     grade: 'A',  stars: 4, color: '#22c55e', class: 'badge-green', starClass: '' };
-  if (score <= 55) return { label: t('riskModerate'),grade: 'B',  stars: 3, color: '#f59e0b', class: 'badge-yellow', starClass: 'med' };
-  if (score <= 72) return { label: t('riskHigh'),    grade: 'C',  stars: 2, color: '#f97316', class: 'badge-orange', starClass: 'high' };
-  return                 { label: t('riskCritical'), grade: 'D',  stars: 1, color: '#ef4444', class: 'badge-red', starClass: 'crit' };
+  if (score <= 20) return { label: t('riskMinimal'), grade: 'A+', stars: 5, color: 'var(--green)', class: 'badge-green', starClass: '' };
+  if (score <= 38) return { label: t('riskLow'),     grade: 'A',  stars: 4, color: 'var(--green)', class: 'badge-green', starClass: '' };
+  if (score <= 55) return { label: t('riskModerate'),grade: 'B',  stars: 3, color: 'var(--yellow)', class: 'badge-yellow', starClass: 'med' };
+  if (score <= 72) return { label: t('riskHigh'),    grade: 'C',  stars: 2, color: 'var(--orange)', class: 'badge-orange', starClass: 'high' };
+  return                 { label: t('riskCritical'), grade: 'D',  stars: 1, color: 'var(--red)', class: 'badge-red', starClass: 'crit' };
 }
 
 // Risk score for V2 vaults (no allocation data, use warnings + liquidity + concentration)
@@ -4874,7 +5537,7 @@ function showDonutTooltip(evt, dataId) {
     const body = document.getElementById('donut-tooltip-body');
     let html = '';
     data.items.forEach(function(it) {
-      const utilColor = it.util > 95 ? '#ef4444' : it.util > 90 ? '#f97316' : it.util > 85 ? '#f59e0b' : '#10b981';
+      const utilColor = it.util > 95 ? 'var(--red)' : it.util > 90 ? 'var(--orange)' : it.util > 85 ? 'var(--yellow)' : 'var(--green)';
       const subHtml = it.sub
         ? '<span class="dt-sub"><span>' + it.sub + '</span>' +
           (it.util !== undefined ? '<span class="dt-util" style="background:' + utilColor + '22;color:' + utilColor + '">' + it.util + '%</span>' : '') +
@@ -5027,7 +5690,7 @@ async function testTelegram() {
   el.textContent = t('tgSending');
   el.style.color = 'var(--text-3)';
   try {
-    await sendTelegramMsg(`🔷 <b>Morpho Vault Monitor Test</b>\n\n✅ Telegram connected!\n\nWallet: <code>${document.getElementById('wallet-input').value || 'not set'}</code>\nTime: ${new Date().toLocaleString()}`);
+    await sendTelegramMsg(`🔷 <b>Morpho Monitor Test</b>\n\n✅ Telegram connected!\n\nWallet: <code>${document.getElementById('wallet-input').value || 'not set'}</code>\nTime: ${new Date().toLocaleString()}`);
     el.textContent = t('tgTestOk');
     el.style.color = 'var(--green)';
     showToast('success', t('tgConnOk'));
@@ -5046,7 +5709,7 @@ async function testTelegram() {
 async function sendManualAlert() {
   const hasPositions = APP.positions.length > 0 || APP.marketPositions.length > 0 || APP.v2Positions.length > 0;
   if (!hasPositions) {
-    showToast('error', CURRENT_LANG === 'en' ? '❌ Please fetch position data first' : '请先查询持仓数据');
+    showToast('error', t('toastFetchFirst'));
     return;
   }
   try {
@@ -5134,7 +5797,7 @@ async function sendManualAlert() {
     msg += `🔗 <a href="https://app.morpho.org/dashboard/${wallet}">前往 Morpho 查看</a>`;
 
     await sendTelegramMsg(msg);
-    showToast('success', CURRENT_LANG === 'en' ? '📬 Portfolio summary sent to Telegram' : '📬 摘要已发送到 Telegram');
+    showToast('success', t('toastSummarySent'));
   } catch (e) {
     showToast('error', '❌ ' + e.message);
   }
@@ -5248,12 +5911,9 @@ async function fetchPositions() {
     }
 
     const msg = activeCount > 0
-      ? (CURRENT_LANG === 'en'
-          ? `✅ ${activeCount} active positions (V1:${positions.length} V2:${v2Positions.length} Markets:${marketPositions.length})`
-          : `✅ ${activeCount} 个活跃持仓（V1:${positions.length} V2:${v2Positions.length} 市场:${marketPositions.length}）`)
-      : (CURRENT_LANG === 'en'
-          ? `📋 No active positions · ${historyCount} historical records`
-          : `📋 无活跃持仓，显示 ${historyCount} 条历史记录`);
+      ? t('toastActivePos', { n: activeCount, v1: positions.length,
+                              v2: v2Positions.length, mk: marketPositions.length })
+      : t('toastNoActivePos', { n: historyCount });
     showToast('success', msg);
   } catch (err) {
     console.error(err);
@@ -5271,103 +5931,83 @@ async function fetchPositions() {
     } else {
       document.getElementById('positions-container').innerHTML = `
         <div style="padding:24px">
-          <div class="error-box">⚠️ ${CURRENT_LANG === 'en' ? 'Render / API error' : '渲染或 API 错误'}：${escHtml(err.message)}</div>
+          <div class="error-box">⚠️ ${t('errRenderApi')}：${escHtml(err.message)}</div>
           <div style="margin-top:10px;font-size:12px;color:var(--text-3)">
-            ${CURRENT_LANG === 'en'
-              ? 'Data may have loaded correctly — this is likely a UI bug. Check the browser console for the stack trace.'
-              : '数据可能已正常加载，这更像是界面渲染 bug。打开浏览器控制台可看到完整堆栈。'}
+            ${t('errRenderApiHint')}
           </div>
         </div>`;
     }
-    showToast('error', isCors ? (CURRENT_LANG === 'en' ? '❌ Network request blocked — see solutions' : '❌ 网络请求被阻止，请查看解决方案') : '❌ ' + err.message);
+    showToast('error', isCors ? t('toastNetBlocked') : '❌ ' + err.message);
   }
 }
 
 function renderCorsGuide() {
   // Detect load context — file:// origin only appears when opened as a local file
   const isFile = location.protocol === 'file:';
+  const here   = location.origin + location.pathname;
+  const host   = location.hostname || 'localhost';
+  const cb     = Date.now();
   const causeCopy = isFile
-    ? '从本地文件（<code style="background:var(--bg-2);padding:1px 5px;border-radius:4px">file://</code>）打开时，浏览器会阻止跨域 API 请求（CORS 限制）。自动代理也未能连通，请使用以下任一方案解决：'
-    : '所有请求路径（自家 Worker + 三个 CORS 代理）都失败了。先确认 <a href="https://morpho-monitor.markli-mcgrp.workers.dev/api/health" target="_blank" style="color:var(--blue)">Worker 健康检查</a> 是否返回 <code style="background:var(--bg-2);padding:1px 4px">{"ok":true}</code>：能返回说明后端正常，问题在本机网络（VPN／代理／DNS 拦截 <code style="background:var(--bg-2);padding:1px 4px">*.workers.dev</code>）；打不开则是后端或网络出口的问题。下面几个方案可作备选。';
+    ? t('corsCauseFile')
+    : t('corsCauseAll', { url: WORKER_BASE + '/api/health' });
+  const card = (inner) => `<div class="cors-card">${inner}</div>`;
+  const cmd  = (text, cls) => `
+    <div class="cors-cmd ${cls || ''}">
+      <span>${escHtml(text)}</span>
+      <button onclick="copyCmd(${JSON.stringify(text).replace(/"/g, '&quot;')})" class="cors-copy">${t('corsCopy')}</button>
+    </div>`;
   return `
-  <div style="padding:24px;max-width:780px">
-    <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:14px;padding:20px 22px;margin-bottom:20px">
-      <div style="font-size:15px;font-weight:400;color:var(--red);margin-bottom:8px">🚫 网络请求被浏览器阻止</div>
-      <div style="font-size:13px;color:var(--text-2);line-height:1.7">${causeCopy}</div>
+  <div class="cors-guide">
+    <div class="cors-alert">
+      <div class="cors-alert__title">${t('corsTitle')}</div>
+      <div class="cors-alert__body">${causeCopy}</div>
     </div>
 
-    ${isFile ? '' : `
-    <!-- Solution 0: cache-buster (only shown when not file://) -->
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span style="background:var(--blue);color:white;font-size:11px;font-weight:400;padding:2px 7px;border-radius:5px">推荐</span>
-        <span style="font-size:14px;font-weight:400;color:var(--text-1)">🔄 方案 0：清 PWA 缓存 + cache-bust</span>
+    ${isFile ? '' : card(`
+      <div class="cors-card__head">
+        <span class="cors-badge cors-badge--brand">${t('corsRecommended')}</span>
+        <span class="cors-card__title">${t('corsSol0Title')}</span>
       </div>
-      <div style="font-size:12px;color:var(--text-3);margin-bottom:10px;line-height:1.6">
-        iPhone 主屏 PWA 会激进缓存 HTML。在 Safari 打开一个带随机参数的 URL 强制拿新版：
-      </div>
-      <div style="background:var(--bg-0);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px">
-        <a href="${escHtml(location.origin + location.pathname)}?cb=${Date.now()}" target="_top" style="color:var(--blue);font-size:13px;word-break:break-all">${escHtml(location.origin + location.pathname)}?cb=${Date.now()}</a>
-      </div>
-      <div style="font-size:11px;color:var(--text-3);line-height:1.5">
-        若还是失败：Settings → Safari → 高级 → 网站数据 → 搜 <code style="background:var(--bg-2);padding:0 4px">mark300351-rgb</code> → 滑动删除。<br>
-        然后长按主屏图标 → 移除 App → Safari 重开 → 分享 → 添加到主屏幕。
-      </div>
-    </div>
-    `}
+      <div class="cors-card__desc">${t('corsSol0Desc')}</div>
+      <div class="cors-link"><a href="${escHtml(here)}?cb=${cb}" target="_top">${escHtml(here)}?cb=${cb}</a></div>
+      <div class="cors-card__fine">${t('corsSol0Hint', { host: escHtml(host) })}</div>
+    `)}
 
-    <!-- Solution 1: Python server -->
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span style="background:var(--green);color:white;font-size:11px;font-weight:400;padding:2px 7px;border-radius:5px">推荐</span>
-        <span style="font-size:14px;font-weight:400;color:var(--text-1)">🐍 方案 1：启动本地服务器（1条命令）</span>
+    ${card(`
+      <div class="cors-card__head">
+        <span class="cors-badge cors-badge--ok">${t('corsRecommended')}</span>
+        <span class="cors-card__title">${t('corsSol1Title')}</span>
       </div>
-      <div style="font-size:12px;color:var(--text-3);margin-bottom:10px">在 HTML 文件所在目录打开终端，运行：</div>
-      <div style="background:var(--bg-0);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:monospace;font-size:13px;color:#10b981;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
-        <span>python3 -m http.server 8080</span>
-        <button onclick="copyCmd('python3 -m http.server 8080')" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text-2);cursor:pointer;font-size:11px">复制</button>
+      <div class="cors-card__desc">${t('corsSol1Desc')}</div>
+      ${cmd('python3 -m http.server 8080')}
+      <div class="cors-card__desc">${t('corsSol1After')}
+        <a href="http://localhost:8080/index.html" target="_blank">http://localhost:8080/index.html</a>
       </div>
-      <div style="font-size:12px;color:var(--text-3)">然后浏览器访问：
-        <a href="http://localhost:8080/morpho-vault-monitor.html" target="_blank" style="color:var(--blue)">http://localhost:8080/morpho-vault-monitor.html</a>
-      </div>
-    </div>
+    `)}
 
-    <!-- Solution 2: Node server -->
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px">
-      <div style="font-size:14px;font-weight:400;color:var(--text-1);margin-bottom:12px">📦 方案 2：Node.js 快速服务器</div>
-      <div style="background:var(--bg-0);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:monospace;font-size:13px;color:#10b981;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
-        <span>npx serve .</span>
-        <button onclick="copyCmd('npx serve .')" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text-2);cursor:pointer;font-size:11px">复制</button>
-      </div>
-      <div style="font-size:12px;color:var(--text-3)">需已安装 Node.js。然后访问终端提示的地址。</div>
-    </div>
+    ${card(`
+      <div class="cors-card__title">${t('corsSol2Title')}</div>
+      ${cmd('npx serve .')}
+      <div class="cors-card__desc">${t('corsSol2Desc')}</div>
+    `)}
 
-    <!-- Solution 3: Chrome flag -->
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px">
-      <div style="font-size:14px;font-weight:400;color:var(--text-1);margin-bottom:12px">🔧 方案 3：Chrome 关闭安全限制（仅测试用）</div>
-      <div style="font-size:12px;color:var(--text-3);margin-bottom:10px">完全关闭 Chrome，再用以下命令重启：</div>
-      <div style="background:var(--bg-0);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:monospace;font-size:11px;color:#f59e0b;margin-bottom:6px;word-break:break-all;display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-        <span style="flex:1">Mac: open -a "Google Chrome" --args --disable-web-security --user-data-dir="/tmp/chrome-dev"</span>
-        <button onclick="copyCmd('open -a \\'Google Chrome\\' --args --disable-web-security --user-data-dir=\\'/tmp/chrome-dev\\'')" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text-2);cursor:pointer;font-size:11px;flex-shrink:0">复制</button>
-      </div>
-      <div style="background:var(--bg-0);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:monospace;font-size:11px;color:#f59e0b;word-break:break-all;display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-        <span style="flex:1">Win: chrome.exe --disable-web-security --user-data-dir="C:\\chrome-dev"</span>
-        <button onclick="copyCmd('chrome.exe --disable-web-security --user-data-dir=\\'C:\\\\\\\\chrome-dev\\'')" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--text-2);cursor:pointer;font-size:11px;flex-shrink:0">复制</button>
-      </div>
-      <div style="font-size:11px;color:var(--red);margin-top:8px">⚠️ 此方式有安全风险，请仅用于测试，不要在此浏览器中登录任何账户</div>
-    </div>
+    ${card(`
+      <div class="cors-card__title">${t('corsSol3Title')}</div>
+      <div class="cors-card__desc">${t('corsSol3Desc')}</div>
+      ${cmd('open -a "Google Chrome" --args --disable-web-security --user-data-dir="/tmp/chrome-dev"', 'is-warn')}
+      ${cmd('chrome.exe --disable-web-security --user-data-dir="C:\\chrome-dev"', 'is-warn')}
+      <div class="cors-card__warn">${t('corsSol3Warn')}</div>
+    `)}
 
-    <!-- Solution 4: Custom proxy -->
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px">
-      <div style="font-size:14px;font-weight:400;color:var(--text-1);margin-bottom:12px">🌐 方案 4：手动指定 CORS 代理</div>
-      <div style="font-size:12px;color:var(--text-3);margin-bottom:10px">如果你有可用的 CORS 代理，在下方填入后点击重试：</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <input id="custom-proxy-url" type="text" placeholder="https://your-proxy.com/{URL}"
-          style="flex:1;min-width:240px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-1);font-size:12px;font-family:monospace;outline:none" />
-        <button onclick="useCustomProxy()" class="btn btn-secondary" style="font-size:12px">使用代理重试</button>
-        <button onclick="retryFetch()" class="btn btn-primary" style="font-size:12px">🔄 直接重试</button>
+    ${card(`
+      <div class="cors-card__title">${t('corsSol4Title')}</div>
+      <div class="cors-card__desc">${t('corsSol4Desc')}</div>
+      <div class="cors-actions">
+        <input id="custom-proxy-url" type="text" placeholder="https://your-proxy.com/{URL}" class="cors-input" />
+        <button onclick="useCustomProxy()" class="btn btn-secondary" style="font-size:12px">${t('corsSol4Use')}</button>
+        <button onclick="retryFetch()" class="btn btn-primary" style="font-size:12px">${t('corsSol4Retry')}</button>
       </div>
-    </div>
+    `)}
   </div>`;
 }
 
@@ -5414,10 +6054,10 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
         const supplyApy = (market?.state?.supplyApy || 0) * 100;
         const borrowApy = (market?.state?.borrowApy || 0) * 100;
         const util = ((market?.state?.utilization || 0) * 100).toFixed(1);
-        const utilColor = parseFloat(util) > 95 ? '#ef4444' : parseFloat(util) > 90 ? '#f97316' : parseFloat(util) > 85 ? '#f59e0b' : '#10b981';
+        const utilColor = parseFloat(util) > 95 ? 'var(--red)' : parseFloat(util) > 90 ? 'var(--orange)' : parseFloat(util) > 85 ? 'var(--yellow)' : 'var(--green)';
         const lltv = market?.lltv ? (parseFloat(market.lltv) > 1 ? (parseFloat(market.lltv)/1e18*100).toFixed(0) : (parseFloat(market.lltv)*100).toFixed(0)) : '?';
         const hf = mp.healthFactor ? parseFloat(mp.healthFactor).toFixed(3) : null;
-        const hfColor = hf ? (parseFloat(hf) < 1.05 ? '#ef4444' : parseFloat(hf) < 1.2 ? '#f97316' : '#10b981') : 'var(--text-3)';
+        const hfColor = hf ? (parseFloat(hf) < 1.05 ? 'var(--red)' : parseFloat(hf) < 1.2 ? 'var(--orange)' : 'var(--green)') : 'var(--text-3)';
         const warnings = market?.warnings || [];
         return `<div class="vault-card" id="market-${(market?.marketId || '').toLowerCase()}">
           <div class="vault-card-header">
@@ -5429,7 +6069,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
                   <span class="badge badge-gray">${loan}</span>
                   <span class="badge badge-blue">${networkLabel(network)}</span>
                   <span class="badge badge-gray">LLTV ${lltv}%</span>
-                  ${warnings.some(w=>w.level==='RED') ? `<span class="badge badge-red">${t('labelHighRisk')}</span>` : warnings.some(w=>w.level==='YELLOW') ? `<span class="badge" style="background:#f59e0b22;color:#f59e0b">${t('labelCaution')}</span>` : ''}
+                  ${warnings.some(w=>w.level==='RED') ? `<span class="badge badge-red">${t('labelHighRisk')}</span>` : warnings.some(w=>w.level==='YELLOW') ? `<span class="badge" style="background:var(--yellow-glow, oklch(var(--L-solid) .15 var(--h-warning)/.13));color:var(--yellow)">${t('labelCaution')}</span>` : ''}
                 </div>
               </div>
             </div>
@@ -5455,7 +6095,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
       <div style="font-size:13px;font-weight:400;color:var(--text-2);margin-bottom:10px;padding:0 2px;display:flex;align-items:center;gap:8px">
         ${t('sectionV2')}
         <span style="font-size:11px;font-weight:400;color:var(--text-3)">${v2Positions.length}</span>
-        <span style="font-size:10px;padding:2px 6px;background:#8b5cf622;color:#8b5cf6;border-radius:4px;font-weight:400">V2</span>
+        <span style="font-size:10px;padding:2px 6px;background:oklch(var(--L-solid) .12 var(--h-accent)/.13);color:var(--purple);border-radius:4px;font-weight:400">V2</span>
       </div>
       ${v2Positions.map((pos, idx) => {
         const vault = pos.vault;
@@ -5479,7 +6119,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
         const hasAlert = hasLiqAlert || hasApyAlert || warnings.some(w=>w.level==='RED');
         const bgColor = assetColor(assetSymbol, idx);
         const imgSrc = vault.metadata?.image;
-        const pnlColor = pnlUsd >= 0 ? '#10b981' : '#ef4444';
+        const pnlColor = pnlUsd >= 0 ? 'var(--green)' : 'var(--red)';
         const pnlSign = pnlUsd >= 0 ? '+' : '';
 
         // V2 allocation / market exposure — sorted by position size desc, zero excluded, <100K hidden
@@ -5525,7 +6165,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
           const loanAsset = a.market?.loanAsset?.symbol || '?';
           const lltv = a.market?.lltv ? (parseFloat(a.market.lltv) > 1 ? (parseFloat(a.market.lltv) / 1e18 * 100).toFixed(0) : (parseFloat(a.market.lltv) * 100).toFixed(0)) : '?';
           const util = ((a.market?.state?.utilization || 0) * 100).toFixed(1);
-          const utilColor = parseFloat(util) > 95 ? '#ef4444' : parseFloat(util) > 90 ? '#f97316' : parseFloat(util) > 85 ? '#f59e0b' : '#10b981';
+          const utilColor = parseFloat(util) > 95 ? 'var(--red)' : parseFloat(util) > 90 ? 'var(--orange)' : parseFloat(util) > 85 ? 'var(--yellow)' : 'var(--green)';
           return buildAllocRow(ALLOC_COLORS[i % ALLOC_COLORS.length], collateral, usd, pct, `${loanAsset} LLTV:${lltv}%`, loanAsset, lltv, util, utilColor);
         }).join('') + (v2IdleUsd > 0 && v2AllocsDisplay.length < 3 ? `<div class="alloc-item">
             <div class="alloc-dot" style="background:#94a3b8"></div>
@@ -5549,7 +6189,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
           ? (() => {
               const untilH = Math.round((earliestPendingV2.validAtMs - nowMsV2) / 3600_000);
               const label  = untilH < 0 ? `T+${-untilH}h` : untilH < 24 ? `T-${untilH}h` : `T-${Math.round(untilH / 24)}d`;
-              const color  = untilH < 24 ? '#ef4444' : untilH < 72 ? '#f97316' : '#f59e0b';
+              const color  = untilH < 24 ? 'var(--red)' : untilH < 72 ? 'var(--orange)' : 'var(--yellow)';
               return `<span class="badge" style="background:${color}22;color:${color}" title="${escHtml(earliestPendingV2.pc.functionName)} 生效倒计时">⏳ ${label}</span>`;
             })()
           : '';
@@ -5563,12 +6203,12 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
               </div>
               <div>
                 <div class="vault-name">${escHtml(name)}
-                  <span style="font-size:10px;padding:1px 5px;background:#8b5cf622;color:#8b5cf6;border-radius:3px;margin-left:4px;font-weight:400">V2</span>
+                  <span style="font-size:10px;padding:1px 5px;background:oklch(var(--L-solid) .12 var(--h-accent)/.13);color:var(--purple);border-radius:3px;margin-left:4px;font-weight:400">V2</span>
                 </div>
                 <div class="vault-meta">
                   <span class="badge badge-gray">${assetSymbol}</span>
                   <span class="badge badge-blue">${networkLabel(network)}</span>
-                  ${warnings.some(w=>w.level==='RED') ? `<span class="badge badge-red">${t('labelHighRisk')}</span>` : warnings.some(w=>w.level==='YELLOW') ? `<span class="badge" style="background:#f59e0b22;color:#f59e0b">${t('labelCaution')}</span>` : ''}
+                  ${warnings.some(w=>w.level==='RED') ? `<span class="badge badge-red">${t('labelHighRisk')}</span>` : warnings.some(w=>w.level==='YELLOW') ? `<span class="badge" style="background:var(--yellow-glow, oklch(var(--L-solid) .15 var(--h-warning)/.13));color:var(--yellow)">${t('labelCaution')}</span>` : ''}
                   ${hasAlert ? `<span class="badge badge-red">⚠️ ${t('labelAlert')}</span>` : ''}
                   ${pendingChipHTML}
                 </div>
@@ -5652,7 +6292,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
     const fee = (vault.state?.fee || 0) * 100;
     const pnlUsd = pos.state?.pnlUsd || 0;
     const roe = (pos.state?.roe || 0) * 100;
-    const pnlColor = pnlUsd >= 0 ? '#10b981' : '#ef4444';
+    const pnlColor = pnlUsd >= 0 ? 'var(--green)' : 'var(--red)';
     const pnlSign = pnlUsd >= 0 ? '+' : '';
     const curatorAddr = vault.state?.curator || '';
     const curatorName = getCuratorName(curatorAddr);
@@ -5705,7 +6345,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
       const loanAsset = a.market?.loanAsset?.symbol || '?';
       const lltv = a.market?.lltv ? (parseFloat(a.market.lltv) > 1 ? (parseFloat(a.market.lltv) / 1e18 * 100).toFixed(0) : (parseFloat(a.market.lltv) * 100).toFixed(0)) : '?';
       const util = ((a.market?.state?.utilization || 0) * 100).toFixed(1);
-      const utilColor = parseFloat(util) > 95 ? '#ef4444' : parseFloat(util) > 90 ? '#f97316' : parseFloat(util) > 85 ? '#f59e0b' : '#10b981';
+      const utilColor = parseFloat(util) > 95 ? 'var(--red)' : parseFloat(util) > 90 ? 'var(--orange)' : parseFloat(util) > 85 ? 'var(--yellow)' : 'var(--green)';
       return `<div class="alloc-item">
         <div class="alloc-dot" style="background:${ALLOC_COLORS[i % ALLOC_COLORS.length]}"></div>
         <span class="alloc-name">${collateral}</span>
@@ -5741,7 +6381,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
             <div class="vault-meta">
               <span class="badge badge-gray">${escHtml(assetSymbol)}</span>
               <span class="badge badge-blue">${networkLabel(network)}</span>
-              ${warnings.some(w=>w.level==='RED') ? `<span class="badge badge-red">${t('labelHighRisk')}</span>` : warnings.some(w=>w.level==='YELLOW') ? `<span class="badge" style="background:#f59e0b22;color:#f59e0b">${t('labelCaution')}</span>` : ''}
+              ${warnings.some(w=>w.level==='RED') ? `<span class="badge badge-red">${t('labelHighRisk')}</span>` : warnings.some(w=>w.level==='YELLOW') ? `<span class="badge" style="background:var(--yellow-glow, oklch(var(--L-solid) .15 var(--h-warning)/.13));color:var(--yellow)">${t('labelCaution')}</span>` : ''}
               ${hasAlert ? `<span class="badge badge-red">⚠️ ${t('labelAlert')}</span>` : ''}
             </div>
           </div>
@@ -5829,7 +6469,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
           const bgColor = assetColor(assetSymbol, idx);
           const pnlUsd = pos.state?.pnlUsd || 0;
           const roe = (pos.state?.roe || 0) * 100;
-          const pnlColor = pnlUsd >= 0 ? '#10b981' : '#ef4444';
+          const pnlColor = pnlUsd >= 0 ? 'var(--green)' : 'var(--red)';
           const pnlSign = pnlUsd >= 0 ? '+' : '';
           return `<div class="vault-card" style="opacity:0.55">
             <div class="vault-card-header">
@@ -5840,7 +6480,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
                   <div class="vault-meta">
                     <span class="badge badge-gray">${escHtml(assetSymbol)}</span>
                     <span class="badge badge-blue">${networkLabel(network)}</span>
-                    <span class="badge" style="background:#6b728022;color:#6b7280">${t('labelWithdrawn')}</span>
+                    <span class="badge" style="background:var(--fill-3);color:var(--text-3)">${t('labelWithdrawn')}</span>
                   </div>
                 </div>
               </div>
@@ -5890,7 +6530,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
     const imgSrc = vault.metadata?.image;
     const pnlUsd = pos.pnlUsd || 0;
     const pnlSign = pnlUsd >= 0 ? '+' : '';
-    const pnlColor = pnlUsd >= 0 ? '#10b981' : '#ef4444';
+    const pnlColor = pnlUsd >= 0 ? 'var(--green)' : 'var(--red)';
     return `<div class="vault-card" style="opacity:0.55">
       <div class="vault-card-header">
         <div class="vault-info">
@@ -5899,12 +6539,12 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
           </div>
           <div>
             <div class="vault-name" style="color:var(--text-3)">${escHtml(vault.name)}
-              <span style="font-size:10px;padding:1px 5px;background:#8b5cf622;color:#8b5cf6;border-radius:3px;margin-left:4px">V2</span>
+              <span style="font-size:10px;padding:1px 5px;background:oklch(var(--L-solid) .12 var(--h-accent)/.13);color:var(--purple);border-radius:3px;margin-left:4px">V2</span>
             </div>
             <div class="vault-meta">
               <span class="badge badge-gray">${assetSymbol}</span>
               <span class="badge badge-blue">${networkLabel(vault.chain?.network || '')}</span>
-              <span class="badge" style="background:#6b728022;color:#6b7280">${t('labelWithdrawn')}</span>
+              <span class="badge" style="background:var(--fill-3);color:var(--text-3)">${t('labelWithdrawn')}</span>
             </div>
           </div>
         </div>
@@ -5933,6 +6573,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
         <div style="display:none">${v2WithdrawnHTML}</div>
       </div>` : allWithdrawnHTML) ||
     `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">${t('noPositionData')}</div></div>`;
+  staggerIn(document.getElementById('positions-container'));
 }
 
 // ────────────────────────────────────────────
@@ -6047,7 +6688,7 @@ function snoozeAlert(fp, hours = 24) {
   localStorage.setItem('morpho_alert_snooze', JSON.stringify(map));
   APP.alertHistory = APP.alertHistory.filter(a => a.fingerprint !== fp);
   renderAlerts();
-  showToast('info', CURRENT_LANG === 'en' ? `Snoozed ${hours}h` : `已延迟 ${hours} 小时`);
+  showToast('info', t('toastSnoozed', { h: hours }));
 }
 function ignoreAlert(fp) {
   const arr = _readAlertArr('morpho_alert_ignore');
@@ -6055,7 +6696,7 @@ function ignoreAlert(fp) {
   localStorage.setItem('morpho_alert_ignore', JSON.stringify(arr));
   APP.alertHistory = APP.alertHistory.filter(a => a.fingerprint !== fp);
   renderAlerts();
-  showToast('info', CURRENT_LANG === 'en' ? 'Alert permanently ignored' : '此警报已永久忽略');
+  showToast('info', t('toastIgnored'));
 }
 
 function alertResolveUrl(alert) {
@@ -6074,10 +6715,9 @@ function renderAlerts() {
     return;
   }
 
-  const isEn = CURRENT_LANG === 'en';
-  const resolveLabel = isEn ? '→ Handle'    : '→ 去处理';
-  const snoozeLabel  = isEn ? '💤 24h'      : '💤 延迟 24h';
-  const ignoreLabel  = isEn ? '🚫 Ignore'   : '🚫 永久忽略';
+  const resolveLabel = t('alertResolve');
+  const snoozeLabel  = t('alertSnooze');
+  const ignoreLabel  = t('alertIgnore');
 
   const html = APP.alertHistory.map(alert => {
     const resolveUrl = alertResolveUrl(alert);
@@ -6092,7 +6732,7 @@ function renderAlerts() {
       <div class="alert-body">
         <div class="alert-title">${escHtml(alert.title)}</div>
         <div class="alert-desc">${escHtml(alert.desc)}</div>
-        <div class="alert-time">${alert.time.toLocaleString(isEn ? 'en-US' : 'zh-CN')}</div>
+        <div class="alert-time">${alert.time.toLocaleString(dateLocale())}</div>
         ${btns.length ? `<div class="alert-actions">${btns.join('')}</div>` : ''}
       </div>
     </div>`;
@@ -6205,7 +6845,7 @@ function renderRecommendations(positions, allVaults) {
   if (scored.length === 0) {
     document.getElementById('recs-container').innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon" style="font-size:28px;opacity:0.4">◎</div>
+        <div class="empty-icon">🛡️</div>
         <div class="empty-title">${t('recEmptyTitle')}</div>
         <div class="empty-desc">${t('recEmptyDesc')}</div>
       </div>`;
@@ -6272,7 +6912,7 @@ function renderRecCard(x) {
   const whyBadgeText = beatsBadgeText || (isPureStable ? t('recPureStableLabel') : (reasons[0] || ''));
   const whyBadgeStyle = beatsBadgeText
     ? 'background:var(--green);color:white'
-    : (isPureStable ? 'background:#10b98122;color:#10b981' : '');
+    : (isPureStable ? 'background:oklch(var(--L-solid) .16 var(--h-success)/.13);color:var(--green)' : '');
   const whyBadge = whyBadgeText
     ? `<div class="rec-badge-why" style="${whyBadgeStyle}">${whyBadgeText}</div>`
     : '';
@@ -6358,7 +6998,7 @@ function renderRecCard(x) {
         const pct = (usd / recGrandTotal * 100).toFixed(1);
         const col = a.market?.collateralAsset?.symbol || t('noCollateral');
         const util = ((a.market?.state?.utilization || 0) * 100).toFixed(1);
-        const utilColor = parseFloat(util) > 95 ? '#ef4444' : parseFloat(util) > 90 ? '#f97316' : parseFloat(util) > 85 ? '#f59e0b' : '#10b981';
+        const utilColor = parseFloat(util) > 95 ? 'var(--red)' : parseFloat(util) > 90 ? 'var(--orange)' : parseFloat(util) > 85 ? 'var(--yellow)' : 'var(--green)';
         return `<div class="alloc-item" style="font-size:11px">
           <div class="alloc-dot" style="background:${ALLOC_COLORS[i % ALLOC_COLORS.length]}"></div>
           <span class="alloc-name" style="font-size:11px">${col}</span>
@@ -6502,7 +7142,7 @@ async function buildWeightedApyData(days) {
   const sortedDates = Object.keys(dateApySum).sort();
   if (sortedDates.length === 0) return null;
 
-  const locale = CURRENT_LANG === 'en' ? 'en-US' : 'zh-CN';
+  const locale = dateLocale();
   const labels = [];
   const apys   = [];   // Y values in % (annualised)
 
@@ -6562,9 +7202,11 @@ async function renderYieldChart() {
 
   const { labels, apys, avgApy, minApy, maxApy, currentApy, snapshotApy, totalUsd, vaultCount } = d;
 
-  const lineColor  = '#c2410c';
-  const fillColor0 = 'rgba(249,115,22,0.18)';
-  const fillColor1 = 'rgba(249,115,22,0.01)';
+  // 图表配色统一从设计令牌读（和 __repaintCharts 用的是同一个 CHART_C）
+  const _yc = CHART_C();
+  const lineColor  = _yc.brand;
+  const fillColor0 = _yc.fill0;
+  const fillColor1 = _yc.fill1;
 
   _yieldChart = new Chart(ctx, {
     type: 'line',
@@ -6589,7 +7231,7 @@ async function renderYieldChart() {
         pointRadius: 0,
         pointHoverRadius: 5,
         pointHoverBackgroundColor: lineColor,
-        pointHoverBorderColor: '#ffffff',
+        pointHoverBorderColor: _yc.panel,
         pointHoverBorderWidth: 2,
       }]
     },
@@ -6600,11 +7242,13 @@ async function renderYieldChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(255,253,250,0.98)',
-          borderColor: '#e8d5be',
+          // 这里原本写死了白天的奶油色（#fffdfa / #e8d5be / #1a0a00 / #7c4820），
+          // 黑夜下 tooltip 就是一块奶油方块、坐标轴是浅棕。改读设计令牌。
+          backgroundColor: _yc.panel,
+          borderColor: _yc.border,
           borderWidth: 1,
-          titleColor: '#1a0a00',
-          bodyColor: '#7c4820',
+          titleColor: _yc.text1,
+          bodyColor: _yc.text2,
           padding: 12,
           callbacks: {
             title: (items) => items[0]?.label || '',
@@ -6620,18 +7264,18 @@ async function renderYieldChart() {
       },
       scales: {
         x: {
-          grid: { color: 'rgba(232,213,190,0.55)' },
-          ticks: { color: '#b07848', font: { size: 11 }, maxRotation: 0, maxTicksLimit: 8 },
-          border: { color: '#e8d5be' },
+          grid: { color: _yc.grid },
+          ticks: { color: _yc.tick, font: { size: 11, family: _yc.mono }, maxRotation: 0, maxTicksLimit: 8 },
+          border: { color: _yc.border },
         },
         y: {
-          grid: { color: 'rgba(232,213,190,0.55)' },
+          grid: { color: _yc.grid },
           ticks: {
-            color: '#b07848',
-            font: { size: 11 },
+            color: _yc.tick,
+            font: { size: 11, family: _yc.mono },
             callback: (v) => v.toFixed(2) + '%',
           },
-          border: { color: '#e8d5be' },
+          border: { color: _yc.border },
         }
       }
     }
@@ -6692,7 +7336,7 @@ function startMonitor() {
   document.getElementById('monitor-btn').className = 'btn btn-danger';
   // The header status dot reflects the BACKGROUND monitor, so auto-refresh
   // must not touch it — only the countdown belongs to this button.
-  document.getElementById('countdown-display').style.display = 'flex';
+  document.getElementById('countdown-display').style.display = 'inline-flex';
 
   APP.monitorTimer = setInterval(async () => {
     if (APP.wallet) {
@@ -6801,7 +7445,7 @@ function renderGovernanceTab() {
   const container = document.getElementById('governance-container');
   if (!container) return;
   const allV2  = APP.v2Positions || [];
-  const locale = CURRENT_LANG === 'en' ? 'en-US' : CURRENT_LANG;
+  const locale = dateLocale();
 
   if (allV2.length === 0) {
     container.innerHTML = `
@@ -6866,7 +7510,7 @@ function renderGovernanceTab() {
          </div>
          ${rows.map(r => {
            const dh = Math.round((r.validAtMs - nowMs) / 3600_000);
-           const stateColor = dh < 0 ? '#ef4444' : dh < 24 ? '#f97316' : dh < 168 ? '#f59e0b' : '#8b5a2f';
+           const stateColor = dh < 0 ? 'var(--red)' : dh < 24 ? 'var(--orange)' : dh < 168 ? 'var(--yellow)' : 'var(--text-3)';
            const timeStr = dh < 0
              ? t('govTabAgoTpl').replace('{n}', -dh)
              : dh < 24
@@ -6901,10 +7545,10 @@ function renderGovernanceTab() {
             <a href="${escHtml(vs.morphoUrl)}" target="_blank" rel="noopener" class="gov-summary-name">${escHtml(vs.name)}</a>
             <div class="gov-summary-chain">${escHtml(vs.chain || '')}</div>
             <div class="gov-summary-facts">
-              <span title="Curator">👤 ${curatorNames}</span>
-              <span title="Sentinels">🛡 ${vs.sentinelCount}</span>
-              <span title="Active timelocks">⏱ ${vs.timelockCount}</span>
-              ${vs.pendingCount > 0 ? `<span class="badge" style="background:#f9731622;color:#f97316">⏳ ${vs.pendingCount}</span>` : ''}
+              <span title="${t('govCurator')}">👤 ${curatorNames}</span>
+              <span title="${t('govSentinel')}">🛡 ${vs.sentinelCount}</span>
+              <span title="${t('govDelayTitle')}">⏱ ${vs.timelockCount}</span>
+              ${vs.pendingCount > 0 ? `<span class="badge" style="background:var(--blue-glow);color:var(--blue)">⏳ ${vs.pendingCount}</span>` : ''}
             </div>
           </div>`;
         }).join('')}
@@ -7473,13 +8117,13 @@ async function renderPnlTab() {
   // Fetch transactions if not yet loaded
   if (PNL_STATE.txV1.length === 0 && PNL_STATE.txV2.length === 0) {
     PNL_STATE.loading = true;
-    container.innerHTML = `<div class="pnl-loading"><div class="spinner"></div><span>${CURRENT_LANG==='en'?'Loading transaction history…':'正在加载交易历史…'}</span></div>`;
+    container.innerHTML = `<div class="pnl-loading"><div class="spinner"></div><span>${t('pnlLoading')}</span></div>`;
     try {
       const { v1, v2 } = await fetchAllTx(APP.wallet);
       PNL_STATE.txV1 = v1;
       PNL_STATE.txV2 = v2;
     } catch(e) {
-      container.innerHTML = `<div style="padding:24px"><div class="error-box">⚠️ ${CURRENT_LANG==='en'?'Failed to load transactions':'加载交易记录失败'}：${e.message}</div></div>`;
+      container.innerHTML = `<div style="padding:24px"><div class="error-box">⚠️ ${t('pnlLoadFail')}：${e.message}</div></div>`;
       PNL_STATE.loading = false;
       return;
     }
@@ -7514,7 +8158,7 @@ async function renderPnlContent() {
         const hint = document.createElement('span');
         hint.id = 'pnl-history-loading-hint';
         hint.style.cssText = 'font-size:11px;color:var(--text-3);margin-left:8px';
-        hint.textContent = CURRENT_LANG==='en' ? 'loading history…' : '加载历史…';
+        hint.textContent = t('pnlLoadingHint');
         bar.appendChild(hint);
       }
       try {
@@ -7528,10 +8172,9 @@ async function renderPnlContent() {
 
   const pnl      = computePnl(filtered, allTx, allPositions, PNL_STATE.range, historySnapshot);
 
-  const isEn     = CURRENT_LANG === 'en';
   const pnlColor = (v) => v >= 0 ? 'var(--green)' : 'var(--red)';
   const pnlSign  = (v) => v >= 0 ? '+' : '';
-  const locale   = isEn ? 'en-US' : 'zh-CN';
+  const locale   = dateLocale();
 
   // ── Pagination ──
   const pageSize  = PNL_STATE.pageSize;
@@ -7559,12 +8202,12 @@ async function renderPnlContent() {
                        : tx.chainNetwork?.toLowerCase().includes('monad')    ? 'https://monad.explorer.xyz/tx/'
                        : 'https://etherscan.io/tx/';
     const shortHash = tx.hash ? `${tx.hash.slice(0, 8)}…` : '';
-    const v2Badge   = tx.isV2 ? `<span style="font-size:9px;padding:1px 4px;background:#8b5cf622;color:#8b5cf6;border-radius:3px;margin-left:4px">V2</span>` : '';
+    const v2Badge   = tx.isV2 ? `<span style="font-size:9px;padding:1px 4px;background:oklch(var(--L-solid) .12 var(--h-accent)/.13);color:var(--purple);border-radius:3px;margin-left:4px">V2</span>` : '';
 
     txRowsHTML += `
     <div class="pnl-tx-row ${tx.type}">
       <div class="pnl-tx-date">${dateStr}</div>
-      <div class="pnl-tx-type">${isDeposit ? (isEn ? 'Deposit' : '存入') : (isEn ? 'Withdraw' : '取出')}</div>
+      <div class="pnl-tx-type">${isDeposit ? t('pnlTxDeposit') : t('pnlTxWithdraw')}</div>
       <div class="pnl-tx-vault">${escHtml(tx.vaultName)}${v2Badge}<small>${escHtml(tx.assetSymbol)} · ${escHtml(networkLabel(tx.chainNetwork))}</small></div>
       <div class="pnl-tx-amount ${amtClass}">${amtSign}${(parseFloat(tx.assetsRaw) / Math.pow(10, tx.decimals)).toLocaleString('en-US', {maximumFractionDigits: 4})} ${escHtml(tx.assetSymbol)}</div>
       <div class="pnl-tx-hash">${shortHash ? `<a href="${explorerBase}${tx.hash}" target="_blank" title="${tx.hash}">${shortHash}</a>` : ''}</div>
@@ -7572,7 +8215,7 @@ async function renderPnlContent() {
   }
 
   if (!txRowsHTML) {
-    txRowsHTML = `<div style="padding:40px;text-align:center;color:var(--text-3)">${isEn ? 'No transactions in this period.' : '该区间内无交易记录。'}</div>`;
+    txRowsHTML = `<div style="padding:40px;text-align:center;color:var(--text-3)">${t('pnlNoTx')}</div>`;
   }
 
   // ── Pagination controls ──
@@ -7598,8 +8241,9 @@ async function renderPnlContent() {
     pagHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px">
       <span style="font-size:12px;color:var(--text-3)">
-        ${isEn ? `Showing ${pageStart + 1}–${Math.min(pageStart + pageSize, filtered.length)} of ${filtered.length}` 
-                : `第 ${pageStart + 1}–${Math.min(pageStart + pageSize, filtered.length)} 条，共 ${filtered.length} 条`}
+        ${t('pnlShowing', { from: pageStart + 1,
+                              to: Math.min(pageStart + pageSize, filtered.length),
+                              total: filtered.length })}
       </span>
       <div style="display:flex;gap:4px;align-items:center">
         ${makePagBtn(prev, '‹', PNL_STATE.page === 1, false)}
@@ -7614,84 +8258,82 @@ async function renderPnlContent() {
 
   // ── Range options ──
   const rangeOpts = [
-    ['ALL', isEn ? 'All' : '全部'],
-    ['30D', isEn ? '30D' : '近30天'],
-    ['90D', isEn ? '90D' : '近90天'],
-    ['180D', isEn ? '180D' : '近180天'],
-    ['1Y', isEn ? '1Y' : '近1年'],
-    ['custom', isEn ? 'Custom' : '自定义'],
+    ['ALL',    t('pnlRangeAll')],
+    ['30D',    t('pnlRange30D')],
+    ['90D',    t('pnlRange90D')],
+    ['180D',   t('pnlRange180D')],
+    ['1Y',     t('pnlRange1Y')],
+    ['custom', t('pnlRangeCustom')],
   ];
 
   // ── Unrealised explanation tooltip ──
-  const unrealisedLabel = isEn ? 'Accrued Yield' : '在存收益';
-  const unrealisedDesc  = isEn
-    ? 'Yield still inside the vault (not yet withdrawn): current position value minus your deposit cost. Becomes Realised P&L once withdrawn.'
-    : '仍在 Vault 内尚未提取的收益 = 当前持仓价值 − 存入成本。提款后转为已实现收益。';
+  const unrealisedLabel = t('pnlAccrued');
+  const unrealisedDesc  = t('pnlAccruedDesc');
 
   container.innerHTML = `
   <!-- Toolbar -->
   <div class="pnl-toolbar">
-    <span style="font-size:12px;font-weight:400;color:var(--text-3);margin-right:4px">${isEn ? 'Period:' : '区间：'}</span>
+    <span style="font-size:12px;font-weight:400;color:var(--text-3);margin-right:4px">${t('pnlPeriodLabel')}</span>
     ${rangeOpts.map(([v, l]) => `<button class="pnl-range-btn${PNL_STATE.range === v ? ' active' : ''}" onclick="setPnlRange('${v}')">${l}</button>`).join('')}
     <div id="pnl-custom-range" style="display:${PNL_STATE.range === 'custom' ? 'flex' : 'none'};align-items:center;gap:6px;flex-wrap:wrap">
       <input type="date" id="pnl-date-from" style="padding:4px 8px;font-size:12px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text-1)">
-      <span style="color:var(--text-3);font-size:12px">${isEn ? 'to' : '至'}</span>
+      <span style="color:var(--text-3);font-size:12px">${t('pnlTo')}</span>
       <input type="date" id="pnl-date-to" style="padding:4px 8px;font-size:12px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;color:var(--text-1)">
-      <button class="pnl-range-btn" onclick="renderPnlContent()">${isEn ? 'Apply' : '应用'}</button>
+      <button class="pnl-range-btn" onclick="renderPnlContent()">${t('pnlApply')}</button>
     </div>
-    <span style="margin-left:auto;font-size:12px;color:var(--text-3)">${filtered.length} ${isEn ? 'transactions' : '笔交易'}</span>
-    <button class="btn btn-secondary" style="font-size:11px;padding:6px 12px" onclick="refreshPnl()">↺ ${isEn ? 'Refresh' : '刷新'}</button>
+    <span style="margin-left:auto;font-size:12px;color:var(--text-3)">${t('pnlTxCount', { n: filtered.length })}</span>
+    <button class="btn btn-secondary" style="font-size:11px;padding:6px 12px" onclick="refreshPnl()">↺ ${t('pnlRefresh')}</button>
   </div>
 
   <!-- Summary Cards -->
   <div class="pnl-summary-bar">
     ${pnl.isPeriod ? `
     <div class="pnl-summary-item">
-      <div class="pnl-summary-label">${isEn ? 'Start Value' : '期初持仓价值'}</div>
+      <div class="pnl-summary-label">${t('pnlStartValue')}</div>
       <div class="pnl-summary-value">${fmtUSD(pnl.startValue)}</div>
-      <div class="pnl-summary-sub">${isEn ? 'Capital at period start' : '区间起始时的资产价值'}</div>
+      <div class="pnl-summary-sub">${t('pnlStartValueSub')}</div>
     </div>
     ` : `
     <div class="pnl-summary-item">
-      <div class="pnl-summary-label">${isEn ? 'Total Deposited' : '累计存入'}</div>
+      <div class="pnl-summary-label">${t('pnlTotalDeposited')}</div>
       <div class="pnl-summary-value">${fmtUSD(pnl.totalDeposited)}</div>
-      <div class="pnl-summary-sub">${filtered.filter(t => t.type === 'deposit').length} ${isEn ? 'deposits' : '笔'}</div>
+      <div class="pnl-summary-sub">${t('pnlDepositsN', { n: filtered.filter(x => x.type === 'deposit').length })}</div>
     </div>
     `}
     ${pnl.isPeriod ? `
     <div class="pnl-summary-item">
-      <div class="pnl-summary-label">${isEn ? 'Period Deposits' : '期间存入'}</div>
+      <div class="pnl-summary-label">${t('pnlPeriodDeposits')}</div>
       <div class="pnl-summary-value">${fmtUSD(pnl.totalDeposited)}</div>
-      <div class="pnl-summary-sub">${filtered.filter(t => t.type === 'deposit').length} ${isEn ? 'deposits' : '笔'}</div>
+      <div class="pnl-summary-sub">${t('pnlDepositsN', { n: filtered.filter(x => x.type === 'deposit').length })}</div>
     </div>
     ` : `
     <div class="pnl-summary-item">
-      <div class="pnl-summary-label">${isEn ? 'Total Withdrawn' : '累计取出'}</div>
+      <div class="pnl-summary-label">${t('pnlTotalWithdrawn')}</div>
       <div class="pnl-summary-value">${fmtUSD(pnl.totalWithdrawn)}</div>
-      <div class="pnl-summary-sub">${filtered.filter(t => t.type === 'withdraw').length} ${isEn ? 'withdrawals' : '笔'}</div>
+      <div class="pnl-summary-sub">${t('pnlWithdrawalsN', { n: filtered.filter(x => x.type === 'withdraw').length })}</div>
     </div>
     `}
     <div class="pnl-summary-item">
-      <div class="pnl-summary-label">${isEn ? 'Current Value' : '当前持仓价值'}</div>
+      <div class="pnl-summary-label">${t('pnlCurrentValue')}</div>
       <div class="pnl-summary-value">${fmtUSD(pnl.totalCurrentVal)}</div>
-      <div class="pnl-summary-sub">${isEn ? 'Active positions' : '活跃持仓'}</div>
+      <div class="pnl-summary-sub">${t('pnlCurrentValueSub')}</div>
     </div>
     <div class="pnl-summary-item">
-      <div class="pnl-summary-label">${isEn ? 'Realised P&L' : '已实现收益'}</div>
+      <div class="pnl-summary-label">${t('pnlRealised')}</div>
       <div class="pnl-summary-value" style="color:${pnlColor(pnl.realisedPnl)}">${pnlSign(pnl.realisedPnl)}${fmtUSD(pnl.realisedPnl)}</div>
-      <div class="pnl-summary-sub">${isEn ? 'Profit locked in via withdrawals' : '提款时已落袋的收益'}</div>
+      <div class="pnl-summary-sub">${t('pnlRealisedSub')}</div>
     </div>
     <div class="pnl-summary-item">
       <div class="pnl-summary-label">${unrealisedLabel}</div>
       <div class="pnl-summary-value" style="color:${pnlColor(pnl.unrealisedPnl)}">${pnlSign(pnl.unrealisedPnl)}${fmtUSD(pnl.unrealisedPnl)}</div>
       <div class="pnl-summary-sub" style="display:flex;align-items:flex-start;gap:4px">
-        <span>${isEn ? 'Value − cost in vault' : '持仓价值 − 存入成本'}</span>
+        <span>${t('pnlAccruedSub')}</span>
         <span title="${unrealisedDesc}"
           style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:var(--border);color:var(--text-3);font-size:9px;font-weight:400;cursor:default;flex-shrink:0;margin-top:1px">?</span>
       </div>
     </div>
     <div class="pnl-summary-item" style="background:${pnl.totalPnl >= 0 ? 'rgba(16,185,129,0.06)' : 'rgba(220,38,38,0.06)'}">
-      <div class="pnl-summary-label">${pnl.isPeriod ? (isEn ? 'Period P&L' : '区间收益') : (isEn ? 'Total P&L' : '总收益')}</div>
+      <div class="pnl-summary-label">${pnl.isPeriod ? t('pnlPeriodPnl') : t('pnlTotalPnl')}</div>
       <div class="pnl-summary-value" style="color:${pnlColor(pnl.totalPnl)};font-size:22px">${pnlSign(pnl.totalPnl)}${fmtUSD(pnl.totalPnl)}</div>
       <div class="pnl-summary-sub" style="color:${pnlColor(pnl.roi)}">${pnlSign(pnl.roi)}${pnl.roi.toFixed(3)}% ROI</div>
     </div>
@@ -7700,11 +8342,11 @@ async function renderPnlContent() {
   <!-- Transaction Table -->
   <div class="pnl-tx-table">
     <div class="pnl-tx-header">
-      <div>${isEn ? 'Date' : '时间'}</div>
-      <div>${isEn ? 'Type' : '类型'}</div>
-      <div>${isEn ? 'Vault' : 'Vault'}</div>
-      <div style="text-align:right">${isEn ? 'Amount' : '数量'}</div>
-      <div>${isEn ? 'Tx Hash' : '交易哈希'}</div>
+      <div>${t('pnlColDate')}</div>
+      <div>${t('pnlColType')}</div>
+      <div>${t('pnlColVault')}</div>
+      <div style="text-align:right">${t('pnlColAmount')}</div>
+      <div>${t('pnlColHash')}</div>
     </div>
     ${txRowsHTML}
     ${pagHTML}
@@ -7752,10 +8394,10 @@ function copyCmd(text) {
 
 function useCustomProxy() {
   const input = document.getElementById('custom-proxy-url');
-  if (!input) return showToast('error', '找不到代理输入框');
+  if (!input) return showToast('error', t('toastProxyNoInput'));
   const url = input.value.trim();
-  if (!url) return showToast('error', '请先输入代理 URL');
-  if (!url.startsWith('http')) return showToast('error', '代理 URL 必须以 http:// 或 https:// 开头');
+  if (!url) return showToast('error', t('toastProxyEmpty'));
+  if (!url.startsWith('http')) return showToast('error', t('toastProxyScheme'));
   // Prepend custom proxy to the list so it's tried first
   CORS_PROXIES.unshift(async (body, headers) => {
     const targetUrl = url.includes('{URL}')
@@ -7765,14 +8407,14 @@ function useCustomProxy() {
   });
   _proxyMode = 'auto';
   _proxyResolved = false;
-  showToast('success', '🔗 自定义代理已添加，正在重试...');
+  showToast('success', t('toastProxyAdded'));
   fetchPositions();
 }
 
 function retryFetch() {
   _proxyMode = 'auto';
   _proxyResolved = false;
-  showToast('success', '🔄 正在重试连接...');
+  showToast('success', t('toastRetrying'));
   fetchPositions();
 }
 
@@ -7987,25 +8629,71 @@ function applyTheme(mode) {
   // theme-color 要用「实际生效」的底色，否则 iOS 状态栏会和页面错开
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', effectiveDark(mode) ? '#05060b' : '#f7f3ee');
-  document.querySelectorAll('#theme-switcher .lang-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.themeSet === mode);
+  document.querySelectorAll('#theme-menu [data-theme-set]').forEach(b => {
+    const on = b.dataset.themeSet === mode;
+    b.classList.toggle('is-on', on);
+    b.setAttribute('aria-checked', on ? 'true' : 'false');
   });
-  const sw = document.getElementById('theme-switcher');
-  if (sw) sw.title = mode === 'auto'
-    ? `跟随系统外观（当前：${effectiveDark(mode) ? '黑夜' : '白天'}）`
-    : '已手动锁定主题；选「自动」可交回系统';
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.title = mode === 'auto'
+    ? t('themeTipAuto', { now: effectiveDark(mode) ? t('themeDark') : t('themeLight') })
+    : t('themeTipLocked');
   if (typeof __repaintCharts === 'function') __repaintCharts();
 }
 function setTheme(mode) {
   if (!THEME_ORDER.includes(mode)) mode = 'auto';
   localStorage.setItem(THEME_KEY, mode);
   applyTheme(mode);
+  closeThemeMenu();
 }
+// 主题小菜单 —— 点按钮开合，点外面或按 Esc 关掉
+function toggleThemeMenu(e) {
+  if (e) e.stopPropagation();
+  const wrap = document.querySelector('.theme-wrap');
+  const btn  = document.getElementById('theme-btn');
+  if (!wrap) return;
+  const open = wrap.classList.toggle('is-open');
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function closeThemeMenu() {
+  const wrap = document.querySelector('.theme-wrap');
+  const btn  = document.getElementById('theme-btn');
+  if (wrap) wrap.classList.remove('is-open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.theme-wrap')) closeThemeMenu();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeThemeMenu(); });
 applyTheme(currentThemeMode());
 try {
   window.matchMedia('(prefers-color-scheme: dark)')
     .addEventListener('change', () => applyTheme(currentThemeMode()));
 } catch { /* Safari < 14 lacks addEventListener on MediaQueryList */ }
+
+// ── 跟随指针的卡面辉光 ────────────────────────────────────
+// 设计规范 .vault:hover 的背景是 radial-gradient(... at var(--mx) var(--my))，
+// 光斑要跟着鼠标走。少了这两个变量，那条渐变永远固定在 50%/0%，
+// 看着就是一块死的高光 —— 这也是之前"AI 味"的来源之一。
+// 触摸屏没有 hover，就不必装这个监听。
+if (window.matchMedia('(hover: hover)').matches) {
+  document.addEventListener('mousemove', e => {
+    const c = e.target.closest('.vault-card, .rec-card');
+    if (!c) return;
+    const r = c.getBoundingClientRect();
+    c.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    c.style.setProperty('--my', (e.clientY - r.top)  + 'px');
+  }, { passive: true });
+}
+
+// ── 卡片错峰入场 ─────────────────────────────────────────
+// 规范：.neo-in 上浮 14px / 500ms，逐张延后 55ms。
+// prefers-reduced-motion 下 neoIn 的 transition 已被全局关掉，这里也不加类。
+function staggerIn(root) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cards = (root || document).querySelectorAll('.vault-card:not(.neo-in), .rec-card:not(.neo-in)');
+  cards.forEach((el, i) => { el.classList.add('neo-in'); el.style.animationDelay = (i * 55) + 'ms'; });
+}
 
 // ── Chart.js 取设计系统的值，不写死颜色 ────────────────────
 // 主题切换时 __repaintCharts() 遍历实例更新刻度/网格/tooltip 后重绘。
@@ -8019,6 +8707,7 @@ function CHART_C() {
     grid:   V('--border'), border: V('--border-light'),
     panel:  V('--bg-card'),
     brand:  V('--blue'), green: V('--green'), red: V('--red'),
+    fill0:  V('--chart-fill-0'), fill1: V('--chart-fill-1'),
   };
 }
 function __repaintCharts() {
@@ -8129,7 +8818,7 @@ if (typeof Chart !== 'undefined') {
 
 // Show info toast on load
 setTimeout(() => {
-  showToast('info', CURRENT_LANG === 'en' ? 'Welcome to Morpho Vault Monitor · Mark Li' : '欢迎使用 Morpho Vault 监控 · Mark Li');
+  showToast('info', t('welcomeToast'));
 }, 500);
 
 // ────────────────────────────────────────────
@@ -8138,44 +8827,7 @@ setTimeout(() => {
 // i18n Init — apply on DOMContentLoaded
 // ────────────────────────────────────────────
 (function initI18n() {
-  // Apply active class to current lang button
-  document.querySelectorAll('.lang-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.lang === CURRENT_LANG);
-  });
-  // Apply all data-i18n elements
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
-    const attr = el.dataset.i18nAttr;
-    if (attr) el.setAttribute(attr, t(key));
-    else el.textContent = t(key);
-  });
-  // Apply network dropdown options (custom dropdown, not native select)
-  const netMenu = document.getElementById('net-dropdown-menu');
-  if (netMenu) {
-    netMenu.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
-    // Also update the trigger label if it shows a translatable option
-    const sel = document.getElementById('network-select');
-    if (sel && sel.value === 'all') {
-      const lbl = document.getElementById('net-dropdown-label');
-      if (lbl) lbl.textContent = t('netAll');
-    }
-  }
-  // Apply tab labels
-  // Keep in sync with the tab buttons in markup. `alerts` uses tabAlertsLog
-  // (Sprint 3.7 renamed it to a log/history role) and `governance` was added
-  // in Sprint 4.1; `recommendations` was removed in Sprint 3.1. This map
-  // overwrites tab textContent, so a stale entry here silently defeats the
-  // data-i18n attribute on the button's inner span.
-  const tabs = { positions:'tabPositions', yield:'tabYield', pnl:'tabPnl', alerts:'tabAlertsLog', governance:'tabGovernance' };
-  Object.entries(tabs).forEach(([id, key]) => {
-    const el = document.getElementById(`tab-${id}`);
-    if (el) {
-      const badge = el.querySelector('.tab-badge');
-      el.textContent = t(key);
-      if (badge) el.appendChild(badge);
-    }
-  });
-  document.documentElement.lang = CURRENT_LANG;
+  applyI18nToDom();   // 与 switchLang() 共用同一份实现，见 applyI18nToDom
   // Inject version badge
   // Version badge — shows both frontend + worker version so mismatched deploys
   // are visible at a glance. Yellow ⚠️ = worker version behind what the panel
@@ -8185,27 +8837,27 @@ setTimeout(() => {
     vBadge.textContent = 'v' + APP_VERSION;
     (async () => {
       try {
-        const r = await fetch('https://morpho-monitor.markli-mcgrp.workers.dev/api/health', { cache: 'no-store' });
+        const r = await fetch(WORKER_BASE + '/api/health', { cache: 'no-store' });
         const j = r.ok ? await r.json() : null;
         const wv = j?.version;
+        // pill 里只放 `v2.0.0 · w1.6.0`（设计规范原型就是这个写法）。
+        // 之前写全「界面 x · 后台 y」，一个 pill 占掉顶栏 150px。
+        // 「界面 / 后台」分别是什么，移到 title 里说清楚。
         if (!wv) {
-          vBadge.innerHTML = `<span style="opacity:.55">界面</span> ${APP_VERSION} <span style="opacity:.35">·</span> <span style="color:var(--red)">后台 ?</span>`;
-          vBadge.title = '后台 /api/health 没有返回版本号';
+          vBadge.innerHTML = `v${APP_VERSION} <i>·</i> <span style="color:var(--red)">w?</span>`;
+          vBadge.title = t('verNoVersion');
           return;
         }
         const match = wv === EXPECTED_WORKER_VERSION;
-        const color = match ? 'var(--text-3)' : 'var(--yellow)';
+        const color = match ? '' : 'color:var(--yellow)';
         const flag  = match ? '' : ' ⚠️';
-        // 「界面 / 后台」比裸的 v / w 好认 —— 用户问过这两个数字是什么
-        vBadge.innerHTML = `<span style="opacity:.55">界面</span> ${APP_VERSION}` +
-          ` <span style="opacity:.35">·</span> ` +
-          `<span style="color:${color}"><span style="opacity:.55">后台</span> ${wv}${flag}</span>`;
+        vBadge.innerHTML = `v${APP_VERSION} <i>·</i> <span style="${color}">w${wv}${flag}</span>`;
         vBadge.title = match
-          ? `界面 v${APP_VERSION} · 后台 Worker v${wv}（版本一致）`
-          : `界面 v${APP_VERSION} 是按后台 v${EXPECTED_WORKER_VERSION} 写的，但线上后台是 v${wv}。重新部署 Worker 即可同步。`;
+          ? t('verMatch',    { ui: APP_VERSION, worker: wv })
+          : t('verMismatch', { ui: APP_VERSION, expected: EXPECTED_WORKER_VERSION, worker: wv });
       } catch (e) {
-        vBadge.innerHTML = `<span style="opacity:.55">界面</span> ${APP_VERSION} <span style="opacity:.35">·</span> <span style="color:var(--red)">后台离线</span>`;
-        vBadge.title = `后台不可达：${e.message}`;
+        vBadge.innerHTML = `v${APP_VERSION} <i>·</i> <span style="color:var(--red)">${t('verOffline')}</span>`;
+        vBadge.title = t('verUnreachable', { err: e.message });
       }
     })();
   }
@@ -8214,7 +8866,7 @@ setTimeout(() => {
 // ────────────────────────────────────────────
 // Background Monitor (Cloudflare Worker)
 // ────────────────────────────────────────────
-const BGM_API = 'https://morpho-monitor.markli-mcgrp.workers.dev';
+const BGM_API = WORKER_BASE;
 
 // Check bgm status on load using wallet from loadSettings
 (function initBgmStatus() {
@@ -8359,7 +9011,7 @@ async function bgmTrigger() {
     });
     const data = await resp.json();
     if (data.ok) {
-      showToast('success', `${t('bgmOkTrigger')}: ${data.positions} 持仓, ${data.alerts} 警报`);
+      showToast('success', `${t('bgmOkTrigger')}: ${t('bgmTriggerResult', { pos: data.positions, alerts: data.alerts })}`);
       document.getElementById('bgm-last-check').textContent =
         t('bgmLastCheck') + ': ' + new Date().toLocaleString();
     } else {
