@@ -7,8 +7,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Morpho Monitor">
 <meta name="theme-color" content="#fffcfa">
-<!-- 设计项目 PWA 图标：暖纸底 + 标志居中 80%；深色主题换暗底版，
-     否则主屏上一块亮白方块在暗色 dock 里很突兀。 -->
+<!-- Safari「添加到程序坞」/ Chrome 安装 App 读的是 manifest 里的 icons，
+     不是下面的 apple-touch-icon。之前没有 manifest，而唯一的大图
+     icon-512.png 还是个在 192 KiB 处被截断、连 IEND 都没有的坏文件，
+     所以桌面应用只能拿 180px 那张凑，图标一直是旧的。 -->
+<link rel="manifest" href="manifest.webmanifest">
+<!-- iOS 主屏磁贴：必须不透明（iOS 不认透明会自己填黑），所以暖纸底是
+     烘死在图里的；深色主题换暗底版，免得暗色 dock 里一块亮白方块。 -->
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180-dark.png" media="(prefers-color-scheme: dark)">
 <!-- 标签页 favicon 用透明底的盾牌本体，不用上面那两张磁贴：
@@ -2811,6 +2816,12 @@ header::after, .header::after {
   color: oklch(46% .10 var(--h-info));
 }
 .pill i { font-style: normal; opacity: .38; }
+/* 版本 pill 的异常态：号不一致=琥珀，后台不可达=红。
+   正常情况这两个类都不加，pill 里只有一个干净的版本号。 */
+.pill.is-warn   { background: var(--yellow-glow, oklch(var(--L-solid) .15 var(--h-warning)/.13));
+                  color: var(--yellow); border-color: oklch(var(--L-solid) .15 var(--h-warning)/.35); }
+.pill.is-danger { background: var(--red-glow); color: var(--red); border-color: var(--border-danger); }
+.pill__warn { opacity: 1; font-size: 9px; }
 
 /* 图标按钮 —— components.css 的 .icon-btn，32×32 */
 .icon-btn {
@@ -3361,7 +3372,10 @@ input:focus, select:focus, textarea:focus {
 // Version
 // ────────────────────────────────────────────
 const APP_VERSION = '2.1.0';  // 2026-08-04 — 顶栏精简 + 卡片几何对齐设计规范 + i18n/硬编码清理
-const EXPECTED_WORKER_VERSION = '1.6.0';  // matched against /api/health.version; mismatch shows ⚠️ in header
+// 前后端统一编号、一起升，所以这里就是 APP_VERSION 本身。
+// 顶栏只显示一个版本号；线上后台报的号跟它不一样时，那个号后面加一个 ⚠️，
+// 具体差在哪写在 title 里 —— 不再并排摆两个数字让人猜该看哪个。
+const EXPECTED_WORKER_VERSION = APP_VERSION;
 
 // ────────────────────────────────────────────
 // Constants
@@ -3482,9 +3496,9 @@ const I18N = {
     pnlColVault:'Vault',
     pnlColAmount:'数量',
     pnlColHash:'交易哈希',
-    verMatch:'界面 v{ui} · 后台 Worker v{worker}（版本一致）',
-    verMismatch:'界面 v{ui} 是按后台 v{expected} 写的，但线上后台是 v{worker}。重新部署 Worker 即可同步。',
-    verNoVersion:'后台 /api/health 没有返回版本号', verOffline:'后台离线',
+    verMatch:'v{v}　前后端同号，运行正常',
+    verMismatch:'前后端版本不一致：界面 v{ui}，线上后台 v{worker}。重新部署 Worker 即可同步。',
+    verNoVersion:'后台 /api/health 没有返回版本号',
     verUnreachable:'后台不可达：{err}',
     themeAuto:'跟随系统', themeLight:'白天', themeDark:'黑夜',
     themeTipAuto:'跟随系统外观（现在是{now}）', themeTipLocked:'已手动锁定；选「跟随系统」交回系统',
@@ -3689,9 +3703,9 @@ const I18N = {
     pnlColVault:'Vault',
     pnlColAmount:'數量',
     pnlColHash:'交易雜湊',
-    verMatch:'介面 v{ui} · 後台 Worker v{worker}（版本一致）',
-    verMismatch:'介面 v{ui} 是按後台 v{expected} 寫的，但線上後台是 v{worker}。重新部署 Worker 即可同步。',
-    verNoVersion:'後台 /api/health 沒有回傳版本號', verOffline:'後台離線',
+    verMatch:'v{v}　前後端同號，執行正常',
+    verMismatch:'前後端版本不一致：介面 v{ui}，線上後台 v{worker}。重新部署 Worker 即可同步。',
+    verNoVersion:'後台 /api/health 沒有回傳版本號',
     verUnreachable:'後台無法連線：{err}',
     themeAuto:'跟隨系統', themeLight:'白天', themeDark:'黑夜',
     themeTipAuto:'跟隨系統外觀（現在是{now}）', themeTipLocked:'已手動鎖定；選「跟隨系統」交回系統',
@@ -3895,9 +3909,9 @@ const I18N = {
     pnlColVault:'Vault',
     pnlColAmount:'Amount',
     pnlColHash:'Tx Hash',
-    verMatch:'UI v{ui} · Worker v{worker} (in sync)',
-    verMismatch:'UI v{ui} was written against Worker v{expected}, but the live Worker is v{worker}. Redeploy the Worker to sync.',
-    verNoVersion:'Worker /api/health returned no version', verOffline:'Worker offline',
+    verMatch:'v{v} — frontend and backend in sync',
+    verMismatch:'Version mismatch: UI v{ui}, live Worker v{worker}. Redeploy the Worker to sync.',
+    verNoVersion:'Worker /api/health returned no version',
     verUnreachable:'Worker unreachable: {err}',
     themeAuto:'Follow system', themeLight:'Light', themeDark:'Dark',
     themeTipAuto:'Following your system appearance (now {now})', themeTipLocked:'Locked manually — pick “Follow system” to hand it back',
@@ -8840,23 +8854,25 @@ setTimeout(() => {
         const r = await fetch(WORKER_BASE + '/api/health', { cache: 'no-store' });
         const j = r.ok ? await r.json() : null;
         const wv = j?.version;
-        // pill 里只放 `v2.0.0 · w1.6.0`（设计规范原型就是这个写法）。
-        // 之前写全「界面 x · 后台 y」，一个 pill 占掉顶栏 150px。
-        // 「界面 / 后台」分别是什么，移到 title 里说清楚。
+        // 顶栏只显示一个版本号。前后端统一编号一起升，正常情况两边同号，
+        // 没有第二个数字要看。只有线上后台跟前端不同号时才加一个 ⚠️，
+        // 差在哪写进 title。
         if (!wv) {
-          vBadge.innerHTML = `v${APP_VERSION} <i>·</i> <span style="color:var(--red)">w?</span>`;
+          vBadge.innerHTML = `v${APP_VERSION} <i class="pill__warn">⚠️</i>`;
           vBadge.title = t('verNoVersion');
           return;
         }
-        const match = wv === EXPECTED_WORKER_VERSION;
-        const color = match ? '' : 'color:var(--yellow)';
-        const flag  = match ? '' : ' ⚠️';
-        vBadge.innerHTML = `v${APP_VERSION} <i>·</i> <span style="${color}">w${wv}${flag}</span>`;
-        vBadge.title = match
-          ? t('verMatch',    { ui: APP_VERSION, worker: wv })
-          : t('verMismatch', { ui: APP_VERSION, expected: EXPECTED_WORKER_VERSION, worker: wv });
+        if (wv === EXPECTED_WORKER_VERSION) {
+          vBadge.textContent = 'v' + APP_VERSION;
+          vBadge.title = t('verMatch', { v: APP_VERSION });
+        } else {
+          vBadge.innerHTML = `v${APP_VERSION} <i class="pill__warn">⚠️</i>`;
+          vBadge.classList.add('is-warn');
+          vBadge.title = t('verMismatch', { ui: APP_VERSION, worker: wv });
+        }
       } catch (e) {
-        vBadge.innerHTML = `v${APP_VERSION} <i>·</i> <span style="color:var(--red)">${t('verOffline')}</span>`;
+        vBadge.innerHTML = `v${APP_VERSION} <i class="pill__warn">⚠️</i>`;
+        vBadge.classList.add('is-danger');
         vBadge.title = t('verUnreachable', { err: e.message });
       }
     })();
