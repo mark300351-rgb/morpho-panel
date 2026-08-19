@@ -3037,6 +3037,96 @@ body > * { position: relative; z-index: 1; }
   .wmgr__add button { width: 100%; min-height: 46px; }
 }
 
+
+/* ── 跨钱包敞口 ─────────────────────────────────────────
+   全部数值走令牌：间距 4/8/12/14/18/22 · 字号 10.5/11/12/13/15/21
+   · 圆角 6/10/12/14/16/18 · 触控 ≥46 */
+.expo-warn {
+  display: block; padding: 14px 18px; margin-bottom: 18px;
+  border: 1px solid var(--border-danger); border-radius: 14px;
+  background: var(--red-glow); font-size: 12px; color: var(--text-2); line-height: 1.7;
+}
+.expo-warn b { color: var(--red); display: block; margin-bottom: 4px; font-weight: 600; }
+.expo-warn__list { margin-top: 8px; font-family: var(--font-mono-ds); font-size: 11px; color: var(--text-3); }
+
+.expo-head { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+             gap: 14px; margin-bottom: 18px; }
+.expo-head__item {
+  position: relative; overflow: hidden; padding: 14px 18px 18px;
+  border: 1px solid var(--border-subtle); border-radius: 16px;
+  background: var(--glass-weak), var(--bg-card); box-shadow: var(--shadow-card);
+}
+.expo-head__item::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--fire-bright), var(--fire-deep)); }
+.expo-head__v { display: block; margin-top: 8px; font-family: var(--font-mono-ds);
+  font-size: 21px; font-weight: 600; letter-spacing: var(--ls-tightest); color: var(--text-1); }
+.expo-head__s { display: block; margin-top: 4px; font-family: var(--font-mono-ds);
+  font-size: 10.5px; color: var(--text-3); }
+
+.expo-list { display: flex; flex-direction: column; gap: 12px; }
+.expo-row {
+  position: relative; overflow: hidden; padding: 18px;
+  border: 1px solid var(--border-subtle); border-radius: 18px;
+  background: var(--glass-weak), var(--bg-card); box-shadow: var(--shadow-card);
+}
+/* 左侧 2px 严重度轨 —— 和持仓卡的警报轨同语汇 */
+.expo-row--critical { border-color: var(--border-danger); }
+.expo-row--critical::before, .expo-row--warning::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+}
+.expo-row--critical::before {
+  background: linear-gradient(180deg, var(--red), oklch(var(--L-solid) .19 var(--h-danger)/.08));
+  box-shadow: 0 0 16px oklch(var(--L-solid) .19 var(--h-danger)/.75);
+}
+.expo-row--warning::before {
+  background: linear-gradient(180deg, var(--yellow), oklch(var(--L-solid) .15 var(--h-warning)/.08));
+}
+.expo-row__head { display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap; }
+.expo-row__id { min-width: 0; }
+.expo-row__name { font-size: 15px; font-weight: 600; letter-spacing: var(--ls-tight, -.02em);
+  color: var(--text-1); text-decoration: none; }
+a.expo-row__name:hover { color: var(--blue); }
+.expo-row__meta { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+.expo-row__mine { text-align: right; flex-shrink: 0; }
+.expo-row__usd { display: block; font-family: var(--font-mono-ds); font-size: 21px; font-weight: 600;
+  letter-spacing: var(--ls-tightest); color: var(--text-1); }
+.expo-row__sub { display: block; margin-top: 4px; font-family: var(--font-mono-ds);
+  font-size: 10.5px; color: var(--text-3); }
+
+.expo-row__metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-hair); }
+.expo-metric { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.expo-metric__v { font-family: var(--font-mono-ds); font-size: 21px; font-weight: 600;
+  letter-spacing: var(--ls-tightest); color: var(--text-1); }
+.expo-metric__s { font-family: var(--font-mono-ds); font-size: 10.5px; color: var(--text-3); }
+
+.expo-row__parts { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-hair); }
+.expo-part { display: grid; grid-template-columns: minmax(72px, 1fr) 2fr auto auto;
+  align-items: center; gap: 12px; padding: 8px 0; }
+.expo-part__name { font-size: 12px; color: var(--text-2); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.expo-part__bar { height: 6px; border-radius: 999px; background: var(--fill-3); overflow: hidden; }
+.expo-part__bar i { display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--fire-bright), var(--fire-deep)); }
+.expo-part__usd { font-family: var(--font-mono-ds); font-size: 12px; color: var(--text-1);
+  font-variant-numeric: tabular-nums; }
+.expo-part__solo { font-family: var(--font-mono-ds); font-size: 10.5px; color: var(--text-3);
+  min-width: 52px; text-align: right; font-variant-numeric: tabular-nums; }
+.expo-part__note { margin-top: 8px; font-size: 11px; color: var(--text-3); line-height: 1.6; }
+.expo-foot { margin-top: 18px; font-size: 11px; color: var(--text-3); line-height: 1.7; }
+
+@media (max-width: 640px) {
+  .expo-head { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .expo-head__item { padding: 12px 12px 14px; }
+  .expo-head__v { font-size: 17px; }
+  .expo-row { padding: 14px; border-radius: 16px; }
+  .expo-row__usd, .expo-metric__v { font-size: 17px; }
+  .expo-row__metrics { grid-template-columns: 1fr; gap: 12px; }
+  .expo-part { grid-template-columns: 1fr auto; gap: 8px; }
+  .expo-part__bar, .expo-part__solo { display: none; }
+}
+
 /* ── 空状态 —— 规范 .empty__icon 是 40px / .45，不带彩色投影
    （原来 48px + 橙色 drop-shadow，emoji 边上糊一圈橙光，很脏）── */
 .empty-title { font-size: 15px; color: var(--text-1); }
@@ -3587,6 +3677,13 @@ input:focus, select:focus, textarea:focus {
         <span data-i18n="tabGovernance">治理</span>
         <span class="tab-badge" id="governance-badge" style="display:none">0</span>
       </div>
+      <!-- 跨钱包敞口。Mark 最初提的需求：各钱包单看流动性都充足，加起来可能
+           已占某个金库的大头 —— 这时那个金库显示的「可用流动性」对你是假的，
+           你自己就是流动性风险。 -->
+      <div class="tab" onclick="switchTab('exposure')" id="tab-exposure">
+        <span data-i18n="tabExposure">跨钱包敞口</span>
+        <span class="tab-badge" id="exposure-badge" style="display:none">0</span>
+      </div>
       <!-- Sprint 3.1 — Recommendations tab removed. Audit consensus: does not
            fit "personal AI copilot" positioning; users know which vaults they
            want to enter before opening Monitor. Preserved renderRecommendations()
@@ -3669,6 +3766,11 @@ input:focus, select:focus, textarea:focus {
       </div>
     </div>
 
+    <!-- Tab: 跨钱包敞口 -->
+    <div class="tab-content" id="tab-content-exposure">
+      <div id="exposure-container"></div>
+    </div>
+
     <!-- Sprint 3.1 — tab-content-recommendations removed (see comment on
          tab button above). renderRecommendations() function preserved. -->
 
@@ -3692,7 +3794,7 @@ input:focus, select:focus, textarea:focus {
 // ────────────────────────────────────────────
 // Version
 // ────────────────────────────────────────────
-const APP_VERSION = '2.3.1';  // 2026-08-20 — 网络筛选器改紧凑下拉（分段占地且不可拓展）
+const APP_VERSION = '2.4.0';  // 2026-08-20 — 跨钱包敞口镜头（多钱包第一期完成）
 // 前后端统一编号、一起升，所以这里就是 APP_VERSION 本身。
 // 顶栏只显示一个版本号；线上后台报的号跟它不一样时，那个号后面加一个 ⚠️，
 // 具体差在哪写在 title 里 —— 不再并排摆两个数字让人猜该看哪个。
@@ -3732,6 +3834,22 @@ const I18N = {
     welcomeToast:'欢迎使用 Morpho Monitor',
     // 多钱包（第一期）
     walletNPositions:'{n} 个持仓', walletNotFetched:'未查询',
+    // 跨钱包敞口
+    tabExposure:'跨钱包敞口',
+    expoLoading:'正在汇总 {n} 个钱包的持仓…',
+    expoNoWallets:'还没有钱包计入敞口', expoNoWalletsDesc:'在「管理钱包」里勾上「计入跨钱包敞口」',
+    expoEmpty:'这些钱包目前没有持仓', expoEmptyDesc:'先在「持仓」页查一下，或换个钱包',
+    expoTotalTracked:'纳入敞口的总额', expoAcross:'{w} 个钱包 · {v} 个金库',
+    expoFlagged:'需要注意', expoFlaggedSub:'退不全或占比过高',
+    expoCoverage:'退出覆盖率', expoCanExit:'够一次性退出', expoCantExit:'退不全',
+    expoShare:'占金库比例', expoOfTvl:'金库 TVL {tvl}', expoNoTvl:'市场持仓无 TVL 口径',
+    expoExitable:'可退出额度', expoBreakdown:'渠道 {a} · 闲置 {i} · 可赎回 {d}',
+    expoPerWallet:'各钱包贡献', expoNWallets:'{n} 个钱包',
+    expoSoloNote:'右侧是该钱包单看时占金库的比例 —— 单个都不高，加起来才是左边那个数。',
+    expoMarketKind:'市场',
+    expoPartialTitle:'数据不完整，下面的合计偏低',
+    expoPartialDesc:'{ok} / {total} 个钱包取数成功。缺席的钱包不计入合计，所以「安全」的结论此刻不可信。',
+    expoFoot:'退出覆盖率 = 金库可退出额度 ÷ 你在该金库的合计持仓。小于 1× 表示即使把该金库当下能吐出的钱全拿走，也不够你的仓位 —— 这时它显示的「可用流动性」对你是假的。',
     walletPickPrompt:'选择或添加钱包', walletListEmpty:'还没有钱包，下面可以添加',
     walletManage:'管理钱包', walletAdd:'添加', walletDelete:'删除这个钱包',
     walletAdhocPlaceholder:'0x… 粘贴地址临时查一次', walletAdhocGo:'查询',
@@ -3954,6 +4072,21 @@ const I18N = {
     tabAlertsLog:'警報記錄', tabGovernance:'治理',
     welcomeToast:'歡迎使用 Morpho Monitor',
     walletNPositions:'{n} 個持倉', walletNotFetched:'未查詢',
+    tabExposure:'跨錢包敞口',
+    expoLoading:'正在彙總 {n} 個錢包的持倉…',
+    expoNoWallets:'還沒有錢包計入敞口', expoNoWalletsDesc:'在「管理錢包」裡勾上「計入跨錢包敞口」',
+    expoEmpty:'這些錢包目前沒有持倉', expoEmptyDesc:'先在「持倉」頁查一下，或換個錢包',
+    expoTotalTracked:'納入敞口的總額', expoAcross:'{w} 個錢包 · {v} 個金庫',
+    expoFlagged:'需要注意', expoFlaggedSub:'退不全或佔比過高',
+    expoCoverage:'退出覆蓋率', expoCanExit:'夠一次性退出', expoCantExit:'退不全',
+    expoShare:'佔金庫比例', expoOfTvl:'金庫 TVL {tvl}', expoNoTvl:'市場持倉無 TVL 口徑',
+    expoExitable:'可退出額度', expoBreakdown:'管道 {a} · 閒置 {i} · 可贖回 {d}',
+    expoPerWallet:'各錢包貢獻', expoNWallets:'{n} 個錢包',
+    expoSoloNote:'右側是該錢包單看時佔金庫的比例 —— 單個都不高，加起來才是左邊那個數。',
+    expoMarketKind:'市場',
+    expoPartialTitle:'資料不完整，下面的合計偏低',
+    expoPartialDesc:'{ok} / {total} 個錢包取數成功。缺席的錢包不計入合計，所以「安全」的結論此刻不可信。',
+    expoFoot:'退出覆蓋率 = 金庫可退出額度 ÷ 你在該金庫的合計持倉。小於 1× 表示即使把該金庫當下能吐出的錢全拿走，也不夠你的倉位 —— 這時它顯示的「可用流動性」對你是假的。',
     walletPickPrompt:'選擇或新增錢包', walletListEmpty:'還沒有錢包，下面可以新增',
     walletManage:'管理錢包', walletAdd:'新增', walletDelete:'刪除這個錢包',
     walletAdhocPlaceholder:'0x… 貼上位址臨時查一次', walletAdhocGo:'查詢',
@@ -4175,6 +4308,21 @@ const I18N = {
     tabAlertsLog:'Alert Log', tabGovernance:'Governance',
     welcomeToast:'Welcome to Morpho Monitor',
     walletNPositions:'{n} positions', walletNotFetched:'not fetched',
+    tabExposure:'Cross-wallet exposure',
+    expoLoading:'Aggregating {n} wallets…',
+    expoNoWallets:'No wallets counted toward exposure', expoNoWalletsDesc:'Tick “Count toward cross-wallet exposure” under Manage wallets',
+    expoEmpty:'These wallets hold nothing right now', expoEmptyDesc:'Fetch on the Positions tab first, or pick another wallet',
+    expoTotalTracked:'Total in scope', expoAcross:'{w} wallets · {v} vaults',
+    expoFlagged:'Needs attention', expoFlaggedSub:'Cannot fully exit, or share too high',
+    expoCoverage:'Exit coverage', expoCanExit:'can exit in full', expoCantExit:'cannot exit in full',
+    expoShare:'Share of vault', expoOfTvl:'vault TVL {tvl}', expoNoTvl:'no TVL basis for market positions',
+    expoExitable:'Exitable now', expoBreakdown:'adapter {a} · idle {i} · deallocatable {d}',
+    expoPerWallet:'Per-wallet contribution', expoNWallets:'{n} wallets',
+    expoSoloNote:'The right column is each wallet’s share on its own — none look high, but together they make the number on the left.',
+    expoMarketKind:'Market',
+    expoPartialTitle:'Incomplete data — the totals below are understated',
+    expoPartialDesc:'{ok} of {total} wallets fetched. Missing wallets are absent from the totals, so a “safe” reading cannot be trusted right now.',
+    expoFoot:'Exit coverage = what the vault can release now ÷ your combined position in it. Below 1× means even draining everything the vault can currently release would not cover your position — at that point its stated “available liquidity” is not real for you.',
     walletPickPrompt:'Pick or add a wallet', walletListEmpty:'No wallets yet — add one below',
     walletManage:'Manage wallets', walletAdd:'Add', walletDelete:'Remove this wallet',
     walletAdhocPlaceholder:'0x… paste an address for a one-off look', walletAdhocGo:'Query',
@@ -8328,6 +8476,258 @@ function switchTab(name) {
   if (name === 'governance') {
     renderGovernanceTab();
   }
+  if (name === 'exposure') {
+    renderExposureTab();
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 跨钱包敞口（多钱包第一期的最后一块）
+// ────────────────────────────────────────────────────────────
+// 要回答的问题：各钱包单看流动性都充足，但它们在**同一个金库**上的持仓
+// 加起来可能已占该金库的大头 —— 这时那个金库显示的「可用流动性」对你是假的，
+// 因为你自己就是流动性风险，退出会把市场砸下去。
+//
+// 两个指标：
+//   集中度     = Σ(参与合计的钱包在此金库的持仓) ÷ 金库 TVL
+//   退出覆盖率 = 金库可退出额度 ÷ Σ(同上)      ← <1 表示拿不全
+//
+// 取数按钱包循环，不做批量：批量要给查询加 user{address} 字段并在返回后
+// 自己做归属，而循环是「问谁就是谁」，零归属风险。N≤5 时 30 次请求 vs
+// 批量 22 次，这点差别不值得为它引入一类新错误。
+// ════════════════════════════════════════════════════════════
+
+const EXPO_SHARE_WARN = 0.20;   // 占金库 TVL 达此比例 → 提示
+let _expoSeq = 0;
+
+/** 取一个钱包的全部持仓（V1 vault / V2 / 市场），失败抛错由上层收集 */
+async function _expoFetchOne(addr) {
+  const [posData, marketPosData, v2Raw] = await Promise.all([
+    gql(VAULT_POSITIONS_QUERY,  { address: addr }),
+    gql(MARKET_POSITIONS_QUERY, { address: addr }),
+    fetchV2Positions(addr),
+  ]);
+  const v1 = (posData?.vaultPositions?.items || [])
+    .filter(p => BigInt(p.state?.shares || '0') > 0n && (p.state?.assetsUsd || 0) >= 1);
+  const v2 = (v2Raw || [])
+    .filter(p => parseSharesToBigInt(p.shares) > 0n && (p.assetsUsd || 0) >= 1);
+  const mk = (marketPosData?.marketPositions?.items || [])
+    .map(p => ({ ...p, ...(p.state || {}) }))
+    .filter(p => (p.supplyAssetsUsd || 0) >= 1);
+  return { v1, v2, mk };
+}
+
+/** 把多个钱包的持仓按「金库 + 链」归并 */
+function _expoAggregate(perWallet) {
+  const byVault = new Map();
+  const put = (key, meta, walletAddr, label, usd) => {
+    if (!byVault.has(key)) byVault.set(key, { ...meta, mine: 0, parts: [] });
+    const e = byVault.get(key);
+    e.mine += usd;
+    const hit = e.parts.find(x => x.address === walletAddr);
+    if (hit) hit.usd += usd;
+    else e.parts.push({ address: walletAddr, label, usd });
+  };
+
+  for (const { wallet, label, data } of perWallet) {
+    for (const p of data.v1) {
+      const v = p.vault; if (!v) continue;
+      put(`v1:${(v.address || '').toLowerCase()}:${v.chain?.id}`, {
+        kind: 'v1', name: v.name, address: v.address,
+        chain: v.chain?.network, chainId: v.chain?.id,
+        asset: v.asset?.symbol,
+        tvl: v.state?.totalAssetsUsd || 0,
+        exitable: getV1TotalLiquidity(v),
+        breakdown: getV1LiquidityBreakdown(v),
+      }, wallet, label, p.state?.assetsUsd || 0);
+    }
+    for (const p of data.v2) {
+      const v = p.vault; if (!v) continue;
+      put(`v2:${(v.address || '').toLowerCase()}:${v.chain?.id || p._chainId}`, {
+        kind: 'v2', name: v.name, address: v.address,
+        chain: v.chain?.network, chainId: v.chain?.id || p._chainId,
+        asset: v.asset?.symbol,
+        tvl: v.totalAssetsUsd || 0,
+        exitable: getV2TotalLiquidity(v),
+        breakdown: getV2LiquidityBreakdown(v),
+      }, wallet, label, p.assetsUsd || 0);
+    }
+    // 市场持仓：没有「金库 TVL」概念，集中度不适用，只算退出覆盖率
+    for (const p of data.mk) {
+      const m = p.market; if (!m) continue;
+      put(`mk:${(m.marketId || '').toLowerCase()}:${m.chain?.id}`, {
+        kind: 'market',
+        name: `${m.collateralAsset?.symbol || '?'} / ${m.loanAsset?.symbol || '?'}`,
+        address: m.marketId, chain: m.chain?.network, chainId: m.chain?.id,
+        asset: m.loanAsset?.symbol,
+        tvl: 0,
+        exitable: m.state?.liquidityAssetsUsd || 0,
+        breakdown: null,
+      }, wallet, label, p.supplyAssetsUsd || 0);
+    }
+  }
+
+  return [...byVault.values()].map(e => ({
+    ...e,
+    share:    e.tvl > 0 ? e.mine / e.tvl : null,
+    coverage: e.mine > 0 ? e.exitable / e.mine : null,
+    parts:    e.parts.sort((a, b) => b.usd - a.usd),
+  }));
+}
+
+function _expoSeverity(row) {
+  if (row.coverage != null && row.coverage < 1)              return 'critical';
+  if (row.share    != null && row.share >= EXPO_SHARE_WARN)  return 'warning';
+  return 'ok';
+}
+
+async function renderExposureTab() {
+  const box = document.getElementById('exposure-container');
+  if (!box) return;
+  const seq = ++_expoSeq;
+
+  const wallets = wsAggregated();
+  if (!wallets.length) {
+    box.innerHTML = `<div class="empty-state">
+      <div class="empty-title">${escHtml(t('expoNoWallets'))}</div>
+      <div class="empty-desc">${escHtml(t('expoNoWalletsDesc'))}</div></div>`;
+    updateExposureBadge(0);
+    return;
+  }
+
+  box.innerHTML = `<div class="loader-wrap"><div class="spinner"></div>
+    <div>${escHtml(t('expoLoading', { n: wallets.length }))}</div></div>`;
+
+  // allSettled —— 一个钱包失败不能让整页空白，但**也不能假装没失败**：
+  // 缺席的钱包会让合计敞口偏低，算出一个虚假的「安全」。这比漏报更危险，
+  // 因为你会以为已经检查过了。所以失败的钱包要点名列出来。
+  const results = await Promise.allSettled(
+    wallets.map(w => _expoFetchOne(w.address).then(data => ({ wallet: w.address, label: w.label, data })))
+  );
+  if (seq !== _expoSeq) return;   // 期间又切了一次，这批数据已过期
+
+  const ok     = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+  const failed = wallets.filter((w, i) => results[i].status === 'rejected');
+
+  const rows = _expoAggregate(ok).sort((a, b) => {
+    const rank = { critical: 0, warning: 1, ok: 2 };
+    const d = rank[_expoSeverity(a)] - rank[_expoSeverity(b)];
+    return d !== 0 ? d : b.mine - a.mine;
+  });
+
+  const flagged = rows.filter(r => _expoSeverity(r) !== 'ok').length;
+  updateExposureBadge(flagged);
+
+  const incomplete = failed.length > 0 ? `
+    <div class="expo-warn">
+      <b>${escHtml(t('expoPartialTitle'))}</b>
+      ${escHtml(t('expoPartialDesc', { ok: ok.length, total: wallets.length }))}
+      <div class="expo-warn__list">${failed.map(w => escHtml(w.label)).join(' · ')}</div>
+    </div>` : '';
+
+  if (!rows.length) {
+    box.innerHTML = incomplete + `<div class="empty-state">
+      <div class="empty-title">${escHtml(t('expoEmpty'))}</div>
+      <div class="empty-desc">${escHtml(t('expoEmptyDesc'))}</div></div>`;
+    return;
+  }
+
+  const totalMine = rows.reduce((s, r) => s + r.mine, 0);
+
+  box.innerHTML = incomplete + `
+    <div class="expo-head">
+      <div class="expo-head__item">
+        <span class="label">${escHtml(t('expoTotalTracked'))}</span>
+        <span class="expo-head__v">${fmtUSD(totalMine)}</span>
+        <span class="expo-head__s">${escHtml(t('expoAcross', { w: ok.length, v: rows.length }))}</span>
+      </div>
+      <div class="expo-head__item">
+        <span class="label">${escHtml(t('expoFlagged'))}</span>
+        <span class="expo-head__v" style="color:${flagged ? 'var(--red)' : 'var(--green)'}">${flagged}</span>
+        <span class="expo-head__s">${escHtml(t('expoFlaggedSub'))}</span>
+      </div>
+    </div>
+    <div class="expo-list">
+      ${rows.map(r => {
+        const sev = _expoSeverity(r);
+        const sharePct = r.share != null ? (r.share * 100) : null;
+        const cov = r.coverage;
+        const covPct = cov != null ? Math.min(cov, 9.99) : null;
+        const link = r.kind === 'market'
+          ? null
+          : `https://app.morpho.org/${morphoChainSlug(r.chainId, r.chain)}/vault/${r.address}`;
+        return `
+        <div class="expo-row expo-row--${sev}">
+          <div class="expo-row__head">
+            <div class="expo-row__id">
+              ${link ? `<a class="expo-row__name" href="${link}" target="_blank" rel="noopener">${escHtml(r.name)}</a>`
+                     : `<span class="expo-row__name">${escHtml(r.name)}</span>`}
+              <span class="expo-row__meta">
+                <span class="badge badge-gray">${escHtml(r.asset || '')}</span>
+                <!-- networkLabel() 返回含链 logo SVG 的 HTML，全项目所有调用方都
+                     直接插入不转义 —— 我一开始包了 escHtml，结果把 SVG 源码
+                     当文字打印出来了。 -->
+                <span class="badge badge-blue">${networkLabel(r.chain)}</span>
+                ${r.kind === 'v2' ? '<span class="badge badge-purple">V2</span>' : ''}
+                ${r.kind === 'market' ? `<span class="badge badge-gray">${escHtml(t('expoMarketKind'))}</span>` : ''}
+              </span>
+            </div>
+            <div class="expo-row__mine">
+              <span class="expo-row__usd">${fmtUSD(r.mine)}</span>
+              <span class="expo-row__sub">${escHtml(t('expoNWallets', { n: r.parts.length }))}</span>
+            </div>
+          </div>
+
+          <div class="expo-row__metrics">
+            <div class="expo-metric">
+              <span class="label">${escHtml(t('expoCoverage'))}</span>
+              <span class="expo-metric__v" style="color:${cov == null ? 'var(--text-3)' : cov < 1 ? 'var(--red)' : cov < 2 ? 'var(--yellow)' : 'var(--green)'}">
+                ${cov == null ? '—' : covPct.toFixed(2) + '×'}
+              </span>
+              <span class="expo-metric__s">${cov == null ? '' : escHtml(cov < 1 ? t('expoCantExit') : t('expoCanExit'))}</span>
+            </div>
+            <div class="expo-metric">
+              <span class="label">${escHtml(t('expoShare'))}</span>
+              <span class="expo-metric__v" style="color:${sharePct == null ? 'var(--text-3)' : sharePct >= EXPO_SHARE_WARN * 100 ? 'var(--yellow)' : 'var(--text-1)'}">
+                ${sharePct == null ? '—' : sharePct.toFixed(2) + '%'}
+              </span>
+              <span class="expo-metric__s">${r.tvl ? escHtml(t('expoOfTvl', { tvl: fmtUSDShort(r.tvl) })) : escHtml(t('expoNoTvl'))}</span>
+            </div>
+            <div class="expo-metric">
+              <span class="label">${escHtml(t('expoExitable'))}</span>
+              <span class="expo-metric__v">${fmtUSD(r.exitable)}</span>
+              ${r.breakdown ? `<span class="expo-metric__s mono-dim">${
+                escHtml(t('expoBreakdown', {
+                  a: fmtUSDShort(r.breakdown.adapterLiq ?? r.breakdown.marketLiq ?? 0),
+                  i: fmtUSDShort(r.breakdown.idleLiq ?? 0),
+                  d: fmtUSDShort(r.breakdown.deallocatableLiq ?? 0),
+                }))}</span>` : ''}
+            </div>
+          </div>
+
+          <div class="expo-row__parts">
+            <span class="label">${escHtml(t('expoPerWallet'))}</span>
+            ${r.parts.map(pt => `
+              <div class="expo-part">
+                <span class="expo-part__name">${escHtml(pt.label)}</span>
+                <span class="expo-part__bar"><i style="width:${(pt.usd / r.mine * 100).toFixed(1)}%"></i></span>
+                <span class="expo-part__usd">${fmtUSD(pt.usd)}</span>
+                <span class="expo-part__solo">${r.tvl ? (pt.usd / r.tvl * 100).toFixed(2) + '%' : '—'}</span>
+              </div>`).join('')}
+            ${r.parts.length > 1 && r.tvl ? `<div class="expo-part__note">${escHtml(t('expoSoloNote'))}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="expo-foot">${escHtml(t('expoFoot'))}</div>`;
+}
+
+function updateExposureBadge(n) {
+  const b = document.getElementById('exposure-badge');
+  if (!b) return;
+  b.textContent = n;
+  b.style.display = n > 0 ? 'inline-flex' : 'none';
 }
 
 // ────────────────────────────────────────────
@@ -9113,7 +9513,7 @@ async function renderPnlContent() {
     <div class="pnl-tx-row ${tx.type}">
       <div class="pnl-tx-date">${dateStr}</div>
       <div class="pnl-tx-type">${isDeposit ? t('pnlTxDeposit') : t('pnlTxWithdraw')}</div>
-      <div class="pnl-tx-vault">${escHtml(tx.vaultName)}${v2Badge}<small>${escHtml(tx.assetSymbol)} · ${escHtml(networkLabel(tx.chainNetwork))}</small></div>
+      <div class="pnl-tx-vault">${escHtml(tx.vaultName)}${v2Badge}<small>${escHtml(tx.assetSymbol)} · ${networkLabel(tx.chainNetwork)}</small></div>
       <div class="pnl-tx-amount ${amtClass}">${amtSign}${(parseFloat(tx.assetsRaw) / Math.pow(10, tx.decimals)).toLocaleString('en-US', {maximumFractionDigits: 4})} ${escHtml(tx.assetSymbol)}</div>
       <div class="pnl-tx-hash">${shortHash ? `<a href="${explorerBase}${tx.hash}" target="_blank" title="${tx.hash}">${shortHash}</a>` : ''}</div>
     </div>`;
