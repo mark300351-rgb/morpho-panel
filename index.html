@@ -2730,6 +2730,183 @@ body > * { position: relative; z-index: 1; }
   .cors-actions .btn { width: 100%; min-height: 46px; }
 }
 
+/* ── 钱包切换器 ─────────────────────────────────────────
+   落在查询面板第一格，原地替换原来的地址输入框（输入框改 hidden
+   保留取值接口）。浮层用 position:fixed —— 查询面板有 overflow:hidden
+   （为了那条顶部品牌发丝线），absolute 定位的浮层会被裁掉。
+   照抄网络下拉的做法，但补两点它没有的：滚动/改窗时重定位、
+   贴近视口底部时向上翻转。 */
+.w-switch { position: relative; width: 100%; user-select: none; }
+.w-switch__trigger {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px; min-height: 44px;
+  background: var(--fill-1); border: 1px solid var(--border-subtle);
+  border-radius: 12px; cursor: pointer;
+  transition: border-color var(--dur-fast), background var(--dur-fast);
+}
+.w-switch__trigger:hover { border-color: var(--border-strong); background: var(--fill-2); }
+.w-switch__trigger.is-open { border-color: var(--blue); background: var(--fill-2); }
+.w-switch__trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-0), 0 0 0 4px oklch(var(--L-solid) .18 var(--h-brand)/.85);
+}
+.w-switch__label { font-size: 13px; color: var(--text-1); white-space: nowrap;
+                   overflow: hidden; text-overflow: ellipsis; }
+.w-switch__addr  { font-size: 11px; flex-shrink: 0; }
+.w-switch__arrow { margin-left: auto; font-size: 10px; color: var(--text-3);
+                   transition: transform var(--dur-fast); flex-shrink: 0; }
+.w-switch__trigger.is-open .w-switch__arrow { transform: rotate(180deg); }
+
+.w-switch__menu {
+  position: fixed; z-index: 9999; display: none;
+  background: var(--glass-strong), var(--bg-card);
+  border: 1px solid var(--border-strong); border-radius: 12px;
+  box-shadow: var(--shadow-float); overflow: hidden;
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+}
+.w-switch__menu.is-open { display: block; animation: themeMenuIn .14s var(--ease-out) both; }
+.w-switch__list { max-height: 46vh; overflow-y: auto; }
+.w-switch__item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; cursor: pointer; border: 0; width: 100%;
+  background: none; text-align: left; font-family: inherit;
+  transition: background var(--dur-fast);
+}
+.w-switch__item:hover { background: var(--fill-2); }
+.w-switch__item.is-on { background: var(--blue-glow); }
+.w-switch__tick { width: 12px; flex-shrink: 0; font-style: normal; font-size: 11px;
+                  color: var(--blue); opacity: 0; }
+.w-switch__item.is-on .w-switch__tick { opacity: 1; }
+.w-switch__name { font-size: 13px; color: var(--text-1); overflow: hidden;
+                  text-overflow: ellipsis; white-space: nowrap; }
+.w-switch__meta { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.w-switch__tag {
+  font-family: var(--font-mono-ds); font-size: 9.5px; padding: 1px 5px;
+  border-radius: 4px; white-space: nowrap;
+  background: var(--fill-3); color: var(--text-3); border: 1px solid var(--border-subtle);
+}
+.w-switch__tag--watch { color: var(--purple); border-color: oklch(var(--L-solid) .12 var(--h-accent)/.35);
+                        background: oklch(var(--L-solid) .12 var(--h-accent)/.10); }
+.w-switch__adhoc {
+  display: flex; gap: 6px; padding: 10px 12px;
+  border-top: 1px solid var(--border-subtle); background: var(--fill-1);
+}
+.w-switch__adhoc-input {
+  flex: 1; min-width: 0; background: var(--bg-0);
+  border: 1px solid var(--border-subtle); border-radius: 8px;
+  padding: 8px 10px; color: var(--text-1);
+  font-family: var(--font-mono-ds); font-size: 11.5px; outline: none;
+}
+.w-switch__adhoc-input:focus { border-color: var(--border-strong); }
+.w-switch__adhoc-btn {
+  flex-shrink: 0; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--border-subtle); background: var(--fill-2);
+  color: var(--text-1); cursor: pointer; font-family: inherit; font-size: 12px;
+}
+.w-switch__adhoc-btn:hover { background: var(--fill-3); border-color: var(--border-strong); }
+.w-switch__manage {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 11px 14px; border: 0; border-top: 1px solid var(--border-subtle);
+  background: none; color: var(--text-2); cursor: pointer;
+  font-family: inherit; font-size: 12px; text-align: left;
+}
+.w-switch__manage:hover { background: var(--fill-2); color: var(--text-1); }
+.w-switch__count { margin-left: auto; font-family: var(--font-mono-ds);
+                   font-size: 10.5px; color: var(--text-3); }
+.w-switch__empty { padding: 16px 14px; font-size: 12px; color: var(--text-3); text-align: center; }
+
+/* ── 钱包管理弹窗 ───────────────────────────────────────
+   复用治理弹窗的视觉与响应式（480px 以下变底部抽屉），但用独立的 host：
+   治理弹窗的 closeGovModal 会 innerHTML='' 清空内容，共用会互相干扰。
+   所有改动**即时保存**，所以没有未保存状态需要拦截。 */
+.wmgr-backdrop {
+  position: fixed; inset: 0; z-index: 10000; display: none;
+  align-items: center; justify-content: center; padding: 24px 16px;
+  background: oklch(8% .02 265/.62);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.wmgr-backdrop.is-open { display: flex; }
+.wmgr {
+  width: 100%; max-width: 560px; max-height: 86%;
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--glass-strong), var(--bg-card);
+  border: 1px solid var(--border-strong); border-radius: 18px;
+  box-shadow: var(--shadow-float);
+  animation: gmIn .16s var(--ease-out);
+}
+@keyframes gmIn { from { opacity:0; transform: translateY(12px) scale(.98) } to { opacity:1; transform:none } }
+.wmgr__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid var(--border-subtle); background: var(--fill-1);
+}
+.wmgr__title { font-size: 14px; color: var(--text-1); }
+/* 44px —— 原来治理弹窗的关闭按钮是 26px，触屏上按不准 */
+.wmgr__close {
+  flex-shrink: 0; width: 44px; height: 44px; border-radius: 10px;
+  border: 1px solid var(--border-subtle); background: var(--fill-1);
+  color: var(--text-2); cursor: pointer; font-size: 15px; display: grid; place-items: center;
+}
+.wmgr__close:hover { background: var(--fill-2); color: var(--text-1); border-color: var(--border-strong); }
+.wmgr__body { padding: 14px 18px 18px; overflow-y: auto; }
+.wmgr__row {
+  border: 1px solid var(--border-subtle); border-radius: 12px;
+  background: var(--fill-1); padding: 12px 14px; margin-bottom: 10px;
+}
+.wmgr__row.is-current { border-color: var(--border-brand, oklch(var(--L-solid) .16 var(--h-brand)/.45)); }
+.wmgr__rowhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wmgr__labelinput {
+  flex: 1; min-width: 120px; background: var(--bg-0);
+  border: 1px solid var(--border-subtle); border-radius: 8px;
+  padding: 7px 10px; color: var(--text-1); font-family: inherit; font-size: 13px; outline: none;
+}
+.wmgr__labelinput:focus { border-color: var(--border-strong); }
+.wmgr__addr { font-family: var(--font-mono-ds); font-size: 10.5px; color: var(--text-3); }
+.wmgr__del {
+  flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;
+  border: 1px solid var(--border-subtle); background: var(--fill-1);
+  color: var(--text-3); cursor: pointer; font-size: 13px;
+}
+.wmgr__del:hover { color: var(--red); border-color: var(--border-danger); background: var(--red-glow); }
+.wmgr__opts { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+.wmgr__chk { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+             color: var(--text-2); cursor: pointer; min-height: 32px; }
+.wmgr__chk input { width: 16px; height: 16px; accent-color: var(--blue); cursor: pointer; }
+.wmgr__th { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.wmgr__thcell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.wmgr__thcell span { font-family: var(--font-mono-ds); font-size: 9.5px;
+                     text-transform: uppercase; letter-spacing: var(--ls-cjk-wide); color: var(--text-3); }
+.wmgr__thcell input {
+  background: var(--bg-0); border: 1px solid var(--border-subtle); border-radius: 8px;
+  padding: 7px 9px; color: var(--text-1); font-family: var(--font-mono-ds);
+  font-size: 12px; outline: none; min-width: 0;
+}
+.wmgr__thcell input:focus { border-color: var(--border-strong); }
+.wmgr__add { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px;
+             padding-top: 14px; border-top: 1px solid var(--border-hair); }
+.wmgr__add input {
+  flex: 1; min-width: 200px; background: var(--bg-0);
+  border: 1px solid var(--border-subtle); border-radius: 8px; padding: 9px 11px;
+  color: var(--text-1); font-family: var(--font-mono-ds); font-size: 12px; outline: none;
+}
+.wmgr__foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+              margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-hair); }
+.wmgr__maxbox { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
+.wmgr__maxbox input {
+  width: 62px; background: var(--bg-0); border: 1px solid var(--border-subtle);
+  border-radius: 8px; padding: 6px 8px; color: var(--text-1);
+  font-family: var(--font-mono-ds); font-size: 12px; outline: none; text-align: center;
+}
+.wmgr__hint { font-size: 11px; color: var(--text-3); line-height: 1.5; margin-top: 8px; }
+@media (max-width: 480px) {
+  .wmgr-backdrop { padding: 0; align-items: flex-end; }
+  .wmgr { max-width: none; max-height: 90%; border-radius: 18px 18px 0 0;
+          padding-bottom: env(safe-area-inset-bottom); }
+  .wmgr__th { grid-template-columns: 1fr; }
+  .wmgr__add input { min-width: 0; }
+  .wmgr__add button { width: 100%; min-height: 46px; }
+}
+
 /* ── 空状态 —— 规范 .empty__icon 是 40px / .45，不带彩色投影
    （原来 48px + 橙色 drop-shadow，emoji 边上糊一圈橙光，很脏）── */
 .empty-icon { font-size: 40px; opacity: .45; filter: none; margin-bottom: 14px; }
@@ -2990,6 +3167,10 @@ input:focus, select:focus, textarea:focus {
 
 /* ── N. 动效可访问性 ─────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
+  /* 弹窗/浮层的入场动画会改 transform（scale .98 + translateY）。动画一旦
+     不推进就会卡在起始帧上，元素永远小 2%、偏 12px。关掉动画时必须让
+     基态就是最终态 —— 这两个组件的基态本来就没有 transform，所以直接关。 */
+  .wmgr, .w-switch__menu, .theme-menu, .gov-modal { animation: none !important; }
   body::after { animation: none; }
   .btn::after { transition: none; }
   .stat-card:hover, .vault-card:hover { transform: none; }
@@ -3072,7 +3253,32 @@ input:focus, select:focus, textarea:focus {
       <div class="input-row">
         <div class="field-group wide">
           <label data-i18n="labelWallet">钱包地址</label>
-          <input type="text" id="wallet-input" data-i18n="placeholderWallet" data-i18n-attr="placeholder" placeholder="0x... 输入以太坊钱包地址" />
+          <!-- 隐藏输入框保留 .value 接口（照抄上面网络选择器的先例）——
+               这样 saveSettings / fetchPositions / bgmGetConfig / Telegram 测试
+               等 10 处 getElementById('wallet-input').value 一处都不用改。 -->
+          <input type="hidden" id="wallet-input" value="">
+          <div class="w-switch" id="w-switch">
+            <div class="w-switch__trigger" id="w-switch-trigger" onclick="toggleWalletSwitch(event)"
+                 role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+              <span class="w-switch__label" id="w-switch-label" data-i18n="walletPickPrompt">选择或添加钱包</span>
+              <span class="w-switch__addr mono-dim" id="w-switch-addr"></span>
+              <span class="w-switch__arrow">▾</span>
+            </div>
+            <div class="w-switch__menu" id="w-switch-menu" role="listbox">
+              <div class="w-switch__list" id="w-switch-list"></div>
+              <div class="w-switch__adhoc">
+                <input type="text" id="w-adhoc-input" class="w-switch__adhoc-input"
+                       data-i18n="walletAdhocPlaceholder" data-i18n-attr="placeholder"
+                       placeholder="0x… 粘贴地址临时查一次">
+                <button type="button" class="w-switch__adhoc-btn" onclick="walletAdhocQuery()"
+                        data-i18n="walletAdhocGo">查询</button>
+              </div>
+              <button type="button" class="w-switch__manage" onclick="openWalletManager()">
+                <span data-i18n="walletManage">管理钱包</span>
+                <span class="w-switch__count" id="w-switch-count"></span>
+              </button>
+            </div>
+          </div>
         </div>
         <div class="field-group narrow">
           <label data-i18n="labelNetwork">网络</label>
@@ -3371,7 +3577,7 @@ input:focus, select:focus, textarea:focus {
 // ────────────────────────────────────────────
 // Version
 // ────────────────────────────────────────────
-const APP_VERSION = '2.1.1';  // 2026-08-19 — 修四个切地址时出错数的 bug（多钱包前置）
+const APP_VERSION = '2.2.0';  // 2026-08-19 — 多钱包第一期：清单 + 切换器 + 每钱包阈值
 // 前后端统一编号、一起升，所以这里就是 APP_VERSION 本身。
 // 顶栏只显示一个版本号；线上后台报的号跟它不一样时，那个号后面加一个 ⚠️，
 // 具体差在哪写在 title 里 —— 不再并排摆两个数字让人猜该看哪个。
@@ -3409,6 +3615,21 @@ const I18N = {
     tabPositions:'持仓', tabYield:'收益率曲线', tabPnl:'收益计算', 
     tabAlertsLog:'警报记录', tabGovernance:'治理',
     welcomeToast:'欢迎使用 Morpho Monitor',
+    // 多钱包（第一期）
+    walletPickPrompt:'选择或添加钱包', walletListEmpty:'还没有钱包，下面可以添加',
+    walletManage:'管理钱包', walletAdd:'添加', walletDelete:'删除这个钱包',
+    walletAdhocPlaceholder:'0x… 粘贴地址临时查一次', walletAdhocGo:'查询',
+    walletAdhocToast:'临时查询 {addr}（未加入清单）',
+    walletLabelPlaceholder:'备注名（可选）', walletLabelAria:'钱包备注名', walletAddAria:'新钱包地址',
+    walletOwn:'我自己的钱包', walletInAgg:'计入跨钱包敞口',
+    walletWatchShort:'观察', walletNoAggShort:'不计入',
+    walletThLiq:'流动性警戒线', walletThApy:'APY 警戒线', walletThHf:'健康因子警戒线',
+    walletMax:'钱包数上限', walletAdded:'已添加',
+    walletDup:'这个地址已经在清单里了', walletLimit:'已达上限 {max} 个，可在下方调高',
+    walletDelConfirm:'删除「{name}」？只删本机清单，不会动服务器上的后台监控。',
+    walletAggHint:'「计入跨钱包敞口」决定这个钱包是否参与同一金库的持仓叠加计算。取消勾选后，它在敞口视图里整体不出现。',
+    walletWatchHint:'观察钱包（不是你自己的）不允许订阅后台监控，也不计入敞口。',
+    walletWatchNoSub:'观察钱包不能订阅后台监控。如果这是你自己的钱包，请在「管理钱包」里勾上「我自己的钱包」。',
     thresholdLabel:'阈值', emptyPnl:'查询持仓后查看收益计算',
     toastProxySwitched:'🔄 已切换代理模式（{name}）', toastProxyNoInput:'找不到代理输入框',
     toastProxyEmpty:'请先输入代理 URL', toastProxyScheme:'代理 URL 必须以 http:// 或 https:// 开头',
@@ -3616,6 +3837,20 @@ const I18N = {
     tabPositions:'持倉', tabYield:'收益率曲線', tabPnl:'收益計算', 
     tabAlertsLog:'警報記錄', tabGovernance:'治理',
     welcomeToast:'歡迎使用 Morpho Monitor',
+    walletPickPrompt:'選擇或新增錢包', walletListEmpty:'還沒有錢包，下面可以新增',
+    walletManage:'管理錢包', walletAdd:'新增', walletDelete:'刪除這個錢包',
+    walletAdhocPlaceholder:'0x… 貼上位址臨時查一次', walletAdhocGo:'查詢',
+    walletAdhocToast:'臨時查詢 {addr}（未加入清單）',
+    walletLabelPlaceholder:'備註名（選填）', walletLabelAria:'錢包備註名', walletAddAria:'新錢包位址',
+    walletOwn:'我自己的錢包', walletInAgg:'計入跨錢包敞口',
+    walletWatchShort:'觀察', walletNoAggShort:'不計入',
+    walletThLiq:'流動性警戒線', walletThApy:'APY 警戒線', walletThHf:'健康因子警戒線',
+    walletMax:'錢包數上限', walletAdded:'已新增',
+    walletDup:'這個位址已經在清單裡了', walletLimit:'已達上限 {max} 個，可在下方調高',
+    walletDelConfirm:'刪除「{name}」？只刪本機清單，不會動伺服器上的後台監控。',
+    walletAggHint:'「計入跨錢包敞口」決定這個錢包是否參與同一金庫的持倉疊加計算。取消勾選後，它在敞口檢視裡整體不出現。',
+    walletWatchHint:'觀察錢包（不是你自己的）不允許訂閱後台監控，也不計入敞口。',
+    walletWatchNoSub:'觀察錢包不能訂閱後台監控。如果這是你自己的錢包，請在「管理錢包」裡勾上「我自己的錢包」。',
     thresholdLabel:'閾值', emptyPnl:'查詢持倉後查看收益計算',
     toastProxySwitched:'🔄 已切換代理模式（{name}）', toastProxyNoInput:'找不到代理輸入框',
     toastProxyEmpty:'請先輸入代理 URL', toastProxyScheme:'代理 URL 必須以 http:// 或 https:// 開頭',
@@ -3822,6 +4057,20 @@ const I18N = {
     tabPositions:'Positions', tabYield:'Return Rate', tabPnl:'P&L', 
     tabAlertsLog:'Alert Log', tabGovernance:'Governance',
     welcomeToast:'Welcome to Morpho Monitor',
+    walletPickPrompt:'Pick or add a wallet', walletListEmpty:'No wallets yet — add one below',
+    walletManage:'Manage wallets', walletAdd:'Add', walletDelete:'Remove this wallet',
+    walletAdhocPlaceholder:'0x… paste an address for a one-off look', walletAdhocGo:'Query',
+    walletAdhocToast:'One-off query for {addr} (not saved to your list)',
+    walletLabelPlaceholder:'Label (optional)', walletLabelAria:'Wallet label', walletAddAria:'New wallet address',
+    walletOwn:'My own wallet', walletInAgg:'Count toward cross-wallet exposure',
+    walletWatchShort:'watching', walletNoAggShort:'excluded',
+    walletThLiq:'Liquidity floor', walletThApy:'APY floor', walletThHf:'Health-factor floor',
+    walletMax:'Wallet limit', walletAdded:'Added',
+    walletDup:'That address is already in your list', walletLimit:'Limit of {max} reached — raise it below',
+    walletDelConfirm:'Remove “{name}”? This only clears your local list; it does not stop server-side monitoring.',
+    walletAggHint:'“Count toward cross-wallet exposure” decides whether this wallet joins the per-vault position totals. Unchecked, it is absent from the exposure view entirely.',
+    walletWatchHint:'Watch-only wallets (not yours) cannot subscribe to background monitoring and are excluded from exposure.',
+    walletWatchNoSub:'Watch-only wallets cannot subscribe to background monitoring. If this is your own wallet, tick “My own wallet” under Manage wallets.',
     thresholdLabel:'Thresholds', emptyPnl:'Fetch positions to see P&L',
     toastProxySwitched:'🔄 Switched to proxy mode ({name})', toastProxyNoInput:'Proxy input not found',
     toastProxyEmpty:'Enter a proxy URL first', toastProxyScheme:'Proxy URL must start with http:// or https://',
@@ -5834,6 +6083,430 @@ async function sendManualAlert() {
 // ────────────────────────────────────────────
 // Fetch Positions
 // ────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// 钱包清单（多钱包第一期）
+// ───────────────────────────────────────────────────────────
+// 存在独立的键 mm-wallets 里，不塞进 morpho_monitor_settings ——
+// 那个 blob 里混着 bot token 和阈值，往里加数组只会让迁移更难。
+//
+// 迁移是**单向一次性**的：老键里的单个 wallet 字符串转成一条记录，
+// 写个 migrated 标记，之后再也不读老键。刻意不做双向同步 ——
+// 老键会被每次查询持续写入（saveSettings），双向吸收会让删掉的钱包
+// 自己复活，还会把「临时查一眼的陌生地址」永久写进清单。
+// 老键继续被写，只作为旧版页面的兜底。
+// ═══════════════════════════════════════════════════════════
+const WALLETS_KEY = 'mm-wallets';
+const WALLETS_DEFAULT_MAX = 5;
+
+const WSTORE = {
+  version: 1,
+  migrated: false,
+  maxWallets: WALLETS_DEFAULT_MAX,
+  current: '',          // 当前选中的地址（小写）
+  wallets: [],          // { address, label, inAggregate, own, thresholds }
+};
+
+function wsDefaultThresholds() {
+  return { liquidity: 200000, apy: 5, healthFactor: 1.2 };
+}
+function wsShortLabel(addr) {
+  return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '';
+}
+function wsFind(addr) {
+  const a = (addr || '').toLowerCase();
+  return WSTORE.wallets.find(w => w.address === a) || null;
+}
+function wsCurrent() {
+  return wsFind(WSTORE.current);
+}
+/** 参与合计（敞口镜头）的钱包。观察钱包默认不进。 */
+function wsAggregated() {
+  return WSTORE.wallets.filter(w => w.inAggregate);
+}
+
+function wsSave() {
+  try { localStorage.setItem(WALLETS_KEY, JSON.stringify(WSTORE)); } catch {}
+}
+
+function wsLoad() {
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem(WALLETS_KEY) || 'null'); } catch {}
+
+  if (raw && Array.isArray(raw.wallets)) {
+    WSTORE.version    = raw.version || 1;
+    WSTORE.migrated   = !!raw.migrated;
+    WSTORE.maxWallets = Number(raw.maxWallets) > 0 ? Number(raw.maxWallets) : WALLETS_DEFAULT_MAX;
+    WSTORE.current    = (raw.current || '').toLowerCase();
+    WSTORE.wallets    = raw.wallets
+      .filter(w => w && /^0x[0-9a-fA-F]{40}$/.test(w.address || ''))
+      .map(w => ({
+        address:     w.address.toLowerCase(),
+        label:       (w.label || '').trim() || wsShortLabel(w.address),
+        inAggregate: w.inAggregate !== false,
+        own:         w.own !== false,
+        thresholds:  { ...wsDefaultThresholds(), ...(w.thresholds || {}) },
+      }));
+  }
+
+  // 一次性迁移：老键里的单个地址 → 一条记录
+  if (!WSTORE.migrated) {
+    let legacy = '';
+    try { legacy = (JSON.parse(localStorage.getItem('morpho_monitor_settings') || '{}').wallet || '').trim(); } catch {}
+    if (/^0x[0-9a-fA-F]{40}$/.test(legacy) && !wsFind(legacy)) {
+      // 阈值也从老键搬过来，否则迁移后第一个钱包的阈值会被重置成默认值
+      let th = wsDefaultThresholds();
+      try {
+        const s = JSON.parse(localStorage.getItem('morpho_monitor_settings') || '{}');
+        th = {
+          liquidity:    parseFloat(s.liqThreshold) || th.liquidity,
+          apy:          parseFloat(s.apyThreshold) || th.apy,
+          healthFactor: parseFloat(s.bgmThHf)      || th.healthFactor,
+        };
+      } catch {}
+      WSTORE.wallets.push({
+        address: legacy.toLowerCase(), label: wsShortLabel(legacy),
+        inAggregate: true, own: true, thresholds: th,
+      });
+    }
+    WSTORE.migrated = true;
+    wsSave();
+  }
+
+  // current 必须指向清单里真实存在的一条
+  if (!wsFind(WSTORE.current)) {
+    WSTORE.current = WSTORE.wallets[0]?.address || '';
+  }
+  return WSTORE;
+}
+
+/** 加一个钱包。返回 {ok} 或 {ok:false, reason}。 */
+function wsAdd(address, label, opts = {}) {
+  const a = (address || '').trim();
+  if (!/^0x[0-9a-fA-F]{40}$/.test(a)) return { ok: false, reason: 'invalid' };
+  if (wsFind(a)) return { ok: false, reason: 'duplicate' };
+  if (WSTORE.wallets.length >= WSTORE.maxWallets) return { ok: false, reason: 'limit' };
+  WSTORE.wallets.push({
+    address: a.toLowerCase(),
+    label: (label || '').trim() || wsShortLabel(a),
+    inAggregate: opts.inAggregate !== false,
+    own: opts.own !== false,
+    thresholds: { ...wsDefaultThresholds(), ...(opts.thresholds || {}) },
+  });
+  if (!WSTORE.current) WSTORE.current = a.toLowerCase();
+  wsSave();
+  return { ok: true };
+}
+
+function wsRemove(address) {
+  const a = (address || '').toLowerCase();
+  const i = WSTORE.wallets.findIndex(w => w.address === a);
+  if (i < 0) return false;
+  WSTORE.wallets.splice(i, 1);
+  if (WSTORE.current === a) {
+    WSTORE.current = WSTORE.wallets[0]?.address || '';
+    // 删的是当前钱包时，把老键里的地址同步成新的当前钱包 ——
+    // 否则旧版页面（GitHub Pages 缓存期内）还会加载那个已删除的地址
+    const inp = document.getElementById('wallet-input');
+    if (inp) { inp.value = WSTORE.current; saveSettings(); }
+  }
+  wsSave();
+  return true;
+}
+wsLoad();
+
+// ═══════════════════════════════════════════════════════════
+// 钱包切换器 UI
+// ═══════════════════════════════════════════════════════════
+function renderWalletSwitch() {
+  const trig  = document.getElementById('w-switch-trigger');
+  const lbl   = document.getElementById('w-switch-label');
+  const addr  = document.getElementById('w-switch-addr');
+  const list  = document.getElementById('w-switch-list');
+  const count = document.getElementById('w-switch-count');
+  if (!trig || !list) return;
+
+  const cur = wsCurrent();
+  if (cur) {
+    lbl.textContent  = cur.label;
+    lbl.removeAttribute('data-i18n');       // 别让 applyI18nToDom 覆盖掉钱包名
+    // 没起备注名时，备注名本身就是地址缩写 —— 别把同一个信息显示两遍
+    addr.textContent = cur.label === wsShortLabel(cur.address) ? '' : wsShortLabel(cur.address);
+  } else {
+    lbl.setAttribute('data-i18n', 'walletPickPrompt');
+    lbl.textContent  = t('walletPickPrompt');
+    addr.textContent = '';
+  }
+
+  list.innerHTML = WSTORE.wallets.length
+    ? WSTORE.wallets.map(w => `
+        <button type="button" class="w-switch__item${w.address === WSTORE.current ? ' is-on' : ''}"
+                role="option" aria-selected="${w.address === WSTORE.current}"
+                onclick="selectWallet('${w.address}')">
+          <i class="w-switch__tick">✓</i>
+          <span class="w-switch__name">${escHtml(w.label)}</span>
+          <span class="w-switch__meta">
+            ${w.label === wsShortLabel(w.address) ? '' : `<span class="w-switch__tag">${wsShortLabel(w.address)}</span>`}
+            ${w.own ? '' : `<span class="w-switch__tag w-switch__tag--watch">${escHtml(t('walletWatchShort'))}</span>`}
+            ${w.inAggregate ? '' : `<span class="w-switch__tag">${escHtml(t('walletNoAggShort'))}</span>`}
+          </span>
+        </button>`).join('')
+    : `<div class="w-switch__empty">${escHtml(t('walletListEmpty'))}</div>`;
+
+  if (count) count.textContent = `${WSTORE.wallets.length} / ${WSTORE.maxWallets}`;
+}
+
+function _positionWalletMenu() {
+  const trig = document.getElementById('w-switch-trigger');
+  const menu = document.getElementById('w-switch-menu');
+  if (!trig || !menu || !menu.classList.contains('is-open')) return;
+  const r = trig.getBoundingClientRect();
+
+  // 触发器已经滚出视野 → 关掉菜单，而不是让浮层跟着跑到屏幕外。
+  // 固定定位的浮层如果一味跟随，会出现一个悬在视口外、看不见但仍然
+  // 抢焦点的菜单（实测能跟到 top=-192）。
+  if (r.bottom < 8 || r.top > window.innerHeight - 8) { closeWalletSwitch(); return; }
+
+  menu.style.width = r.width + 'px';
+  menu.style.left  = r.left + 'px';
+  // 贴近视口底部时向上翻转（网络下拉没做这个，浮层会被挤出屏幕）
+  const h = menu.offsetHeight || 260;
+  const below = window.innerHeight - r.bottom;
+  if (below < h + 12 && r.top > h + 12) {
+    menu.style.top = (r.top - h - 6) + 'px';
+  } else {
+    menu.style.top = (r.bottom + 6) + 'px';
+  }
+}
+
+function toggleWalletSwitch(ev) {
+  if (ev) ev.stopPropagation();
+  const trig = document.getElementById('w-switch-trigger');
+  const menu = document.getElementById('w-switch-menu');
+  if (!trig || !menu) return;
+  const open = menu.classList.toggle('is-open');
+  trig.classList.toggle('is-open', open);
+  trig.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open) { renderWalletSwitch(); _positionWalletMenu(); }
+}
+
+function closeWalletSwitch() {
+  const trig = document.getElementById('w-switch-trigger');
+  const menu = document.getElementById('w-switch-menu');
+  if (menu) menu.classList.remove('is-open');
+  if (trig) { trig.classList.remove('is-open'); trig.setAttribute('aria-expanded', 'false'); }
+}
+
+// 滚动/改窗时跟着重定位 —— 固定定位的浮层不会自己跟随
+window.addEventListener('scroll', _positionWalletMenu, { passive: true });
+window.addEventListener('resize', _positionWalletMenu);
+document.addEventListener('click', e => {
+  if (!e.target.closest('#w-switch')) closeWalletSwitch();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeWalletSwitch(); });
+
+/** 切到清单里的某个钱包。这是唯一的切换入口 —— 深链、初始化都走它。 */
+function selectWallet(address, opts = {}) {
+  const w = wsFind(address);
+  if (!w) return;
+  WSTORE.current = w.address;
+  wsSave();
+  const inp = document.getElementById('wallet-input');
+  if (inp) inp.value = w.address;
+  // 阈值输入框跟着这个钱包走（每钱包一套）
+  applyWalletThresholds(w);
+  renderWalletSwitch();
+  closeWalletSwitch();
+  if (opts.fetch !== false) fetchPositions();
+}
+
+/** 临时查一个不在清单里的地址：只查，不入库。 */
+function walletAdhocQuery() {
+  const el = document.getElementById('w-adhoc-input');
+  const a  = (el?.value || '').trim();
+  if (!/^0x[0-9a-fA-F]{40}$/.test(a)) { showToast('error', t('fetchInvalidAddress')); return; }
+  closeWalletSwitch();
+  if (el) el.value = '';
+  // persist:false —— 临时地址不写进设置，也不进清单
+  fetchPositions({ address: a, persist: false });
+  showToast('info', t('walletAdhocToast', { addr: wsShortLabel(a) }));
+}
+
+/** 把某个钱包的阈值填进那三个输入框（它们是 bgmGetConfig 的取值来源）。 */
+function applyWalletThresholds(w) {
+  if (!w) return;
+  const set = (id, v) => { const e = document.getElementById(id); if (e && v != null) e.value = v; };
+  set('liq-threshold', w.thresholds.liquidity);
+  set('apy-threshold', w.thresholds.apy);
+  set('bgm-th-hf',     w.thresholds.healthFactor);
+  if (typeof updateThresholdChip === 'function') updateThresholdChip();
+}
+
+/** 反向：输入框改了 → 写回当前钱包（每钱包一套阈值的持久化） */
+function captureWalletThresholds() {
+  const w = wsCurrent();
+  if (!w) return;
+  const num = (id, d) => parseFloat(document.getElementById(id)?.value) || d;
+  w.thresholds = {
+    liquidity:    num('liq-threshold', 200000),
+    apy:          num('apy-threshold', 5),
+    healthFactor: num('bgm-th-hf',     1.2),
+  };
+  wsSave();
+}
+['liq-threshold', 'apy-threshold', 'bgm-th-hf'].forEach(id => {
+  document.addEventListener('change', e => {
+    if (e.target && e.target.id === id) captureWalletThresholds();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// 钱包管理弹窗 —— 所有改动即时保存，没有「保存」按钮
+// ═══════════════════════════════════════════════════════════
+function openWalletManager() {
+  closeWalletSwitch();
+  let host = document.getElementById('wmgr-host');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'wmgr-host';
+    document.body.appendChild(host);
+  }
+  host.innerHTML = `
+    <div class="wmgr-backdrop is-open" onclick="closeWalletManager(event)">
+      <div class="wmgr" role="dialog" aria-modal="true" aria-label="${escHtml(t('walletManage'))}">
+        <div class="wmgr__head">
+          <div class="wmgr__title">${escHtml(t('walletManage'))}</div>
+          <button type="button" class="wmgr__close" onclick="closeWalletManager(event)"
+                  aria-label="${escHtml(t('btnClose'))}">✕</button>
+        </div>
+        <div class="wmgr__body" id="wmgr-body"></div>
+      </div>
+    </div>`;
+  document.body.style.overflow = 'hidden';
+  renderWalletManager();
+}
+
+function closeWalletManager(ev) {
+  if (ev && ev.target && !ev.target.classList.contains('wmgr-backdrop')
+      && !ev.target.classList.contains('wmgr__close')) return;
+  const host = document.getElementById('wmgr-host');
+  if (host) host.innerHTML = '';
+  document.body.style.overflow = '';
+  renderWalletSwitch();
+}
+
+function renderWalletManager() {
+  const body = document.getElementById('wmgr-body');
+  if (!body) return;
+  const rows = WSTORE.wallets.map(w => `
+    <div class="wmgr__row${w.address === WSTORE.current ? ' is-current' : ''}">
+      <div class="wmgr__rowhead">
+        <input class="wmgr__labelinput" value="${escHtml(w.label)}" maxlength="24"
+               aria-label="${escHtml(t('walletLabelAria'))}"
+               onchange="wmgrSetLabel('${w.address}', this.value)">
+        <span class="wmgr__addr">${wsShortLabel(w.address)}</span>
+        <button type="button" class="wmgr__del" onclick="wmgrRemove('${w.address}')"
+                aria-label="${escHtml(t('walletDelete'))}" title="${escHtml(t('walletDelete'))}">🗑</button>
+      </div>
+      <div class="wmgr__opts">
+        <label class="wmgr__chk">
+          <input type="checkbox" ${w.own ? 'checked' : ''} onchange="wmgrSetOwn('${w.address}', this.checked)">
+          <span>${escHtml(t('walletOwn'))}</span>
+        </label>
+        <label class="wmgr__chk">
+          <input type="checkbox" ${w.inAggregate ? 'checked' : ''} onchange="wmgrSetAgg('${w.address}', this.checked)">
+          <span>${escHtml(t('walletInAgg'))}</span>
+        </label>
+      </div>
+      <div class="wmgr__th">
+        <label class="wmgr__thcell"><span>${escHtml(t('walletThLiq'))}</span>
+          <input type="number" value="${w.thresholds.liquidity}" min="0" step="1000"
+                 onchange="wmgrSetTh('${w.address}','liquidity',this.value)"></label>
+        <label class="wmgr__thcell"><span>${escHtml(t('walletThApy'))}</span>
+          <input type="number" value="${w.thresholds.apy}" min="0" step="0.1"
+                 onchange="wmgrSetTh('${w.address}','apy',this.value)"></label>
+        <label class="wmgr__thcell"><span>${escHtml(t('walletThHf'))}</span>
+          <input type="number" value="${w.thresholds.healthFactor}" min="0" step="0.05"
+                 onchange="wmgrSetTh('${w.address}','healthFactor',this.value)"></label>
+      </div>
+    </div>`).join('');
+
+  const full = WSTORE.wallets.length >= WSTORE.maxWallets;
+  body.innerHTML = `
+    ${rows || `<div class="w-switch__empty">${escHtml(t('walletListEmpty'))}</div>`}
+    <div class="wmgr__add">
+      <input type="text" id="wmgr-new-addr" placeholder="0x…" ${full ? 'disabled' : ''}
+             aria-label="${escHtml(t('walletAddAria'))}">
+      <input type="text" id="wmgr-new-label" placeholder="${escHtml(t('walletLabelPlaceholder'))}"
+             maxlength="24" ${full ? 'disabled' : ''} aria-label="${escHtml(t('walletLabelAria'))}">
+      <button type="button" class="btn btn-secondary" onclick="wmgrAdd()" ${full ? 'disabled' : ''}
+              style="font-size:12px">${escHtml(t('walletAdd'))}</button>
+    </div>
+    <div class="wmgr__foot">
+      <label class="wmgr__maxbox">
+        <span>${escHtml(t('walletMax'))}</span>
+        <input type="number" min="1" max="20" value="${WSTORE.maxWallets}"
+               onchange="wmgrSetMax(this.value)">
+      </label>
+      <span class="wmgr__addr">${WSTORE.wallets.length} / ${WSTORE.maxWallets}</span>
+    </div>
+    <div class="wmgr__hint">${escHtml(t('walletAggHint'))}</div>
+    <div class="wmgr__hint">${escHtml(t('walletWatchHint'))}</div>`;
+}
+
+function wmgrSetLabel(addr, v) {
+  const w = wsFind(addr); if (!w) return;
+  w.label = (v || '').trim() || wsShortLabel(addr);
+  wsSave(); renderWalletSwitch();
+}
+function wmgrSetOwn(addr, on) {
+  const w = wsFind(addr); if (!w) return;
+  w.own = !!on;
+  // 观察钱包不允许订阅后台监控 —— 顺手把它移出合计，避免「别人的钱算进我的敞口」
+  if (!w.own) w.inAggregate = false;
+  wsSave(); renderWalletManager(); renderWalletSwitch();
+}
+function wmgrSetAgg(addr, on) {
+  const w = wsFind(addr); if (!w) return;
+  w.inAggregate = !!on;
+  wsSave(); renderWalletSwitch();
+}
+function wmgrSetTh(addr, key, v) {
+  const w = wsFind(addr); if (!w) return;
+  const n = parseFloat(v);
+  if (!isNaN(n) && n >= 0) w.thresholds[key] = n;
+  wsSave();
+  if (addr === WSTORE.current) applyWalletThresholds(w);   // 当前钱包要同步到输入框
+}
+function wmgrSetMax(v) {
+  const n = parseInt(v, 10);
+  if (!isNaN(n) && n >= 1 && n <= 20) {
+    WSTORE.maxWallets = Math.max(n, WSTORE.wallets.length);  // 不能设得比已有的还少
+    wsSave();
+  }
+  renderWalletManager(); renderWalletSwitch();
+}
+function wmgrAdd() {
+  const a = document.getElementById('wmgr-new-addr')?.value || '';
+  const l = document.getElementById('wmgr-new-label')?.value || '';
+  const r = wsAdd(a, l);
+  if (!r.ok) {
+    showToast('error', t(r.reason === 'duplicate' ? 'walletDup'
+                      : r.reason === 'limit'     ? 'walletLimit'
+                      : 'fetchInvalidAddress', { max: WSTORE.maxWallets }));
+    return;
+  }
+  renderWalletManager(); renderWalletSwitch();
+  showToast('success', t('walletAdded'));
+}
+function wmgrRemove(addr) {
+  const w = wsFind(addr); if (!w) return;
+  if (!confirm(t('walletDelConfirm', { name: w.label }))) return;
+  const wasCurrent = WSTORE.current === w.address;
+  wsRemove(addr);
+  renderWalletManager(); renderWalletSwitch();
+  if (wasCurrent && WSTORE.current) selectWallet(WSTORE.current);
+}
+
 // ── 取数并发守卫 ──────────────────────────────────────────
 // APP.positions 这组数组有**两个**写入方：fetchPositions() 和自动刷新定时器，
 // 两者都在 await 之后才写。谁先发起不代表谁先返回 —— 后发的先回、先发的后回，
@@ -8676,6 +9349,21 @@ document.addEventListener('click', function(e) {
 // Init
 // ────────────────────────────────────────────
 loadSettings();
+
+// 钱包清单接线。loadSettings() 会把老键里的地址写进隐藏输入框，
+// 这里用清单里的 current 覆盖它 —— 清单是唯一真源，老键只作旧版页面兜底。
+// fetch:false —— 初始化时只把界面摆好，不自动发请求（保持原来的行为：
+// 打开页面是空状态，等用户点「查询持仓」；深链是唯一的例外）。
+(function initWalletSwitch() {
+  const cur = wsCurrent();
+  if (cur) {
+    const inp = document.getElementById('wallet-input');
+    if (inp) inp.value = cur.address;
+    applyWalletThresholds(cur);
+  }
+  renderWalletSwitch();
+})();
+
 // F8 — load curator address → display-name map from Morpho API (fire-and-forget).
 // Cached for the session; falls back to hardcoded CURATOR_MAP on failure.
 fetchCurators();
@@ -8954,22 +9642,38 @@ const BGM_API = WORKER_BASE;
 // Check bgm status on load using wallet from loadSettings
 (function initBgmStatus() {
   setTimeout(() => {
-    const wallet = document.getElementById('wallet-input').value.trim();
+    const wallet = document.getElementById('wallet-input').value.trim().toLowerCase();
     if (wallet && /^0x[0-9a-fA-F]{40}$/.test(wallet)) bgmCheckStatus(wallet);
   }, 500);
 })();
 
 function bgmGetConfig() {
+  const wallet = document.getElementById('wallet-input').value.trim().toLowerCase();
+  const w = wsFind(wallet);
   return {
-    wallet: document.getElementById('wallet-input').value.trim(),
+    wallet,
     tgToken: document.getElementById('tg-token').value.trim(),
     tgChatId: document.getElementById('tg-chat').value.trim(),
+    // 后端 handleSubscribe 一直在收 label、Telegram 消息里一直在用 config.label，
+    // 只是前端从没发过，所以推送里显示的是地址缩写。加这一行就变成钱包备注名。
+    label: (w && w.label) || wsShortLabel(wallet),
     thresholds: {
       liquidity: parseFloat(document.getElementById('liq-threshold').value) || 200000,
       apy: parseFloat(document.getElementById('apy-threshold').value) || 5,
       healthFactor: parseFloat(document.getElementById('bgm-th-hf').value) || 1.2,
     }
   };
+}
+
+/** 观察钱包不许订阅后台监控：不该给别人的地址在 Cloudflare 上建常驻轮询，
+ *  那条记录还带着你自己的 bot token；也不该为别人的仓位给你发清算告警。 */
+function bgmGuardWatchOnly() {
+  const w = wsFind(document.getElementById('wallet-input').value.trim().toLowerCase());
+  if (w && !w.own) {
+    showToast('error', t('walletWatchNoSub'));
+    return false;
+  }
+  return true;
 }
 
 function bgmUpdateUI(active) {
@@ -9026,6 +9730,7 @@ async function bgmCheckStatus(wallet) {
 }
 
 async function bgmSubscribe() {
+  if (!bgmGuardWatchOnly()) return;
   const cfg = bgmGetConfig();
   if (!cfg.wallet || !/^0x[0-9a-fA-F]{40}$/.test(cfg.wallet)) {
     showToast('error', t('bgmErrWallet'));
@@ -9058,7 +9763,7 @@ async function bgmSubscribe() {
 }
 
 async function bgmUnsubscribe() {
-  const wallet = document.getElementById('wallet-input').value.trim();
+  const wallet = document.getElementById('wallet-input').value.trim().toLowerCase();
   if (!wallet) return;
   const btn = document.getElementById('bgm-btn-stop');
   btn.disabled = true;
@@ -9082,7 +9787,7 @@ async function bgmUnsubscribe() {
 }
 
 async function bgmTrigger() {
-  const wallet = document.getElementById('wallet-input').value.trim();
+  const wallet = document.getElementById('wallet-input').value.trim().toLowerCase();
   if (!wallet) return;
   const btn = document.getElementById('bgm-btn-trigger');
   btn.disabled = true;
