@@ -2841,49 +2841,89 @@ body > * { position: relative; z-index: 1; }
    网络需要约 453px 才放得下 5 个选项，而它只拿到 180px —— 桌面上也得横滑，
    比原来的下拉更糟。钱包那 902px 是白拿的（它不需要）。按实际需要重分。 */
 @media (min-width: 641px) {
-  .input-row .field-group.wide   { flex: 1 1 460px; min-width: 0; }
-  .input-row .field-group.narrow { flex: 1 1 470px; min-width: 0; }
+  /* 网络回到窄格 —— 换成紧凑下拉后它只需要约 180px。
+     之前为了让 5 个分段选项排得下给了它 470px，把「自动刷新」挤到第二行。 */
+  .input-row .field-group.wide   { flex: 1 1 420px; min-width: 0; }
+  .input-row .field-group.narrow { flex: 0 1 190px; min-width: 0; }
 }
 
-/* ── 网络分段控件（替掉那个下拉）───────────────────────────
-   只有 5 个互斥选项 —— 这是分段控件的定义，不是下拉的。换掉之后
-   浮层、定位计算、z-index、点外面关闭、滚动脱离这一整类问题全没了。
-   复用设计系统 .tabs/.tab 的激活态（渐变 + 内高光 + 橙光晕）。 */
-.netseg {
-  display: flex; gap: 4px; padding: 4px;               /* --sp-1 */
-  border: 1px solid var(--border-subtle); border-radius: 14px;  /* --r-xl */
-  background: var(--fill-1); width: 100%;
-  /* min-width:0 是必须的 —— 作为 flex 项，它默认 min-width:auto，会用
-     内容最小宽（5 个按钮 ≈ 453px）撑开整行，把 375px 视口撑到 455px 然后
-     被 .input-bar 的 overflow:hidden 直接切掉，overflow-x:auto 永远不触发。 */
-  min-width: 0;
-  overflow-x: auto; scrollbar-width: none; align-items: center;
-}
-.netseg::-webkit-scrollbar { display: none; }
-.netseg button {
-  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
-  min-height: 46px;                                     /* --tap-min */
-  padding: 12px 14px; border: 1px solid transparent;
-  border-radius: 10px;                                  /* --r-md */
-  background: none; cursor: pointer; white-space: nowrap;
-  font-family: var(--font-mono-ds); font-size: 11px;    /* --fs-tiny */
+/* ── 网络筛选器（紧凑下拉 · 数据驱动）─────────────────────
+   一开始我做成了分段控件，理由「只有 5 个互斥选项」—— 那是错的：
+   5 是当前筛选列表的数量，不是领域的数量。MORPHO_CHAIN_SLUG 里有
+   **12 条链**且 Morpho 还在加，分段放 12 个要约 1100px，根本放不下，
+   而且每加一条链都要改标记。实测分段在桌面占 546px，把「自动刷新」
+   挤到了第二行。
+
+   所以回到下拉，但两点和旧实现不同：
+   ① 视觉上**从属于**钱包选择器 —— 它是筛选器不是作用域，所以更小更安静：
+      没有顶部色轨、没有大字号、只有 --fill-1 底和 12px 圆角
+   ② 选项由 JS 从数据数组渲染，加一条链＝加一个数组项，不动标记
+   ────────────────────────────────────────────────────── */
+.nsel { position: relative; width: 100%; min-width: 0; }
+.nsel__trig {
+  display: flex; align-items: center; gap: 8px;        /* --sp-2 */
+  width: 100%; min-height: 46px;                       /* --tap-min */
+  padding: 12px 14px;                                  /* sp-3 sp-4 */
+  cursor: pointer; text-align: left;
+  font-family: var(--font-mono-ds); font-size: 11px;   /* --fs-tiny */
   letter-spacing: var(--ls-cjk-wide); text-transform: uppercase;
-  color: var(--text-3);
-  transition: color var(--dur-fast) var(--ease-out),
+  color: var(--text-2);
+  background: var(--fill-1); border: 1px solid var(--border-subtle);
+  border-radius: 12px;                                 /* --r-lg */
+  transition: border-color var(--dur-fast) var(--ease-out),
               background var(--dur-fast) var(--ease-out);
 }
-.netseg button:hover { color: var(--text-1); background: var(--fill-3); }
-.netseg button.is-on {
-  background: linear-gradient(180deg, oklch(var(--L-solid) .16 var(--h-brand)/.24),
-              oklch(var(--L-solid) .16 var(--h-brand)/.07));
-  color: var(--blue); font-weight: 600;
-  border-color: oklch(var(--L-solid) .16 var(--h-brand)/.45);
-  box-shadow: 0 0 22px -6px oklch(var(--L-solid) .18 var(--h-brand)/.9),
-              inset 0 1px 0 rgba(255,255,255,.1);
+.nsel__trig:hover { background: var(--fill-2); border-color: var(--border-light); color: var(--text-1); }
+.nsel__trig.is-open { background: var(--fill-2); border-color: var(--border-light); color: var(--text-1); }
+.nsel__trig:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-0), 0 0 0 4px oklch(var(--L-solid) .18 var(--h-brand)/.85);
 }
-/* 链的真实品牌色小圆点 —— 设计规范明写这些色刻意保留、不参与主题换色，
-   用于资产识别。它承载信息，不是装饰。 */
-.netseg__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.nsel__val  { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nsel__chev {
+  flex-shrink: 0; width: 14px; height: 14px; color: var(--text-3);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.nsel__trig.is-open .nsel__chev { transform: rotate(180deg); }
+/* 链的真实品牌色圆点。设计规范明写这些色刻意保留、不参与主题换色，
+   用于资产识别 —— 承载信息，不是装饰。「全部网络」时不显示。 */
+.nsel__dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: none;
+}
+.nsel__dot.is-on { display: block; }
+
+.nsel__menu {
+  position: fixed; z-index: 9999; display: none; overflow: hidden;
+  background: var(--glass-strong), var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;                                 /* --r-xl */
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  max-height: 52vh; overflow-y: auto;
+}
+.nsel__menu.is-open { display: block; }
+.nsel__opt {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  min-height: 46px; padding: 12px 14px;                /* --tap-min / sp-3 sp-4 */
+  border: 0; background: none; cursor: pointer; text-align: left;
+  font-family: var(--font-mono-ds); font-size: 11px;
+  letter-spacing: var(--ls-cjk-wide); text-transform: uppercase;
+  color: var(--text-2);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.nsel__opt:hover { background: var(--fill-2); color: var(--text-1); }
+.nsel__opt.is-on { color: var(--blue); font-weight: 600; }
+.nsel__opt.is-on::before {
+  content: ''; position: absolute; left: 0; width: 2px; height: 22px;
+  background: linear-gradient(180deg, var(--fire-bright), var(--fire-deep));
+}
+.nsel__opt { position: relative; }
+.nsel__n {
+  margin-left: auto; flex-shrink: 0;
+  font-family: var(--font-mono-ds); font-size: 10.5px;  /* --fs-micro */
+  color: var(--text-3); font-variant-numeric: tabular-nums;
+}
 
 @media (max-width: 640px) {
   /* legacy 在 ≤480px 给 .field-group 加了 `flex: none !important`（连同
@@ -2904,7 +2944,6 @@ body > * { position: relative; z-index: 1; }
   .wsel__name { font-size: 14px; }                      /* --fs-md */
   .wsel__foot { flex-direction: column; align-items: stretch; }
   .wsel__manage { width: 100%; }
-  .netseg button { padding: 12px; }
 }
 
 /* ── 钱包管理弹窗 ───────────────────────────────────────
@@ -3380,17 +3419,16 @@ input:focus, select:focus, textarea:focus {
           <label data-i18n="labelNetwork">网络</label>
           <!-- Hidden input keeps .value API: getElementById('network-select').value -->
           <input type="hidden" id="network-select" value="all">
-          <div class="netseg" id="netseg" role="group" aria-label="网络">
-            <button type="button" class="is-on" data-net="all" onclick="selectNetwork('all')"
-                    data-i18n="netAll">全部</button>
-            <button type="button" data-net="ethereum" onclick="selectNetwork('ethereum')">
-              <i class="netseg__dot" style="background:var(--chain-ethereum,#627eea)"></i>Ethereum</button>
-            <button type="button" data-net="base" onclick="selectNetwork('base')">
-              <i class="netseg__dot" style="background:var(--chain-base,#0052ff)"></i>Base</button>
-            <button type="button" data-net="arbitrum" onclick="selectNetwork('arbitrum')">
-              <i class="netseg__dot" style="background:var(--chain-arbitrum,#28a0f0)"></i>Arbitrum</button>
-            <button type="button" data-net="monad" onclick="selectNetwork('monad')">
-              <i class="netseg__dot" style="background:var(--chain-monad,#836ef9)"></i>Monad</button>
+          <div class="nsel" id="nsel">
+            <button type="button" class="nsel__trig" id="nsel-trig" onclick="toggleNetSel(event)"
+                    aria-haspopup="listbox" aria-expanded="false">
+              <i class="nsel__dot" id="nsel-dot"></i>
+              <span class="nsel__val" id="nsel-val" data-i18n="netAll">全部网络</span>
+              <svg class="nsel__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="nsel__menu" id="nsel-menu" role="listbox"></div>
           </div>
         </div>
         <button class="btn btn-primary" id="fetch-btn" onclick="fetchPositions()">
@@ -3654,7 +3692,7 @@ input:focus, select:focus, textarea:focus {
 // ────────────────────────────────────────────
 // Version
 // ────────────────────────────────────────────
-const APP_VERSION = '2.3.0';  // 2026-08-20 — 钱包选择器重设计（方向 D）+ 网络改分段 + 去装饰 icon
+const APP_VERSION = '2.3.1';  // 2026-08-20 — 网络筛选器改紧凑下拉（分段占地且不可拓展）
 // 前后端统一编号、一起升，所以这里就是 APP_VERSION 本身。
 // 顶栏只显示一个版本号；线上后台报的号跟它不一样时，那个号后面加一个 ⚠️，
 // 具体差在哪写在 title 里 —— 不再并排摆两个数字让人猜该看哪个。
@@ -6693,6 +6731,19 @@ async function fetchPositions(opts = {}) {
       marketPositions = marketPositions.filter(p => netFilter(p.market?.chain?.network));
     }
 
+    // 网络筛选器的选项来自**未筛选**的结果 —— 取筛选后的会导致选了 Base
+    // 之后列表里只剩 Base，再也切不回去。所以在 netFilter 之前先记下来。
+    {
+      const cnt = {};
+      const bump = sl => { if (sl) cnt[sl] = (cnt[sl] || 0) + 1; };
+      allVaultPositions.forEach(p => bump(p.vault?.chain?.network?.toLowerCase()));
+      allV2Raw.forEach(p => bump((p.vault?.chain?.network || '').toLowerCase()));
+      allMarketPositions.forEach(p => bump(p.market?.chain?.network?.toLowerCase()));
+      APP.chainCounts   = cnt;
+      APP.allChainSlugs = Object.keys(cnt).sort();
+      if (typeof renderNetSel === 'function') renderNetSel();
+    }
+
     APP.positions = positions;
     APP.withdrawnPositions = withdrawnPositions;
     APP.v2Positions = v2Positions;
@@ -9402,20 +9453,106 @@ document.getElementById('wallet-input').addEventListener('keydown', e => {
 });
 
 // ────────────────────────────────────────────
-// 网络分段控件（取代原来的自绘下拉）
+// 网络筛选器（紧凑下拉 · 数据驱动）
 // ────────────────────────────────────────────
-// 只有 5 个互斥选项，这是分段控件的定义而不是下拉的。换掉之后浮层、
-// 定位计算、z-index、点外面关闭、滚动脱离这一整类问题全部消失
-// （原实现只在打开瞬间算一次坐标，滚动就会脱离触发器）。
-// #network-select 这个隐藏输入框保留不动 —— netFilter 和 i18n 重刷
-// 都从它取值，契约没变。
+// 链的品牌色。只列有真实品牌色的；没列到的链自动用中性色，
+// 所以往 MORPHO_CHAIN_SLUG 里加一条链，这里不改也能工作。
+const CHAIN_DOT = {
+  ethereum: 'var(--chain-ethereum, #627eea)',
+  base:     'var(--chain-base, #0052ff)',
+  arbitrum: 'var(--chain-arbitrum, #28a0f0)',
+  monad:    'var(--chain-monad, #836ef9)',
+  polygon:  '#8247e5',
+  optimism: '#ff0420',
+};
+const CHAIN_LABEL = { arbitrum: 'Arbitrum One' };
+
+/** 可选的网络列表。
+ *  查询过之后只列**实际持有仓位的链**（12 条链里通常只占 1-2 条，
+ *  列全 12 个是纯噪音）；还没查过就列 MORPHO_CHAIN_SLUG 里的全部。
+ *  链集合取自**未筛选**的结果 —— 取筛选后的会导致选了 Base 之后
+ *  列表里只剩 Base，再也切不回去。 */
+function netFilterOptions() {
+  const slugs = APP.allChainSlugs && APP.allChainSlugs.length
+    ? APP.allChainSlugs
+    : [...new Set(Object.values(MORPHO_CHAIN_SLUG))];
+  return [{ value: 'all', label: t('netAll'), dot: null }].concat(
+    slugs.map(sl => ({
+      value: sl,
+      label: CHAIN_LABEL[sl] || (sl.charAt(0).toUpperCase() + sl.slice(1)),
+      dot:   CHAIN_DOT[sl] || 'var(--text-3)',
+      n:     (APP.chainCounts && APP.chainCounts[sl]) || 0,
+    }))
+  );
+}
+
+function renderNetSel() {
+  const cur  = document.getElementById('network-select')?.value || 'all';
+  const menu = document.getElementById('nsel-menu');
+  const val  = document.getElementById('nsel-val');
+  const dot  = document.getElementById('nsel-dot');
+  if (!menu || !val) return;
+  const opts = netFilterOptions();
+  const sel  = opts.find(o => o.value === cur) || opts[0];
+
+  val.textContent = sel.label;
+  if (sel.value === 'all') val.setAttribute('data-i18n', 'netAll');
+  else val.removeAttribute('data-i18n');   // 链名是专有名词，别被 i18n 覆盖
+  dot.classList.toggle('is-on', !!sel.dot);
+  if (sel.dot) dot.style.background = sel.dot;
+
+  menu.innerHTML = opts.map(o => `
+    <button type="button" class="nsel__opt${o.value === cur ? ' is-on' : ''}"
+            role="option" aria-selected="${o.value === cur}"
+            onclick="selectNetwork('${o.value}')">
+      ${o.dot ? `<i class="nsel__dot is-on" style="background:${o.dot}"></i>`
+              : '<i style="width:8px;flex-shrink:0"></i>'}
+      <span>${escHtml(o.label)}</span>
+      ${o.n ? `<span class="nsel__n">${o.n}</span>` : ''}
+    </button>`).join('');
+}
+
+function _positionNetMenu() {
+  const trig = document.getElementById('nsel-trig');
+  const menu = document.getElementById('nsel-menu');
+  if (!trig || !menu || !menu.classList.contains('is-open')) return;
+  const r = trig.getBoundingClientRect();
+  if (r.bottom < 8 || r.top > window.innerHeight - 8) { closeNetSel(); return; }
+  // 下拉比触发器宽一点，链名放得开；但不超出视口
+  const w = Math.min(Math.max(r.width, 220), window.innerWidth - 24);
+  menu.style.width = w + 'px';
+  menu.style.left  = Math.min(r.left, window.innerWidth - w - 12) + 'px';
+  const h = menu.offsetHeight || 240;
+  menu.style.top = (window.innerHeight - r.bottom < h + 12 && r.top > h + 12)
+    ? (r.top - h - 6) + 'px' : (r.bottom + 6) + 'px';
+}
+
+function toggleNetSel(ev) {
+  if (ev) ev.stopPropagation();
+  const trig = document.getElementById('nsel-trig');
+  const menu = document.getElementById('nsel-menu');
+  if (!trig || !menu) return;
+  const open = menu.classList.toggle('is-open');
+  trig.classList.toggle('is-open', open);
+  trig.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open) { renderNetSel(); menu.classList.add('is-open'); _positionNetMenu(); }
+}
+function closeNetSel() {
+  const trig = document.getElementById('nsel-trig');
+  const menu = document.getElementById('nsel-menu');
+  if (menu) menu.classList.remove('is-open');
+  if (trig) { trig.classList.remove('is-open'); trig.setAttribute('aria-expanded', 'false'); }
+}
+window.addEventListener('scroll', _positionNetMenu, { passive: true });
+window.addEventListener('resize', _positionNetMenu);
+document.addEventListener('click', e => { if (!e.target.closest('#nsel')) closeNetSel(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNetSel(); });
+
+// #network-select 这个隐藏输入框保留不动 —— netFilter 从它取值，契约没变。
 function selectNetwork(value) {
   document.getElementById('network-select').value = value;
-  document.querySelectorAll('#netseg button').forEach(b => {
-    const on = b.dataset.net === value;
-    b.classList.toggle('is-on', on);
-    b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  });
+  renderNetSel();
+  closeNetSel();
 }
 
 // ────────────────────────────────────────────
@@ -9435,6 +9572,7 @@ loadSettings();
     applyWalletThresholds(cur);
   }
   renderWalletSwitch();
+  renderNetSel();     // 首屏就要有选项，否则第一次点开是空的
 })();
 
 // F8 — load curator address → display-name map from Morpho API (fire-and-forget).
