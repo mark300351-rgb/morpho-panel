@@ -3371,7 +3371,7 @@ input:focus, select:focus, textarea:focus {
 // ────────────────────────────────────────────
 // Version
 // ────────────────────────────────────────────
-const APP_VERSION = '2.1.0';  // 2026-08-04 — 顶栏精简 + 卡片几何对齐设计规范 + i18n/硬编码清理
+const APP_VERSION = '2.1.1';  // 2026-08-19 — 修四个切地址时出错数的 bug（多钱包前置）
 // 前后端统一编号、一起升，所以这里就是 APP_VERSION 本身。
 // 顶栏只显示一个版本号；线上后台报的号跟它不一样时，那个号后面加一个 ⚠️，
 // 具体差在哪写在 title 里 —— 不再并排摆两个数字让人猜该看哪个。
@@ -5660,7 +5660,21 @@ function checkAlerts(positions) {
   });
 
   if (newAlerts.length > 0) {
-    APP.alertHistory = [...newAlerts, ...APP.alertHistory].slice(0, 50);
+    // 按指纹去重，新的压掉旧的。原来是直接拼接后截断 50 条，没有任何去重 ——
+    // 每次刷新（自动刷新每 5 分钟一次）同一条告警就再叠一张卡片，未读红点跟着涨，
+    // 50 条的窗口很快被同一个金库的重复告警占满，真正新的告警被挤出去。
+    // 指纹形状是「金库 + 指标」（见 alertFingerprint），刻意不含钱包 ——
+    // 这三种告警（流动性 / APY / 风险评分）取值全部来自金库本身，跟谁持有无关，
+    // 所以静音一次就该全静音；将来加了按仓位的告警（健康因子）才需要加钱包维度。
+    const seen = new Set();
+    APP.alertHistory = [...newAlerts, ...APP.alertHistory]
+      .filter(a => {
+        const k = a.fingerprint || `${a.vaultAddress}|${a.metric}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
+      .slice(0, 50);
     renderAlerts();
     updateAlertBadge();
     // Telegram delivery is the Worker's job, not the browser's. This used to
@@ -5820,15 +5834,47 @@ async function sendManualAlert() {
 // ────────────────────────────────────────────
 // Fetch Positions
 // ────────────────────────────────────────────
-async function fetchPositions() {
-  const wallet = document.getElementById('wallet-input').value.trim();
+// ── 取数并发守卫 ──────────────────────────────────────────
+// APP.positions 这组数组有**两个**写入方：fetchPositions() 和自动刷新定时器，
+// 两者都在 await 之后才写。谁先发起不代表谁先返回 —— 后发的先回、先发的后回，
+// 就会用旧数据覆盖新数据：改了地址再查、或开着自动刷新时点「查询持仓」，
+// 结果是页面显示的地址是 B、数字是 A，而且不报错。
+//
+// 两条路径共用同一个计数器：入口占号，每个 await 之后比对号码，
+// 不是最新的那次就直接放弃写入（让更新的那次去接管界面，包括 loader）。
+let _fetchSeq = 0;
+const nextFetchSeq  = () => ++_fetchSeq;
+const isStaleFetch  = (seq) => seq !== _fetchSeq;
+
+// opts.address —— 显式指定要查的地址（深链用）。不传就读输入框，
+//   所有 onclick 调用方不受影响。
+// opts.persist === false —— 只查不写入设置（深链的临时查询用）。
+//   否则从 Telegram 点一个别的钱包的告警进来，saveSettings() 会把那个地址
+//   永久写进 morpho_monitor_settings，悄悄替换掉你自己存的地址。
+async function fetchPositions(opts = {}) {
+  const input = document.getElementById('wallet-input');
+  const wallet = (opts.address || input.value || '').trim();
   if (!wallet || !/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
     showToast('error', t('fetchInvalidAddress'));
     return;
   }
+  // 显式传址时同步到输入框，让界面显示的和实际查的是同一个
+  if (opts.address && input) input.value = wallet;
 
-  APP.wallet = wallet.toLowerCase();
-  saveSettings();
+  const seq = nextFetchSeq();
+  const nextWallet = wallet.toLowerCase();
+
+  // 换地址时把上一个地址的告警历史清掉。原来从不清空，两个地址持有同一个金库
+  // 时切一次就多一张一模一样的卡片；更糟的是切到一个完全无关的地址后，
+  // 上一个地址的告警还挂在「警报记录」里，看着像是当前地址的问题。
+  // 只在地址真的变了时清 —— 同一地址重查（点刷新、自动刷新）不该丢历史。
+  if (APP.wallet && APP.wallet !== nextWallet) {
+    APP.alertHistory = [];
+    updateAlertBadge();
+  }
+
+  APP.wallet = nextWallet;
+  if (opts.persist !== false) saveSettings();
 
   document.getElementById('positions-container').innerHTML = `
     <div class="loader-wrap">
@@ -5846,6 +5892,7 @@ async function fetchPositions() {
       fetchV2Positions(APP.wallet),
       gql(VAULTS_QUERY),
     ]);
+    if (isStaleFetch(seq)) return;   // 期间又发起了一次取数，这批数据已过期
 
     // V1 Vault positions: split into active (shares > 0) and withdrawn (shares == 0)
     const allVaultPositions = posData?.vaultPositions?.items || [];
@@ -5897,6 +5944,7 @@ async function fetchPositions() {
     // 🔴 Live mode: override API snapshot with on-chain previewRedeem before rendering
     if (APP.liveMode) {
       await refreshLiveBalances(positions, v2Positions);
+      if (isStaleFetch(seq)) return;   // 链上读取期间又切了一次，别拿旧余额去渲染
     }
 
     const activeCount = positions.length + v2Positions.length + marketPositions.length;
@@ -7354,12 +7402,16 @@ function startMonitor() {
 
   APP.monitorTimer = setInterval(async () => {
     if (APP.wallet) {
+      // 和 fetchPositions() 共用同一个计数器 —— 这条定时器路径是持仓数组的
+      // 第二个写入方，不占号的话它会在用户切完地址之后把旧钱包的数据写回去
+      const seq = nextFetchSeq();
       try {
         const [posData, marketPosData, allV2Raw] = await Promise.all([
           gql(VAULT_POSITIONS_QUERY, { address: APP.wallet }),
           gql(MARKET_POSITIONS_QUERY, { address: APP.wallet }),
           fetchV2Positions(APP.wallet),
         ]);
+        if (isStaleFetch(seq)) return;
 
         const allVault = posData?.vaultPositions?.items || [];
         const positions = allVault.filter(p => BigInt(p.state?.shares || '0') > 0n && (p.state?.assetsUsd || 0) >= 1);
@@ -7381,6 +7433,7 @@ function startMonitor() {
         // 🔴 Live mode: override API snapshot with on-chain previewRedeem before rendering
         if (APP.liveMode) {
           await refreshLiveBalances(positions, v2Positions);
+          if (isStaleFetch(seq)) return;
         }
 
         const hasAny = positions.length > 0 || v2Positions.length > 0 || marketPositions.length > 0 || withdrawnPositions.length > 0;
@@ -7708,9 +7761,20 @@ function chooseInterval(startTs, endTs) {
  *
  * Cached in PNL_STATE.historyCache for the lifetime of the session.
  */
+// 历史快照的缓存键。**必须带钱包地址** —— 原来的键是「链集合|粒度|起|止」，
+// 不含钱包，而这份缓存从会话开始到结束一次都没清过（切地址时只清了交易流水）。
+// 结果：换个地址再看 30 天收益，期初值用的是上一个地址的，整个会话持续串号。
+//
+// 另外这个拼法原本在两处各写了一份（取数函数里一处、渲染函数里判断是否走缓存
+// 的副本一处）。只改一处会出现「显示走缓存、实际重新请求」的错位，所以提成
+// 一个函数共用，顺手消掉两份副本漂移这个 bug 类别。
+function histCacheKey(wallet, chains, interval, startTs, endTs) {
+  return `${(wallet || '').toLowerCase()}|${chains.slice().sort().join(',')}|${interval}|${startTs}|${endTs}`;
+}
+
 async function fetchUserHistory(wallet, chains, startTs, endTs) {
   const interval = chooseInterval(startTs, endTs);
-  const cacheKey = `${chains.slice().sort().join(',')}|${interval}|${startTs}|${endTs}`;
+  const cacheKey = histCacheKey(wallet, chains, interval, startTs, endTs);
   if (PNL_STATE.historyCache[cacheKey]) return PNL_STATE.historyCache[cacheKey];
 
   // Pull a small buffer around the window so the start/end edges have
@@ -8164,7 +8228,7 @@ async function renderPnlContent() {
     if (chains.length > 0) {
       const { startTs, endTs } = computeWindowTs(PNL_STATE.range);
       const interval = chooseInterval(startTs, endTs);
-      const cacheKey = `${chains.slice().sort().join(',')}|${interval}|${startTs}|${endTs}`;
+      const cacheKey = histCacheKey(APP.wallet, chains, interval, startTs, endTs);
       const cached   = !!PNL_STATE.historyCache[cacheKey];
       // Show "loading history…" hint only on cold fetches (cached → instant)
       const bar = container.querySelector('.pnl-toolbar');
@@ -8764,13 +8828,16 @@ if (typeof Chart !== 'undefined') {
     const walletParam = url.searchParams.get('wallet');
 
     if (walletParam && /^0x[0-9a-fA-F]{40}$/.test(walletParam)) {
-      const input = document.getElementById('wallet-input');
-      if (input) {
-        input.value = walletParam;
-        // Trigger positions fetch after other init settles
-        setTimeout(() => {
-          if (typeof fetchPositions === 'function') fetchPositions();
-        }, 400);
+      // 原来是「填进输入框 + 400ms 后自己触发查询」。两个问题：
+      //   1. 400ms 是拍脑袋的数 —— 初始化慢一点、或者用户在这 400ms 里点了
+      //      「查询持仓」，就是两次并发取数
+      //   2. 它靠读输入框拿地址，而 loadSettings() 也在写同一个输入框，
+      //      两条路径耦合在一个 DOM 值上
+      // 改成显式传址、立即调用。这个函数体本身就在同步初始化流程里跑
+      // （loadSettings 之后），fetchPositions 需要的容器都在上方标记里，
+      // 不需要等。persist:false 是为了不把这个临时地址写进设置。
+      if (typeof fetchPositions === 'function') {
+        fetchPositions({ address: walletParam, persist: false });
       }
     }
 
