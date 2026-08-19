@@ -291,39 +291,6 @@ input::placeholder { color: var(--text-3); }
 select option { background: var(--bg-2); }
 
 /* Custom network dropdown */
-.net-dropdown { position: relative; width: 100%; user-select: none; }
-.net-dropdown-trigger {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px;
-  padding: 10px 14px; color: var(--text-1); font-size: 13px; font-family: inherit;
-  cursor: pointer; transition: all 0.2s; width: 100%; box-sizing: border-box;
-}
-.net-dropdown-trigger:hover { border-color: var(--orange); background: var(--bg-3); }
-.net-dropdown-trigger.open {
-  border-color: var(--orange); background: var(--bg-3);
-  box-shadow: 0 0 0 3px rgba(249,115,22,0.12);
-  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
-}
-.net-dropdown-trigger svg { flex-shrink: 0; }
-.net-dropdown-trigger .net-label { flex: 1; }
-.net-dropdown-trigger .net-arrow { margin-left: auto; font-size: 10px; color: var(--text-3); transition: transform 0.2s; }
-.net-dropdown-trigger.open .net-arrow { transform: rotate(180deg); }
-.net-dropdown-menu {
-  position: fixed; z-index: 9999;
-  background: var(--bg-2); border: 1px solid var(--orange); border-top: none;
-  border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12); overflow: hidden;
-  display: none;
-}
-.net-dropdown-menu.open { display: block; }
-.net-dropdown-option {
-  display: flex; align-items: center; gap: 8px;
-  padding: 9px 14px; font-size: 13px; cursor: pointer; transition: background 0.15s;
-  color: var(--text-1);
-}
-.net-dropdown-option:hover { background: var(--bg-3); }
-.net-dropdown-option.selected { color: var(--orange); font-weight: 400; }
-
 .config-toggle {
   cursor: pointer;
   color: var(--text-3);
@@ -1593,12 +1560,6 @@ select option { background: var(--bg-2); }
   text-align: center;
 }
 
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.6;
-  filter: drop-shadow(0 0 12px rgba(249,115,22,0.3));
-}
 
 .empty-title {
   font-size: 16px;
@@ -2130,8 +2091,7 @@ select option { background: var(--bg-2); }
 
   /* ── Empty / Error states ── */
   .empty-state { padding: 40px 16px; }
-  .empty-icon { font-size: 36px; }
-  .empty-title { font-size: 14px; }
+    .empty-title { font-size: 14px; }
   .empty-desc { font-size: 12px; max-width: 100%; }
   .error-box { font-size: 12px; padding: 10px 12px; }
 
@@ -2730,91 +2690,222 @@ body > * { position: relative; z-index: 1; }
   .cors-actions .btn { width: 100%; min-height: 46px; }
 }
 
-/* ── 钱包切换器 ─────────────────────────────────────────
-   落在查询面板第一格，原地替换原来的地址输入框（输入框改 hidden
-   保留取值接口）。浮层用 position:fixed —— 查询面板有 overflow:hidden
-   （为了那条顶部品牌发丝线），absolute 定位的浮层会被裁掉。
-   照抄网络下拉的做法，但补两点它没有的：滚动/改窗时重定位、
-   贴近视口底部时向上翻转。 */
-.w-switch { position: relative; width: 100%; user-select: none; }
-.w-switch__trigger {
-  display: flex; align-items: center; gap: 8px;
-  padding: 11px 14px; min-height: 44px;
-  background: var(--fill-1); border: 1px solid var(--border-subtle);
-  border-radius: 12px; cursor: pointer;
-  transition: border-color var(--dur-fast), background var(--dur-fast);
+/* ── 钱包选择器（方向 D · 数据对象）─────────────────────────
+   它不是表单字段，是整个应用的**作用域** —— 屏幕上所有数字都属于
+   当前选中的这个钱包。所以触发器长得像 .stat 统计卡（同一族：16px
+   圆角、1px 描边、2px 顶部品牌色轨、mono 数字、微标签），不像 select。
+   不打开就已经回答「哪个钱包、里面多少钱」；展开后每行带金额，
+   切换是带信息的决定，不是盲选。
+
+   ⚠ 所有数值只用令牌，不手写：
+     间距 4/8/12/14/18/22/24/28 · 字号 10.5/11/12/13/14/15/17/21
+     圆角 6/7/10/12/14/16/18 · 触控底线 46（--tap-min）
+   上一版我手写了 15/13/17/11px 和 26/19/9px —— 系统里都不存在，
+   等于把设计系统废掉。这一版逐条对表。 */
+.wsel { position: relative; width: 100%; min-width: 0; }
+
+/* 触发器 —— 借 .stat 的语汇 */
+.wsel__trig {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: 14px;   /* --sp-4 */
+  width: 100%; min-height: 46px;                    /* --tap-min */
+  padding: 12px 14px 14px 18px;                     /* sp-3 sp-4 sp-4 sp-5 */
+  cursor: pointer; text-align: left;
+  font-family: inherit; font-size: 13px;            /* --fs-base，免得按钮继承浏览器默认 13.333px */
+  background: var(--glass-weak), var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;                              /* --r-2xl，与 .stat 同 */
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--dur-base) var(--ease-out),
+              box-shadow  var(--dur-base) var(--ease-out),
+              transform   var(--dur-base) var(--ease-out);
 }
-.w-switch__trigger:hover { border-color: var(--border-strong); background: var(--fill-2); }
-.w-switch__trigger.is-open { border-color: var(--blue); background: var(--fill-2); }
-.w-switch__trigger:focus-visible {
+/* 2px 顶部品牌色轨 —— .stat::before 同款 */
+.wsel__trig::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--fire-bright), var(--fire-deep));
+}
+.wsel__trig:hover {
+  border-color: var(--border-light); box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+.wsel__trig.is-open {
+  border-color: oklch(var(--L-solid) .16 var(--h-brand)/.45);
+  box-shadow: var(--shadow-hover); transform: none;
+}
+.wsel__trig:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--bg-0), 0 0 0 4px oklch(var(--L-solid) .18 var(--h-brand)/.85);
 }
-.w-switch__label { font-size: 13px; color: var(--text-1); white-space: nowrap;
-                   overflow: hidden; text-overflow: ellipsis; }
-.w-switch__addr  { font-size: 11px; flex-shrink: 0; }
-.w-switch__arrow { margin-left: auto; font-size: 10px; color: var(--text-3);
-                   transition: transform var(--dur-fast); flex-shrink: 0; }
-.w-switch__trigger.is-open .w-switch__arrow { transform: rotate(180deg); }
+.wsel__id   { flex: 1; min-width: 0; }
+.wsel__name {
+  display: flex; align-items: center; gap: 8px;      /* --sp-2 */
+  font-size: 15px;                                   /* --fs-lg */
+  font-weight: 600; letter-spacing: var(--ls-tight, -.02em);
+  color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wsel__addr {
+  font-family: var(--font-mono-ds); font-size: 11px; /* --fs-tiny */
+  color: var(--text-3); margin-top: 4px;             /* --sp-1 */
+}
+.wsel__num  { text-align: right; flex-shrink: 0; }
+.wsel__usd  {
+  font-family: var(--font-mono-ds); font-size: 21px; /* --fs-2xl，与 .vault__usd 同 */
+  font-weight: 600; letter-spacing: var(--ls-tightest);
+  color: var(--text-1); font-variant-numeric: tabular-nums;
+}
+.wsel__sub  {
+  font-family: var(--font-mono-ds); font-size: 10.5px; /* --fs-micro */
+  color: var(--text-3); margin-top: 4px;
+}
+.wsel__chev {
+  flex-shrink: 0; width: 14px; height: 14px; color: var(--text-3);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.wsel__trig.is-open .wsel__chev { transform: rotate(180deg); }
 
-.w-switch__menu {
-  position: fixed; z-index: 9999; display: none;
+/* 浮层 —— 独立面板，不假装和触发器连体。
+   fixed 定位：查询面板有 overflow:hidden（为顶部那条品牌发丝线），
+   absolute 的浮层会被整块裁掉。 */
+.wsel__menu {
+  position: fixed; z-index: 9999; display: none; overflow: hidden;
   background: var(--glass-strong), var(--bg-card);
-  border: 1px solid var(--border-strong); border-radius: 12px;
-  box-shadow: var(--shadow-float); overflow: hidden;
+  border: 1px solid var(--border-light);
+  border-radius: 14px;                               /* --r-xl */
+  box-shadow: var(--shadow-float);
   backdrop-filter: blur(22px) saturate(1.6);
   -webkit-backdrop-filter: blur(22px) saturate(1.6);
 }
-.w-switch__menu.is-open { display: block; animation: themeMenuIn .14s var(--ease-out) both; }
-.w-switch__list { max-height: 46vh; overflow-y: auto; }
-.w-switch__item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; cursor: pointer; border: 0; width: 100%;
-  background: none; text-align: left; font-family: inherit;
-  transition: background var(--dur-fast);
+.wsel__menu.is-open { display: block; }
+.wsel__list { max-height: 46vh; overflow-y: auto; }
+.wsel__opt {
+  position: relative; display: flex; align-items: center; gap: 14px;
+  width: 100%; min-height: 46px;                     /* --tap-min */
+  padding: 12px 14px;                                /* sp-3 sp-4 */
+  border: 0; background: none; cursor: pointer; text-align: left;
+  font-family: inherit; font-size: 13px;             /* --fs-base */
+  transition: background var(--dur-fast) var(--ease-out);
 }
-.w-switch__item:hover { background: var(--fill-2); }
-.w-switch__item.is-on { background: var(--blue-glow); }
-.w-switch__tick { width: 12px; flex-shrink: 0; font-style: normal; font-size: 11px;
-                  color: var(--blue); opacity: 0; }
-.w-switch__item.is-on .w-switch__tick { opacity: 1; }
-.w-switch__name { font-size: 13px; color: var(--text-1); overflow: hidden;
-                  text-overflow: ellipsis; white-space: nowrap; }
-.w-switch__meta { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.w-switch__tag {
-  font-family: var(--font-mono-ds); font-size: 9.5px; padding: 1px 5px;
-  border-radius: 4px; white-space: nowrap;
-  background: var(--fill-3); color: var(--text-3); border: 1px solid var(--border-subtle);
+.wsel__opt + .wsel__opt { border-top: 1px solid var(--border-hair); }
+.wsel__opt:hover { background: var(--fill-2); }
+/* 选中态：左侧 2px 品牌轨 + 品牌色名字。不铺底色 —— 铺了会和
+   hover 态打架，而且这一列本来就靠金额右对齐建立秩序。 */
+.wsel__opt.is-on::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: linear-gradient(180deg, var(--fire-bright), var(--fire-deep));
 }
-.w-switch__tag--watch { color: var(--purple); border-color: oklch(var(--L-solid) .12 var(--h-accent)/.35);
-                        background: oklch(var(--L-solid) .12 var(--h-accent)/.10); }
-.w-switch__adhoc {
-  display: flex; gap: 6px; padding: 10px 12px;
-  border-top: 1px solid var(--border-subtle); background: var(--fill-1);
+.wsel__opt.is-on .wsel__name { color: var(--blue); }
+.wsel__tag {
+  font-family: var(--font-mono-ds); font-size: 10.5px;  /* --fs-micro */
+  letter-spacing: var(--ls-cjk-wide); text-transform: uppercase;
+  padding: 1px 6px; border-radius: 6px;                 /* --r-xs */
+  white-space: nowrap; flex-shrink: 0;
+  background: var(--fill-3); color: var(--text-3);
+  border: 1px solid var(--border-subtle);
 }
-.w-switch__adhoc-input {
-  flex: 1; min-width: 0; background: var(--bg-0);
-  border: 1px solid var(--border-subtle); border-radius: 8px;
-  padding: 8px 10px; color: var(--text-1);
-  font-family: var(--font-mono-ds); font-size: 11.5px; outline: none;
+.wsel__tag--watch {
+  color: var(--purple);
+  background: oklch(var(--L-solid) .12 var(--h-accent)/.12);
+  border-color: oklch(var(--L-solid) .12 var(--h-accent)/.3);
 }
-.w-switch__adhoc-input:focus { border-color: var(--border-strong); }
-.w-switch__adhoc-btn {
-  flex-shrink: 0; padding: 8px 12px; border-radius: 8px;
-  border: 1px solid var(--border-subtle); background: var(--fill-2);
-  color: var(--text-1); cursor: pointer; font-family: inherit; font-size: 12px;
+.wsel__empty {
+  padding: 18px 14px; font-size: 12px;                 /* sp-5 sp-4 / --fs-sm */
+  color: var(--text-3); text-align: center;
 }
-.w-switch__adhoc-btn:hover { background: var(--fill-3); border-color: var(--border-strong); }
-.w-switch__manage {
-  display: flex; align-items: center; gap: 8px; width: 100%;
-  padding: 11px 14px; border: 0; border-top: 1px solid var(--border-subtle);
-  background: none; color: var(--text-2); cursor: pointer;
-  font-family: inherit; font-size: 12px; text-align: left;
+/* 底部：临时查询 + 管理入口 */
+.wsel__foot {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px; border-top: 1px solid var(--border-subtle);
+  background: var(--fill-1);
 }
-.w-switch__manage:hover { background: var(--fill-2); color: var(--text-1); }
-.w-switch__count { margin-left: auto; font-family: var(--font-mono-ds);
-                   font-size: 10.5px; color: var(--text-3); }
-.w-switch__empty { padding: 16px 14px; font-size: 12px; color: var(--text-3); text-align: center; }
+.wsel__adhoc {
+  flex: 1; min-width: 0; min-height: 46px;             /* --tap-min */
+  background: var(--bg-0); border: 1px solid var(--border-subtle);
+  border-radius: 10px;                                  /* --r-md */
+  padding: 12px;                                        /* --sp-3 */
+  color: var(--text-1); font-family: var(--font-mono-ds);
+  font-size: 12px; outline: none;                       /* --fs-sm */
+}
+.wsel__adhoc:focus { border-color: var(--border-light); }
+.wsel__manage {
+  flex-shrink: 0; min-height: 46px; padding: 12px 14px;
+  border: 1px solid var(--border-subtle); border-radius: 10px;
+  background: var(--fill-1); color: var(--text-2); cursor: pointer;
+  font-family: var(--font-mono-ds); font-size: 10.5px;
+  letter-spacing: var(--ls-cjk-wide); text-transform: uppercase; white-space: nowrap;
+}
+.wsel__manage:hover { background: var(--fill-2); color: var(--text-1); border-color: var(--border-light); }
+
+/* ── 桌面空间重新分配 ─────────────────────────────────
+   legacy 给钱包格 flex:2、网络格 flex:1 + min-width:170px。换成分段控件后
+   网络需要约 453px 才放得下 5 个选项，而它只拿到 180px —— 桌面上也得横滑，
+   比原来的下拉更糟。钱包那 902px 是白拿的（它不需要）。按实际需要重分。 */
+@media (min-width: 641px) {
+  .input-row .field-group.wide   { flex: 1 1 460px; min-width: 0; }
+  .input-row .field-group.narrow { flex: 1 1 470px; min-width: 0; }
+}
+
+/* ── 网络分段控件（替掉那个下拉）───────────────────────────
+   只有 5 个互斥选项 —— 这是分段控件的定义，不是下拉的。换掉之后
+   浮层、定位计算、z-index、点外面关闭、滚动脱离这一整类问题全没了。
+   复用设计系统 .tabs/.tab 的激活态（渐变 + 内高光 + 橙光晕）。 */
+.netseg {
+  display: flex; gap: 4px; padding: 4px;               /* --sp-1 */
+  border: 1px solid var(--border-subtle); border-radius: 14px;  /* --r-xl */
+  background: var(--fill-1); width: 100%;
+  /* min-width:0 是必须的 —— 作为 flex 项，它默认 min-width:auto，会用
+     内容最小宽（5 个按钮 ≈ 453px）撑开整行，把 375px 视口撑到 455px 然后
+     被 .input-bar 的 overflow:hidden 直接切掉，overflow-x:auto 永远不触发。 */
+  min-width: 0;
+  overflow-x: auto; scrollbar-width: none; align-items: center;
+}
+.netseg::-webkit-scrollbar { display: none; }
+.netseg button {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  min-height: 46px;                                     /* --tap-min */
+  padding: 12px 14px; border: 1px solid transparent;
+  border-radius: 10px;                                  /* --r-md */
+  background: none; cursor: pointer; white-space: nowrap;
+  font-family: var(--font-mono-ds); font-size: 11px;    /* --fs-tiny */
+  letter-spacing: var(--ls-cjk-wide); text-transform: uppercase;
+  color: var(--text-3);
+  transition: color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+}
+.netseg button:hover { color: var(--text-1); background: var(--fill-3); }
+.netseg button.is-on {
+  background: linear-gradient(180deg, oklch(var(--L-solid) .16 var(--h-brand)/.24),
+              oklch(var(--L-solid) .16 var(--h-brand)/.07));
+  color: var(--blue); font-weight: 600;
+  border-color: oklch(var(--L-solid) .16 var(--h-brand)/.45);
+  box-shadow: 0 0 22px -6px oklch(var(--L-solid) .18 var(--h-brand)/.9),
+              inset 0 1px 0 rgba(255,255,255,.1);
+}
+/* 链的真实品牌色小圆点 —— 设计规范明写这些色刻意保留、不参与主题换色，
+   用于资产识别。它承载信息，不是装饰。 */
+.netseg__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  /* legacy 在 ≤480px 给 .field-group 加了 `flex: none !important`（连同
+     `min-width:100%!important`）。flex:none 等于「按最大内容宽排版、永不收缩」，
+     于是 .input-row 只有 325px、子元素却按内容要 455px，直接溢出被
+     .input-bar 的 overflow:hidden 切掉 —— 表现是切换器右边被裁一块。
+     必须用同等 !important 覆盖回可收缩。 */
+  .input-row .field-group,
+  .input-row .field-group.wide,
+  .input-row .field-group.narrow {
+    min-width: 0 !important;
+    flex: 0 1 auto !important;
+    width: 100%;
+  }
+  .wsel__trig { padding: 12px; gap: 12px; }
+  .wsel__num { min-width: 0; }
+  .wsel__usd  { font-size: 17px; }                      /* --fs-xl */
+  .wsel__name { font-size: 14px; }                      /* --fs-md */
+  .wsel__foot { flex-direction: column; align-items: stretch; }
+  .wsel__manage { width: 100%; }
+  .netseg button { padding: 12px; }
+}
 
 /* ── 钱包管理弹窗 ───────────────────────────────────────
    复用治理弹窗的视觉与响应式（480px 以下变底部抽屉），但用独立的 host：
@@ -2909,7 +3000,6 @@ body > * { position: relative; z-index: 1; }
 
 /* ── 空状态 —— 规范 .empty__icon 是 40px / .45，不带彩色投影
    （原来 48px + 橙色 drop-shadow，emoji 边上糊一圈橙光，很脏）── */
-.empty-icon { font-size: 40px; opacity: .45; filter: none; margin-bottom: 14px; }
 .empty-title { font-size: 15px; color: var(--text-1); }
 .empty-desc  { font-size: 13px; color: var(--text-3); }
 
@@ -3170,7 +3260,7 @@ input:focus, select:focus, textarea:focus {
   /* 弹窗/浮层的入场动画会改 transform（scale .98 + translateY）。动画一旦
      不推进就会卡在起始帧上，元素永远小 2%、偏 12px。关掉动画时必须让
      基态就是最终态 —— 这两个组件的基态本来就没有 transform，所以直接关。 */
-  .wmgr, .w-switch__menu, .theme-menu, .gov-modal { animation: none !important; }
+  .wmgr, .wsel__menu, .theme-menu, .gov-modal { animation: none !important; }
   body::after { animation: none; }
   .btn::after { transition: none; }
   .stat-card:hover, .vault-card:hover { transform: none; }
@@ -3257,26 +3347,32 @@ input:focus, select:focus, textarea:focus {
                这样 saveSettings / fetchPositions / bgmGetConfig / Telegram 测试
                等 10 处 getElementById('wallet-input').value 一处都不用改。 -->
           <input type="hidden" id="wallet-input" value="">
-          <div class="w-switch" id="w-switch">
-            <div class="w-switch__trigger" id="w-switch-trigger" onclick="toggleWalletSwitch(event)"
-                 role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
-              <span class="w-switch__label" id="w-switch-label" data-i18n="walletPickPrompt">选择或添加钱包</span>
-              <span class="w-switch__addr mono-dim" id="w-switch-addr"></span>
-              <span class="w-switch__arrow">▾</span>
-            </div>
-            <div class="w-switch__menu" id="w-switch-menu" role="listbox">
-              <div class="w-switch__list" id="w-switch-list"></div>
-              <div class="w-switch__adhoc">
-                <input type="text" id="w-adhoc-input" class="w-switch__adhoc-input"
+          <div class="wsel" id="wsel">
+            <button type="button" class="wsel__trig" id="wsel-trig" onclick="toggleWalletSwitch(event)"
+                    aria-haspopup="listbox" aria-expanded="false">
+              <span class="wsel__id">
+                <span class="wsel__name" id="wsel-name" data-i18n="walletPickPrompt">选择或添加钱包</span>
+                <span class="wsel__addr" id="wsel-addr"></span>
+              </span>
+              <span class="wsel__num">
+                <span class="wsel__usd" id="wsel-usd"></span>
+                <span class="wsel__sub" id="wsel-sub"></span>
+              </span>
+              <svg class="wsel__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="wsel__menu" id="wsel-menu" role="listbox">
+              <div class="wsel__list" id="wsel-list"></div>
+              <div class="wsel__foot">
+                <input type="text" id="wsel-adhoc" class="wsel__adhoc"
                        data-i18n="walletAdhocPlaceholder" data-i18n-attr="placeholder"
                        placeholder="0x… 粘贴地址临时查一次">
-                <button type="button" class="w-switch__adhoc-btn" onclick="walletAdhocQuery()"
-                        data-i18n="walletAdhocGo">查询</button>
+                <button type="button" class="wsel__manage" onclick="openWalletManager()">
+                  <span data-i18n="walletManage">管理钱包</span>
+                  <span id="wsel-count"></span>
+                </button>
               </div>
-              <button type="button" class="w-switch__manage" onclick="openWalletManager()">
-                <span data-i18n="walletManage">管理钱包</span>
-                <span class="w-switch__count" id="w-switch-count"></span>
-              </button>
             </div>
           </div>
         </div>
@@ -3284,32 +3380,17 @@ input:focus, select:focus, textarea:focus {
           <label data-i18n="labelNetwork">网络</label>
           <!-- Hidden input keeps .value API: getElementById('network-select').value -->
           <input type="hidden" id="network-select" value="all">
-          <div class="net-dropdown" id="net-dropdown">
-            <div class="net-dropdown-trigger" id="net-dropdown-trigger" onclick="toggleNetDropdown()">
-              <span class="net-label" id="net-dropdown-label" data-i18n="netAll">全部网络</span>
-              <span class="net-arrow">▼</span>
-            </div>
-            <div class="net-dropdown-menu" id="net-dropdown-menu">
-              <div class="net-dropdown-option selected" data-value="all" onclick="selectNetwork(this)">
-                <span data-i18n="netAll">全部网络</span>
-              </div>
-              <div class="net-dropdown-option" data-value="ethereum" onclick="selectNetwork(this)">
-                <svg width="14" height="14" viewBox="0 0 256 417" xmlns="http://www.w3.org/2000/svg"><path fill="#627EEA" d="M127.961 0l-2.795 9.5v275.668l2.795 2.79 127.962-75.638z"/><path fill="#3C3C3B" d="M127.962 0L0 212.32l127.962 75.639V154.158z"/><path fill="#343434" d="M127.961 312.187l-1.575 1.92v98.199l1.575 4.6L256 236.587z"/><path fill="#8C8C8C" d="M127.962 416.905v-104.72L0 236.585z"/><path fill="#141414" d="M127.962 287.958l127.96-75.637-127.96-58.162z"/><path fill="#393939" d="M0 212.32l127.96 75.638V154.16z"/></svg>
-                Ethereum
-              </div>
-              <div class="net-dropdown-option" data-value="base" onclick="selectNetwork(this)">
-                <svg width="14" height="14" viewBox="0 0 111 111" xmlns="http://www.w3.org/2000/svg"><path fill="#0052FF" d="M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6 85.359 0 54.921 0C26.0238 0 2.36826 21.9939 0 50.1875H72.8267V59.8125H0C2.36826 88.0062 26.0238 110.034 54.921 110.034Z"/></svg>
-                Base
-              </div>
-              <div class="net-dropdown-option" data-value="arbitrum" onclick="selectNetwork(this)">
-                <svg width="14" height="14" viewBox="0 0 2500 2500" xmlns="http://www.w3.org/2000/svg"><circle cx="1250" cy="1250" r="1250" fill="#2D374B"/><path fill="#28A0F0" d="M1386 1040l-140-242-380 658h280zm228-242l-310 537 170 293 458-830z"/><path fill="#fff" d="M702 1854l100-173 198 173zm958-810l140 242 80-139-140-242zm-338 1082l88 152h320l-68-118-340-34z"/></svg>
-                Arbitrum One
-              </div>
-              <div class="net-dropdown-option" data-value="monad" onclick="selectNetwork(this)">
-                <svg width="14" height="14" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#836EF9"/><text x="50" y="68" text-anchor="middle" font-size="52" font-family="sans-serif" font-weight="400" fill="white">M</text></svg>
-                Monad
-              </div>
-            </div>
+          <div class="netseg" id="netseg" role="group" aria-label="网络">
+            <button type="button" class="is-on" data-net="all" onclick="selectNetwork('all')"
+                    data-i18n="netAll">全部</button>
+            <button type="button" data-net="ethereum" onclick="selectNetwork('ethereum')">
+              <i class="netseg__dot" style="background:var(--chain-ethereum,#627eea)"></i>Ethereum</button>
+            <button type="button" data-net="base" onclick="selectNetwork('base')">
+              <i class="netseg__dot" style="background:var(--chain-base,#0052ff)"></i>Base</button>
+            <button type="button" data-net="arbitrum" onclick="selectNetwork('arbitrum')">
+              <i class="netseg__dot" style="background:var(--chain-arbitrum,#28a0f0)"></i>Arbitrum</button>
+            <button type="button" data-net="monad" onclick="selectNetwork('monad')">
+              <i class="netseg__dot" style="background:var(--chain-monad,#836ef9)"></i>Monad</button>
           </div>
         </div>
         <button class="btn btn-primary" id="fetch-btn" onclick="fetchPositions()">
@@ -3479,8 +3560,7 @@ input:focus, select:focus, textarea:focus {
     <div class="tab-content active" id="tab-content-positions">
       <div id="positions-container">
         <div class="empty-state">
-          <div class="empty-icon">🛡️</div>
-          <div class="empty-title" data-i18n="emptySearch">输入钱包地址开始查询</div>
+                    <div class="empty-title" data-i18n="emptySearch">输入钱包地址开始查询</div>
           <div class="empty-desc" data-i18n="emptySearchDesc">支持 Ethereum、Base、Arbitrum One、Monad 上的 Morpho Vault 持仓</div>
         </div>
       </div>
@@ -3525,8 +3605,7 @@ input:focus, select:focus, textarea:focus {
     <div class="tab-content" id="tab-content-pnl">
       <div id="pnl-container">
         <div class="empty-state">
-          <div class="empty-icon">🛡️</div>
-          <div class="empty-title" data-i18n="emptyPnl">查询持仓后查看收益计算</div>
+                    <div class="empty-title" data-i18n="emptyPnl">查询持仓后查看收益计算</div>
         </div>
       </div>
     </div>
@@ -3535,8 +3614,7 @@ input:focus, select:focus, textarea:focus {
     <div class="tab-content" id="tab-content-alerts">
       <div id="alerts-container">
         <div class="empty-state">
-          <div class="empty-icon">🛡️</div>
-          <div class="empty-title" data-i18n="emptyAlerts">暂无警报</div>
+                    <div class="empty-title" data-i18n="emptyAlerts">暂无警报</div>
           <div class="empty-desc" data-i18n="emptyAlertsDesc">当流动性或 APY 低于阈值时，此处将显示警报记录</div>
         </div>
       </div>
@@ -3547,7 +3625,6 @@ input:focus, select:focus, textarea:focus {
     <div class="tab-content" id="tab-content-governance">
       <div id="governance-container">
         <div class="empty-state">
-          <div class="empty-icon" style="font-size:28px;opacity:0.4">🏛</div>
           <div class="empty-title" data-i18n="emptyGovTitle">暂无治理提案</div>
           <div class="empty-desc" data-i18n="emptyGovDesc">查询持仓后，此处将聚合所有 V2 vault 的 curator 治理提案（按生效时间排序）</div>
         </div>
@@ -3577,7 +3654,7 @@ input:focus, select:focus, textarea:focus {
 // ────────────────────────────────────────────
 // Version
 // ────────────────────────────────────────────
-const APP_VERSION = '2.2.0';  // 2026-08-19 — 多钱包第一期：清单 + 切换器 + 每钱包阈值
+const APP_VERSION = '2.3.0';  // 2026-08-20 — 钱包选择器重设计（方向 D）+ 网络改分段 + 去装饰 icon
 // 前后端统一编号、一起升，所以这里就是 APP_VERSION 本身。
 // 顶栏只显示一个版本号；线上后台报的号跟它不一样时，那个号后面加一个 ⚠️，
 // 具体差在哪写在 title 里 —— 不再并排摆两个数字让人猜该看哪个。
@@ -3616,6 +3693,7 @@ const I18N = {
     tabAlertsLog:'警报记录', tabGovernance:'治理',
     welcomeToast:'欢迎使用 Morpho Monitor',
     // 多钱包（第一期）
+    walletNPositions:'{n} 个持仓', walletNotFetched:'未查询',
     walletPickPrompt:'选择或添加钱包', walletListEmpty:'还没有钱包，下面可以添加',
     walletManage:'管理钱包', walletAdd:'添加', walletDelete:'删除这个钱包',
     walletAdhocPlaceholder:'0x… 粘贴地址临时查一次', walletAdhocGo:'查询',
@@ -3837,6 +3915,7 @@ const I18N = {
     tabPositions:'持倉', tabYield:'收益率曲線', tabPnl:'收益計算', 
     tabAlertsLog:'警報記錄', tabGovernance:'治理',
     welcomeToast:'歡迎使用 Morpho Monitor',
+    walletNPositions:'{n} 個持倉', walletNotFetched:'未查詢',
     walletPickPrompt:'選擇或新增錢包', walletListEmpty:'還沒有錢包，下面可以新增',
     walletManage:'管理錢包', walletAdd:'新增', walletDelete:'刪除這個錢包',
     walletAdhocPlaceholder:'0x… 貼上位址臨時查一次', walletAdhocGo:'查詢',
@@ -4057,6 +4136,7 @@ const I18N = {
     tabPositions:'Positions', tabYield:'Return Rate', tabPnl:'P&L', 
     tabAlertsLog:'Alert Log', tabGovernance:'Governance',
     welcomeToast:'Welcome to Morpho Monitor',
+    walletNPositions:'{n} positions', walletNotFetched:'not fetched',
     walletPickPrompt:'Pick or add a wallet', walletListEmpty:'No wallets yet — add one below',
     walletManage:'Manage wallets', walletAdd:'Add', walletDelete:'Remove this wallet',
     walletAdhocPlaceholder:'0x… paste an address for a one-off look', walletAdhocGo:'Query',
@@ -4322,16 +4402,9 @@ function applyI18nToDom() {
     if (attr) el.setAttribute(attr, t(key));
     else el.textContent = t(key);
   });
-  // 网络下拉是自绘的，不是原生 select，得单独刷一遍
-  const netMenu = document.getElementById('net-dropdown-menu');
-  if (netMenu) {
-    netMenu.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
-    const sel = document.getElementById('network-select');
-    if (sel && sel.value === 'all') {
-      const lbl = document.getElementById('net-dropdown-label');
-      if (lbl) lbl.textContent = t('netAll');
-    }
-  }
+  // 网络分段控件里只有「全部」需要翻译（链名是专有名词），而它自带
+  // data-i18n，上面那个循环已经刷到了 —— 不需要额外处理。
+  // 原来这里有一段专门刷自绘下拉标签的代码，下拉已经删掉。
   const monBtnText = document.getElementById('monitor-btn-text');
   if (monBtnText) {
     monBtnText.textContent = APP.isMonitoring ? t('btnAutoRefreshStop') : t('btnAutoRefreshStart');
@@ -6218,46 +6291,62 @@ wsLoad();
 // 钱包切换器 UI
 // ═══════════════════════════════════════════════════════════
 function renderWalletSwitch() {
-  const trig  = document.getElementById('w-switch-trigger');
-  const lbl   = document.getElementById('w-switch-label');
-  const addr  = document.getElementById('w-switch-addr');
-  const list  = document.getElementById('w-switch-list');
-  const count = document.getElementById('w-switch-count');
+  const trig = document.getElementById('wsel-trig');
+  const list = document.getElementById('wsel-list');
   if (!trig || !list) return;
 
+  const $ = id => document.getElementById(id);
   const cur = wsCurrent();
+
+  // 金额列：没查过的钱包显示 —，不显示 $0（$0 会被读成「这个钱包是空的」，
+  // 而实际含义是「还没查过」，两回事）
+  const money = w => (w && typeof w.lastTotal === 'number') ? fmtUSD(w.lastTotal) : '—';
+  const sub   = w => (w && typeof w.lastCount === 'number')
+    ? t('walletNPositions', { n: w.lastCount })
+    : t('walletNotFetched');
+
   if (cur) {
-    lbl.textContent  = cur.label;
-    lbl.removeAttribute('data-i18n');       // 别让 applyI18nToDom 覆盖掉钱包名
-    // 没起备注名时，备注名本身就是地址缩写 —— 别把同一个信息显示两遍
-    addr.textContent = cur.label === wsShortLabel(cur.address) ? '' : wsShortLabel(cur.address);
+    $('wsel-name').textContent = cur.label;
+    $('wsel-name').removeAttribute('data-i18n');   // 别让 applyI18nToDom 覆盖钱包名
+    // 备注名没起过时它本身就是地址缩写，别把同一信息显示两遍
+    $('wsel-addr').textContent = cur.label === wsShortLabel(cur.address) ? '' : wsShortLabel(cur.address);
+    $('wsel-usd').textContent  = money(cur);
+    $('wsel-sub').textContent  = sub(cur);
   } else {
-    lbl.setAttribute('data-i18n', 'walletPickPrompt');
-    lbl.textContent  = t('walletPickPrompt');
-    addr.textContent = '';
+    $('wsel-name').setAttribute('data-i18n', 'walletPickPrompt');
+    $('wsel-name').textContent = t('walletPickPrompt');
+    $('wsel-addr').textContent = '';
+    $('wsel-usd').textContent  = '';
+    $('wsel-sub').textContent  = '';
   }
 
   list.innerHTML = WSTORE.wallets.length
     ? WSTORE.wallets.map(w => `
-        <button type="button" class="w-switch__item${w.address === WSTORE.current ? ' is-on' : ''}"
+        <button type="button" class="wsel__opt${w.address === WSTORE.current ? ' is-on' : ''}"
                 role="option" aria-selected="${w.address === WSTORE.current}"
                 onclick="selectWallet('${w.address}')">
-          <i class="w-switch__tick">✓</i>
-          <span class="w-switch__name">${escHtml(w.label)}</span>
-          <span class="w-switch__meta">
-            ${w.label === wsShortLabel(w.address) ? '' : `<span class="w-switch__tag">${wsShortLabel(w.address)}</span>`}
-            ${w.own ? '' : `<span class="w-switch__tag w-switch__tag--watch">${escHtml(t('walletWatchShort'))}</span>`}
-            ${w.inAggregate ? '' : `<span class="w-switch__tag">${escHtml(t('walletNoAggShort'))}</span>`}
+          <span class="wsel__id">
+            <span class="wsel__name">${escHtml(w.label)}${
+              w.own ? '' : `<span class="wsel__tag wsel__tag--watch">${escHtml(t('walletWatchShort'))}</span>`
+            }${
+              w.inAggregate ? '' : `<span class="wsel__tag">${escHtml(t('walletNoAggShort'))}</span>`
+            }</span>
+            <span class="wsel__addr">${wsShortLabel(w.address)}</span>
+          </span>
+          <span class="wsel__num">
+            <span class="wsel__usd">${money(w)}</span>
+            <span class="wsel__sub">${escHtml(sub(w))}</span>
           </span>
         </button>`).join('')
-    : `<div class="w-switch__empty">${escHtml(t('walletListEmpty'))}</div>`;
+    : `<div class="wsel__empty">${escHtml(t('walletListEmpty'))}</div>`;
 
-  if (count) count.textContent = `${WSTORE.wallets.length} / ${WSTORE.maxWallets}`;
+  const c = $('wsel-count');
+  if (c) c.textContent = ` ${WSTORE.wallets.length}/${WSTORE.maxWallets}`;
 }
 
 function _positionWalletMenu() {
-  const trig = document.getElementById('w-switch-trigger');
-  const menu = document.getElementById('w-switch-menu');
+  const trig = document.getElementById('wsel-trig');
+  const menu = document.getElementById('wsel-menu');
   if (!trig || !menu || !menu.classList.contains('is-open')) return;
   const r = trig.getBoundingClientRect();
 
@@ -6280,8 +6369,8 @@ function _positionWalletMenu() {
 
 function toggleWalletSwitch(ev) {
   if (ev) ev.stopPropagation();
-  const trig = document.getElementById('w-switch-trigger');
-  const menu = document.getElementById('w-switch-menu');
+  const trig = document.getElementById('wsel-trig');
+  const menu = document.getElementById('wsel-menu');
   if (!trig || !menu) return;
   const open = menu.classList.toggle('is-open');
   trig.classList.toggle('is-open', open);
@@ -6290,8 +6379,8 @@ function toggleWalletSwitch(ev) {
 }
 
 function closeWalletSwitch() {
-  const trig = document.getElementById('w-switch-trigger');
-  const menu = document.getElementById('w-switch-menu');
+  const trig = document.getElementById('wsel-trig');
+  const menu = document.getElementById('wsel-menu');
   if (menu) menu.classList.remove('is-open');
   if (trig) { trig.classList.remove('is-open'); trig.setAttribute('aria-expanded', 'false'); }
 }
@@ -6300,7 +6389,7 @@ function closeWalletSwitch() {
 window.addEventListener('scroll', _positionWalletMenu, { passive: true });
 window.addEventListener('resize', _positionWalletMenu);
 document.addEventListener('click', e => {
-  if (!e.target.closest('#w-switch')) closeWalletSwitch();
+  if (!e.target.closest('#wsel')) closeWalletSwitch();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeWalletSwitch(); });
 
@@ -6321,7 +6410,7 @@ function selectWallet(address, opts = {}) {
 
 /** 临时查一个不在清单里的地址：只查，不入库。 */
 function walletAdhocQuery() {
-  const el = document.getElementById('w-adhoc-input');
+  const el = document.getElementById('wsel-adhoc');
   const a  = (el?.value || '').trim();
   if (!/^0x[0-9a-fA-F]{40}$/.test(a)) { showToast('error', t('fetchInvalidAddress')); return; }
   closeWalletSwitch();
@@ -6432,7 +6521,7 @@ function renderWalletManager() {
 
   const full = WSTORE.wallets.length >= WSTORE.maxWallets;
   body.innerHTML = `
-    ${rows || `<div class="w-switch__empty">${escHtml(t('walletListEmpty'))}</div>`}
+    ${rows || `<div class="wsel__empty">${escHtml(t('walletListEmpty'))}</div>`}
     <div class="wmgr__add">
       <input type="text" id="wmgr-new-addr" placeholder="0x…" ${full ? 'disabled' : ''}
              aria-label="${escHtml(t('walletAddAria'))}">
@@ -6611,6 +6700,17 @@ async function fetchPositions(opts = {}) {
     APP.marketPositions = marketPositions;
     APP.recommendations = vaultData?.vaults?.items || [];
     APP.lastFetch = new Date();
+
+    // 记下这个钱包的总额和持仓数，供切换器显示。用 walletTotalUsd() ——
+    // 和首屏统计卡同一个公式，不另算一遍。
+    const wRec = wsFind(APP.wallet);
+    if (wRec) {
+      wRec.lastTotal = walletTotalUsd(positions, marketPositions, v2Positions).totalUsd;
+      wRec.lastCount = positions.length + v2Positions.length + marketPositions.length;
+      wRec.lastAt    = Date.now();
+      wsSave();
+      renderWalletSwitch();
+    }
     // Reset P&L cache on new wallet query
     PNL_STATE.txV1 = []; PNL_STATE.txV2 = []; PNL_STATE.range = 'ALL'; PNL_STATE.page = 1;
 
@@ -6627,7 +6727,7 @@ async function fetchPositions(opts = {}) {
     if (!hasAny) {
       document.getElementById('positions-container').innerHTML = `
         <div class="empty-state">
-          <div class="empty-icon">📭</div>
+          
           <div class="empty-title">${t('noMorphoPositions')}</div>
           <div class="empty-desc">${wallet.slice(0,6)}...${wallet.slice(-4)}</div>
         </div>`;
@@ -7251,7 +7351,6 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
   const hasActive = positions.length > 0 || v2Positions.length > 0 || marketPositions.length > 0;
   const noActiveMsg = !hasActive && totalHistory > 0
     ? `<div class="empty-state" style="padding:20px 0">
-         <div class="empty-icon" style="font-size:32px">📋</div>
          <div class="empty-title">${t('noActivePositions')}</div>
          <div class="empty-desc">${totalHistory} Vaults<br>
          <small style="color:var(--text-3)">${t('expandHint')}</small></div>
@@ -7307,18 +7406,25 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
         </div>
         <div style="display:none">${v2WithdrawnHTML}</div>
       </div>` : allWithdrawnHTML) ||
-    `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">${t('noPositionData')}</div></div>`;
+    `<div class="empty-state"><div class="empty-title">${t('noPositionData')}</div></div>`;
   staggerIn(document.getElementById('positions-container'));
 }
 
 // ────────────────────────────────────────────
 // Render Stats
 // ────────────────────────────────────────────
-function renderStats(positions, marketPositions = [], v2Positions = []) {
+// 总持仓价值的唯一算法。切换器上每个钱包显示的金额必须和首屏那张统计卡
+// 用同一个公式 —— 两处各算一遍就一定会在某次改动后对不上，而用户看到
+// 同一个钱包在两个地方显示两个数，会（正确地）认为整个面板的数都不可信。
+function walletTotalUsd(positions = [], marketPositions = [], v2Positions = []) {
   const vaultUsd = positions.reduce((s, p) => s + (p.state?.assetsUsd || 0), 0);
   const v2Usd = v2Positions.reduce((s, p) => s + (p.assetsUsd || 0), 0);
   const marketSupplyUsd = marketPositions.reduce((s, p) => s + (p.supplyAssetsUsd || 0), 0);
-  const totalUsd = vaultUsd + v2Usd + marketSupplyUsd;
+  return { vaultUsd, v2Usd, marketSupplyUsd, totalUsd: vaultUsd + v2Usd + marketSupplyUsd };
+}
+
+function renderStats(positions, marketPositions = [], v2Positions = []) {
+  const { vaultUsd, v2Usd, totalUsd } = walletTotalUsd(positions, marketPositions, v2Positions);
 
   const allActiveUsd = vaultUsd + v2Usd || 1;
   const weightedApy = (
@@ -7443,7 +7549,7 @@ function renderAlerts() {
   if (APP.alertHistory.length === 0) {
     document.getElementById('alerts-container').innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">🔔</div>
+        
         <div class="empty-title">${t('alertsPanelEmpty')}</div>
         <div class="empty-desc">${t('alertsPanelEmptyDesc')}</div>
       </div>`;
@@ -7580,8 +7686,7 @@ function renderRecommendations(positions, allVaults) {
   if (scored.length === 0) {
     document.getElementById('recs-container').innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">🛡️</div>
-        <div class="empty-title">${t('recEmptyTitle')}</div>
+                <div class="empty-title">${t('recEmptyTitle')}</div>
         <div class="empty-desc">${t('recEmptyDesc')}</div>
       </div>`;
     return;
@@ -8190,7 +8295,6 @@ function renderGovernanceTab() {
   if (allV2.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon" style="font-size:28px;opacity:0.4">🏛</div>
         <div class="empty-title">${t('govTabNoV2')}</div>
         <div class="empty-desc">${t('govTabNoV2Desc')}</div>
       </div>`;
@@ -8240,7 +8344,6 @@ function renderGovernanceTab() {
 
   const timelineHTML = rows.length === 0
     ? `<div class="empty-state" style="padding:32px 20px">
-         <div class="empty-icon" style="font-size:24px;opacity:0.4">✅</div>
          <div class="empty-title">${t('govTabNoPending')}</div>
          <div class="empty-desc">${t('govTabNoPendingDesc')}</div>
        </div>`
@@ -9299,51 +9402,21 @@ document.getElementById('wallet-input').addEventListener('keydown', e => {
 });
 
 // ────────────────────────────────────────────
-// Custom network dropdown
+// 网络分段控件（取代原来的自绘下拉）
 // ────────────────────────────────────────────
-function toggleNetDropdown() {
-  const trigger = document.getElementById('net-dropdown-trigger');
-  const menu = document.getElementById('net-dropdown-menu');
-  const open = menu.classList.toggle('open');
-  trigger.classList.toggle('open', open);
-  if (open) {
-    const r = trigger.getBoundingClientRect();
-    menu.style.top = r.bottom + 'px';
-    menu.style.left = r.left + 'px';
-    menu.style.width = r.width + 'px';
-  }
-}
-
-function selectNetwork(el) {
-  const value = el.dataset.value;
-  // Update hidden input
+// 只有 5 个互斥选项，这是分段控件的定义而不是下拉的。换掉之后浮层、
+// 定位计算、z-index、点外面关闭、滚动脱离这一整类问题全部消失
+// （原实现只在打开瞬间算一次坐标，滚动就会脱离触发器）。
+// #network-select 这个隐藏输入框保留不动 —— netFilter 和 i18n 重刷
+// 都从它取值，契约没变。
+function selectNetwork(value) {
   document.getElementById('network-select').value = value;
-  // Update trigger label
-  const label = document.getElementById('net-dropdown-label');
-  // Clone the option's inner content (svg + text) into the trigger
-  const svg = el.querySelector('svg');
-  label.innerHTML = '';
-  if (svg) label.appendChild(svg.cloneNode(true));
-  label.appendChild(document.createTextNode(' ' + el.textContent.trim()));
-  // Remove i18n attr so applyI18n doesn't overwrite custom content
-  label.removeAttribute('data-i18n');
-  // Mark selected
-  document.querySelectorAll('#net-dropdown-menu .net-dropdown-option').forEach(o => {
-    o.classList.toggle('selected', o === el);
+  document.querySelectorAll('#netseg button').forEach(b => {
+    const on = b.dataset.net === value;
+    b.classList.toggle('is-on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
-  // Close menu
-  document.getElementById('net-dropdown-menu').classList.remove('open');
-  document.getElementById('net-dropdown-trigger').classList.remove('open');
 }
-
-// Close dropdown on outside click
-document.addEventListener('click', function(e) {
-  const dd = document.getElementById('net-dropdown');
-  if (dd && !dd.contains(e.target)) {
-    document.getElementById('net-dropdown-menu').classList.remove('open');
-    document.getElementById('net-dropdown-trigger').classList.remove('open');
-  }
-});
 
 // ────────────────────────────────────────────
 // Init
