@@ -2747,8 +2747,10 @@ body > * { position: relative; z-index: 1; }
 .wsel__addr {
   font-family: var(--font-mono-ds); font-size: 11px; /* --fs-tiny */
   color: var(--text-3); margin-top: 4px;             /* --sp-1 */
-  /* 触发器那一栏本来就窄（金额块占 179px），这行长一点就会折行把控件撑高。
-     单行 + 省略号，高度是定的。 */
+}
+/* nowrap **只锁触发器**：那一栏窄（金额块占 179px），文案长一点就折行把控件撑高。
+   菜单里不能锁 —— 菜单要放「为什么不能用合计」的说明，锁了会被省略号吃掉。 */
+.wsel__trig .wsel__addr {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .wsel__num  { text-align: right; flex-shrink: 0; }
@@ -2849,7 +2851,11 @@ body > * { position: relative; z-index: 1; }
      会一路涨到 536px，白占地方。
      网络同理只需约 190px（换成紧凑下拉之后）。
      省下的空间靠 #fetch-btn 的 margin-left:auto 交给按钮，让按钮贴右边缘。 */
-  .input-row .field-group.wide   { flex: 0 1 340px; min-width: 0; }
+  /* 420px：名字位得到 165px（约 11 个汉字）。
+     340px 下名字位只有 85px，实测连「主仓（自有）」6 个字都被切 —— 是上一轮
+     缩过头了。536px（更早那版）名字位 281px 才是真的浪费。
+     金额块固定占 179px，与字段宽无关，所以名字位 = 字段宽 - 255。 */
+  .input-row .field-group.wide   { flex: 0 1 420px; min-width: 0; }
   .input-row .field-group.narrow { flex: 0 1 190px; min-width: 0; }
   .input-row #fetch-btn          { margin-left: auto; }
 }
@@ -3144,6 +3150,16 @@ a.expo-row__name:hover { color: var(--blue); }
    8px 圆点标识资产在哪条链」是全站语汇，不该锁在网络下拉这一个控件里。 */
 .chain-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
              display: inline-block; margin-right: 8px; vertical-align: 1px; }
+
+/* 合计行和下面的具体钱包用发丝线分开 —— 它俩是不同种类：一个是横跨全部
+   钱包的作用域，一个是单个钱包。用现成的 --border-hair，不新造值。 */
+.wsel__opt--all { border-bottom: 1px solid var(--border-hair); }
+
+/* 不可用的菜单项：名字压到 text-3，说明行保持可读 —— 整条压暗就看不清原因了 */
+.wsel__opt--off { cursor: default; }
+.wsel__opt--off:hover { background: none; }
+.wsel__opt--off .wsel__name { color: var(--text-3); }
+.wsel__opt--off .wsel__addr { color: var(--text-3); white-space: normal; line-height: 1.6; }
 .badge--mono { font-family: var(--font-mono-ds); }
 
 /* 占比条改中性灰。敞口页那条橙色代表「占金库多少」是风险信号，值品牌强调色；
@@ -3836,7 +3852,7 @@ input:focus, select:focus, textarea:focus {
 // ────────────────────────────────────────────
 // Version
 // ────────────────────────────────────────────
-const APP_VERSION = '2.6.0';  // 2026-08-20 — 多钱包合计视图
+const APP_VERSION = '2.6.1';  // 2026-08-20 — 合计入口改成永远可见 + 地址框宽度回调
 // 前后端统一编号、一起升，所以这里就是 APP_VERSION 本身。
 // 顶栏只显示一个版本号；线上后台报的号跟它不一样时，那个号后面加一个 ⚠️，
 // 具体差在哪写在 title 里 —— 不再并排摆两个数字让人猜该看哪个。
@@ -3879,11 +3895,13 @@ const I18N = {
     // 跨钱包敞口
     tabExposure:'跨钱包敞口',
     expoLoading:'正在汇总 {n} 个钱包的持仓…',
-    expoNoWallets:'还没有钱包计入敞口', expoNoWalletsDesc:'在「管理钱包」里勾上「计入跨钱包敞口」',
+    expoNoWallets:'还没有钱包计入敞口', expoNoWalletsDesc:'在「管理钱包」里勾上「计入合计与跨钱包敞口」',
     // ── 合计视图 ──
     cmbScopeName:'全部钱包', cmbScopeTag:'合计', cmbNWallets:'合计 · {n} 个钱包',
+    cmbNeedMoreWallets:'先添加第二个钱包才能合计',
+    cmbNeedTickAggregate:'至少要有 2 个钱包勾上「计入合计与跨钱包敞口」。观察钱包（不是你自己的）不计入。',
     cmbNeedTwo:'合计需要至少两个钱包',
-    cmbNeedTwoDesc:'在「管理钱包」里给两个以上的钱包勾上「计入跨钱包敞口」。只有一个钱包时，它的合计就是它本身。',
+    cmbNeedTwoDesc:'在「管理钱包」里给两个以上的钱包勾上「计入合计与跨钱包敞口」。观察钱包（不是你自己的）不计入。',
     cmbLoading:'正在取 {n} 个钱包的持仓…',
     cmbGrandTotal:'合计总额', cmbGrandSub:'{w} 个钱包 · {n} 笔持仓',
     cmbWeightedApy:'加权收益率', cmbWeightedApySub:'按金额加权',
@@ -3913,13 +3931,13 @@ const I18N = {
     walletAdhocPlaceholder:'0x… 粘贴地址临时查一次', walletAdhocGo:'查询',
     walletAdhocToast:'临时查询 {addr}（未加入清单）',
     walletLabelPlaceholder:'备注名（可选）', walletLabelAria:'钱包备注名', walletAddAria:'新钱包地址',
-    walletOwn:'我自己的钱包', walletInAgg:'计入跨钱包敞口',
+    walletOwn:'我自己的钱包', walletInAgg:'计入合计与跨钱包敞口',
     walletWatchShort:'观察', walletNoAggShort:'不计入',
     walletThLiq:'流动性警戒线', walletThApy:'APY 警戒线', walletThHf:'健康因子警戒线',
     walletMax:'钱包数上限', walletAdded:'已添加',
     walletDup:'这个地址已经在清单里了', walletLimit:'已达上限 {max} 个，可在下方调高',
     walletDelConfirm:'删除「{name}」？只删本机清单，不会动服务器上的后台监控。',
-    walletAggHint:'「计入跨钱包敞口」决定这个钱包是否参与同一金库的持仓叠加计算。取消勾选后，它在敞口视图里整体不出现。',
+    walletAggHint:'这个勾决定两件事：钱包要不要算进「全部钱包 · 合计」的总额，以及要不要参与同一金库的持仓叠加计算。取消勾选后，它在合计视图和敞口视图里都不出现。',
     walletWatchHint:'观察钱包（不是你自己的）不允许订阅后台监控，也不计入敞口。',
     walletWatchNoSub:'观察钱包不能订阅后台监控。如果这是你自己的钱包，请在「管理钱包」里勾上「我自己的钱包」。',
     thresholdLabel:'阈值', emptyPnl:'查询持仓后查看收益计算',
@@ -4132,11 +4150,13 @@ const I18N = {
     walletNPositions:'{n} 個持倉',
     tabExposure:'跨錢包敞口',
     expoLoading:'正在彙總 {n} 個錢包的持倉…',
-    expoNoWallets:'還沒有錢包計入敞口', expoNoWalletsDesc:'在「管理錢包」裡勾上「計入跨錢包敞口」',
+    expoNoWallets:'還沒有錢包計入敞口', expoNoWalletsDesc:'在「管理錢包」裡勾上「計入合計與跨錢包敞口」',
     // ── 合計視圖 ──
     cmbScopeName:'全部錢包', cmbScopeTag:'合計', cmbNWallets:'合計 · {n} 個錢包',
+    cmbNeedMoreWallets:'先新增第二個錢包才能合計',
+    cmbNeedTickAggregate:'至少要有 2 個錢包勾上「計入合計與跨錢包敞口」。觀察錢包（不是你自己的）不計入。',
     cmbNeedTwo:'合計需要至少兩個錢包',
-    cmbNeedTwoDesc:'在「管理錢包」裡給兩個以上的錢包勾上「計入跨錢包敞口」。只有一個錢包時，它的合計就是它本身。',
+    cmbNeedTwoDesc:'在「管理錢包」裡給兩個以上的錢包勾上「計入合計與跨錢包敞口」。觀察錢包（不是你自己的）不計入。',
     cmbLoading:'正在取 {n} 個錢包的持倉…',
     cmbGrandTotal:'合計總額', cmbGrandSub:'{w} 個錢包 · {n} 筆持倉',
     cmbWeightedApy:'加權收益率', cmbWeightedApySub:'按金額加權',
@@ -4166,13 +4186,13 @@ const I18N = {
     walletAdhocPlaceholder:'0x… 貼上位址臨時查一次', walletAdhocGo:'查詢',
     walletAdhocToast:'臨時查詢 {addr}（未加入清單）',
     walletLabelPlaceholder:'備註名（選填）', walletLabelAria:'錢包備註名', walletAddAria:'新錢包位址',
-    walletOwn:'我自己的錢包', walletInAgg:'計入跨錢包敞口',
+    walletOwn:'我自己的錢包', walletInAgg:'計入合計與跨錢包敞口',
     walletWatchShort:'觀察', walletNoAggShort:'不計入',
     walletThLiq:'流動性警戒線', walletThApy:'APY 警戒線', walletThHf:'健康因子警戒線',
     walletMax:'錢包數上限', walletAdded:'已新增',
     walletDup:'這個位址已經在清單裡了', walletLimit:'已達上限 {max} 個，可在下方調高',
     walletDelConfirm:'刪除「{name}」？只刪本機清單，不會動伺服器上的後台監控。',
-    walletAggHint:'「計入跨錢包敞口」決定這個錢包是否參與同一金庫的持倉疊加計算。取消勾選後，它在敞口檢視裡整體不出現。',
+    walletAggHint:'這個勾決定兩件事：錢包要不要算進「全部錢包 · 合計」的總額，以及要不要參與同一金庫的持倉疊加計算。取消勾選後，它在合計檢視和敞口檢視裡都不出現。',
     walletWatchHint:'觀察錢包（不是你自己的）不允許訂閱後台監控，也不計入敞口。',
     walletWatchNoSub:'觀察錢包不能訂閱後台監控。如果這是你自己的錢包，請在「管理錢包」裡勾上「我自己的錢包」。',
     thresholdLabel:'閾值', emptyPnl:'查詢持倉後查看收益計算',
@@ -4384,11 +4404,13 @@ const I18N = {
     walletNPositions:'{n} positions',
     tabExposure:'Cross-wallet exposure',
     expoLoading:'Aggregating {n} wallets…',
-    expoNoWallets:'No wallets counted toward exposure', expoNoWalletsDesc:'Tick “Count toward cross-wallet exposure” under Manage wallets',
+    expoNoWallets:'No wallets counted toward exposure', expoNoWalletsDesc:'Tick “Count toward combined total and cross-wallet exposure” under Manage wallets',
     // ── Combined view ──
     cmbScopeName:'All wallets', cmbScopeTag:'Combined', cmbNWallets:'Combined · {n} wallets',
+    cmbNeedMoreWallets:'Add a second wallet to combine',
+    cmbNeedTickAggregate:'At least 2 wallets must have “Count toward combined total and cross-wallet exposure” ticked. Watch-only wallets (not your own) never count.',
     cmbNeedTwo:'Combining needs at least two wallets',
-    cmbNeedTwoDesc:'Tick “Count toward cross-wallet exposure” for two or more wallets under Manage wallets. With one wallet, the combined total is just that wallet.',
+    cmbNeedTwoDesc:'Tick “Count toward combined total and cross-wallet exposure” for two or more wallets under Manage wallets. Watch-only wallets never count.',
     cmbLoading:'Fetching positions for {n} wallets…',
     cmbGrandTotal:'Combined total', cmbGrandSub:'{w} wallets · {n} positions',
     cmbWeightedApy:'Weighted APY', cmbWeightedApySub:'Weighted by amount',
@@ -4418,13 +4440,13 @@ const I18N = {
     walletAdhocPlaceholder:'0x… paste an address for a one-off look', walletAdhocGo:'Query',
     walletAdhocToast:'One-off query for {addr} (not saved to your list)',
     walletLabelPlaceholder:'Label (optional)', walletLabelAria:'Wallet label', walletAddAria:'New wallet address',
-    walletOwn:'My own wallet', walletInAgg:'Count toward cross-wallet exposure',
+    walletOwn:'My own wallet', walletInAgg:'Count toward combined total and cross-wallet exposure',
     walletWatchShort:'watching', walletNoAggShort:'excluded',
     walletThLiq:'Liquidity floor', walletThApy:'APY floor', walletThHf:'Health-factor floor',
     walletMax:'Wallet limit', walletAdded:'Added',
     walletDup:'That address is already in your list', walletLimit:'Limit of {max} reached — raise it below',
     walletDelConfirm:'Remove “{name}”? This only clears your local list; it does not stop server-side monitoring.',
-    walletAggHint:'“Count toward cross-wallet exposure” decides whether this wallet joins the per-vault position totals. Unchecked, it is absent from the exposure view entirely.',
+    walletAggHint:'This tick decides two things: whether the wallet counts toward the “All wallets · combined” total, and whether it joins the per-vault position totals. Unchecked, it is absent from both the combined and the exposure view.',
     walletWatchHint:'Watch-only wallets (not yours) cannot subscribe to background monitoring and are excluded from exposure.',
     walletWatchNoSub:'Watch-only wallets cannot subscribe to background monitoring. If this is your own wallet, tick “My own wallet” under Manage wallets.',
     thresholdLabel:'Thresholds', emptyPnl:'Fetch positions to see P&L',
@@ -6626,15 +6648,25 @@ function renderWalletSwitch() {
     $('wsel-sub').textContent  = '';
   }
 
-  // 合计入口置顶。只有 ≥2 个钱包计入合计时才出现 —— 一个钱包的「合计」
-  // 和它本身是同一份数据，多一个入口只会让人多点一次。
+  // 合计入口置顶，**只要清单里有钱包就永远显示**。
+  //
+  // 上一版是「不满足条件就整条隐藏」，理由是「一个钱包的合计就是它本身，多一个
+  // 入口只会让人多点一次」。这个理由害人：Mark 反馈「我还是没有看到哪里可以
+  // 合并显示总数」。最坑的一种情况是他**有两个钱包**，但其中一个是观察钱包
+  // （`own:false`），系统会自动把它移出合计 → aggN=1 → 入口消失、且不给任何
+  // 解释。功能等于不存在。
+  //
+  // 所以改成：永远显示；不能用的时候置灰并**写清为什么、怎么办**。
   const aggN = wsAggregated().length;
-  const allRow = aggN >= 2 ? `
-    <button type="button" class="wsel__opt${isCombined() ? ' is-on' : ''}"
-            role="option" aria-selected="${isCombined()}" onclick="selectAllWallets()">
+  const canCombine = aggN >= 2;
+  const why = WSTORE.wallets.length < 2 ? t('cmbNeedMoreWallets') : t('cmbNeedTickAggregate');
+  const allRow = WSTORE.wallets.length ? `
+    <button type="button" class="wsel__opt wsel__opt--all${isCombined() ? ' is-on' : ''}${canCombine ? '' : ' wsel__opt--off'}"
+            role="option" aria-selected="${isCombined()}"${canCombine ? '' : ' disabled'}
+            ${canCombine ? 'onclick="selectAllWallets()"' : ''}>
       <span class="wsel__id">
         <span class="wsel__name">${escHtml(t('cmbScopeName'))}</span>
-        <span class="wsel__addr">${escHtml(t('cmbNWallets', { n: aggN }))}</span>
+        <span class="wsel__addr">${escHtml(canCombine ? t('cmbNWallets', { n: aggN }) : why)}</span>
       </span>
     </button>` : '';
 
@@ -6744,7 +6776,7 @@ function selectAllWallets() {
 // ════════════════════════════════════════════════════════════
 // 合计视图 —— 可选性加总多个钱包的总持仓
 // ────────────────────────────────────────────────────────────
-// 作用域 = 在「管理钱包」里勾了「计入跨钱包敞口」的那些钱包。
+// 作用域 = 在「管理钱包」里勾了「计入合计与跨钱包敞口」的那些钱包。
 //
 // 合计态下这几项**停用**，并在界面上写明原因：
 //   · 收益计算（P&L）—— FIFO 是批次消耗算法。B 钱包的赎回在链上物理不可能
