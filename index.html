@@ -7510,12 +7510,12 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
         const v2TooltipItems = v2Allocs.map((a, i) => ({
           color: ALLOC_COLORS[i % ALLOC_COLORS.length],
           name: a.market?.collateralAsset?.symbol || t('noCollateral'),
-          usd: fmtUSDShort(a.supplyAssetsUsd || 0),
+          usd: fmtUSD(a.supplyAssetsUsd || 0),
           pct: ((a.supplyAssetsUsd || 0) / v2GrandTotal * 100).toFixed(1),
           sub: (() => { const la = a.market?.loanAsset?.symbol||'?'; const ll = a.market?.lltv?(parseFloat(a.market.lltv)>1?(parseFloat(a.market.lltv)/1e18*100).toFixed(0):(parseFloat(a.market.lltv)*100).toFixed(0)):'?'; return `${la} LLTV:${ll}%`; })(),
           util: parseFloat(((a.market?.state?.utilization || 0) * 100).toFixed(1))
         }));
-        if (v2IdleUsd > 0) v2TooltipItems.push({ color: '#94a3b8', name: 'Idle', usd: fmtUSDShort(v2IdleUsd), pct: (v2IdleUsd / v2GrandTotal * 100).toFixed(1), sub: 'Undeployed cash', util: undefined });
+        if (v2IdleUsd > 0) v2TooltipItems.push({ color: '#94a3b8', name: 'Idle', usd: fmtUSD(v2IdleUsd), pct: (v2IdleUsd / v2GrandTotal * 100).toFixed(1), sub: 'Undeployed cash', util: undefined });
         const v2TooltipData = { items: v2TooltipItems, more: 0 };
         const v2DonutSVG = (v2Allocs.length > 0 || v2IdleUsd > 0) ? buildDonutSVG(v2DonutSlices, 72, v2TooltipData) : '';
         // Alloc rows — top 3 displayed; full list in tooltip
@@ -7523,7 +7523,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
           `<div class="alloc-item">
             <div class="alloc-dot" style="background:${dotBg}"></div>
             <span class="alloc-name"${nameStyle}>${name}</span>
-            <span class="alloc-pct"${pctStyle}>${fmtUSDShort(usd)} <span style="opacity:.55">${pct}%</span></span>
+            <span class="alloc-pct"${pctStyle}>${fmtUSD(usd)} <span style="opacity:.55">${pct}%</span></span>
             <span class="alloc-meta">
               ${sub ? `<span class="alloc-collateral">${sub}</span>` : ''}
               ${util !== null ? `<span class="util-pill" style="background:${utilColor}22;color:${utilColor}">${util}%</span>` : ''}
@@ -7542,7 +7542,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
         }).join('') + (v2IdleUsd > 0 && v2AllocsDisplay.length < 3 ? `<div class="alloc-item">
             <div class="alloc-dot" style="background:#94a3b8"></div>
             <span class="alloc-name" style="color:var(--text-3)">Idle</span>
-            <span class="alloc-pct" style="color:var(--text-3)">${fmtUSDShort(v2IdleUsd)} <span style="opacity:.55">${(v2IdleUsd / v2GrandTotal * 100).toFixed(1)}%</span></span>
+            <span class="alloc-pct" style="color:var(--text-3)">${fmtUSD(v2IdleUsd)} <span style="opacity:.55">${(v2IdleUsd / v2GrandTotal * 100).toFixed(1)}%</span></span>
             <span class="alloc-meta"><span class="alloc-collateral">Undeployed cash</span></span>
           </div>` : '') +
           (v2Allocs.length > 3 ? `<div style="font-size:10px;color:var(--text-3);margin-top:3px;padding-left:15px">+${v2Allocs.length - 3} more · hover chart for all</div>` : '');
@@ -7603,10 +7603,10 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
               </div>
               <div class="metric">
                 <div class="metric-label">${t('labelAvailLiq')}</div>
-                <div class="metric-value ${hasLiqAlert ? 'alert' : ''}">${fmtUSDShort(liqUsd)}${hasLiqAlert ? `<span class="alert-chip chip-red">${t('labelLow')}</span>` : ''}</div>
+                <div class="metric-value ${hasLiqAlert ? 'alert' : ''}">${fmtUSD(liqUsd)}${hasLiqAlert ? `<span class="alert-chip chip-red">${t('labelLow')}</span>` : ''}</div>
                 <div style="font-size:10px;color:var(--text-3);margin-top:4px;display:inline-grid;grid-template-columns:max-content max-content;column-gap:6px;row-gap:1px">${(() => {
                   const bd = getV2LiquidityBreakdown(vault);
-                  const row = (label, val) => `<span style="opacity:.6">${label}</span><span style="font-variant-numeric:tabular-nums">${fmtUSDShort(val)}</span>`;
+                  const row = (label, val) => `<span style="opacity:.6">${label}</span><span style="font-variant-numeric:tabular-nums">${fmtUSD(val)}</span>`;
                   return row('Adapter', bd.adapterLiq) + row('Idle', bd.idleLiq) + row('Dealloc', bd.deallocatableLiq);
                 })()}</div>
               </div>
@@ -7699,12 +7699,12 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
     const v1TooltipItems = allocs.map((a, i) => ({
       color: ALLOC_COLORS[i % ALLOC_COLORS.length],
       name: a.market?.collateralAsset?.symbol || t('noCollateral'),
-      usd: fmtUSDShort(a.supplyAssetsUsd || 0),
+      usd: fmtUSD(a.supplyAssetsUsd || 0),
       pct: ((a.supplyAssetsUsd || 0) / allocGrandTotal * 100).toFixed(1),
       sub: (() => { const la = a.market?.loanAsset?.symbol||'?'; const ll = a.market?.lltv?(parseFloat(a.market.lltv)>1?(parseFloat(a.market.lltv)/1e18*100).toFixed(0):(parseFloat(a.market.lltv)*100).toFixed(0)):'?'; return `${la} LLTV:${ll}%`; })(),
       util: parseFloat(((a.market?.state?.utilization || 0) * 100).toFixed(1))
     }));
-    if (v1IdleUsd > 0) v1TooltipItems.push({ color: '#94a3b8', name: 'Idle', usd: fmtUSDShort(v1IdleUsd), pct: (v1IdleUsd / allocGrandTotal * 100).toFixed(1), sub: 'Undeployed cash', util: undefined });
+    if (v1IdleUsd > 0) v1TooltipItems.push({ color: '#94a3b8', name: 'Idle', usd: fmtUSD(v1IdleUsd), pct: (v1IdleUsd / allocGrandTotal * 100).toFixed(1), sub: 'Undeployed cash', util: undefined });
     const v1TooltipData = { items: v1TooltipItems, more: 0 };
     const allocDonutSVG = (allocs.length > 0 || v1IdleUsd > 0) ? buildDonutSVG(allocDonutSlices, 72, v1TooltipData) : '';
 
@@ -7721,7 +7721,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
       return `<div class="alloc-item">
         <div class="alloc-dot" style="background:${ALLOC_COLORS[i % ALLOC_COLORS.length]}"></div>
         <span class="alloc-name">${collateral}</span>
-        <span class="alloc-pct">${fmtUSDShort(usd)} <span style="opacity:.55">${pct}%</span></span>
+        <span class="alloc-pct">${fmtUSD(usd)} <span style="opacity:.55">${pct}%</span></span>
         <span class="alloc-meta">
           <span class="alloc-collateral">${loanAsset} LLTV:${lltv}%</span>
           <span class="util-pill" style="background:${utilColor}22;color:${utilColor}">${util}%</span>
@@ -7730,7 +7730,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
     }).join('') + (v1IdleUsd > 0 && allocsDisplay.length < 3 ? `<div class="alloc-item">
         <div class="alloc-dot" style="background:#94a3b8"></div>
         <span class="alloc-name" style="color:var(--text-3)">Idle</span>
-        <span class="alloc-pct" style="color:var(--text-3)">${fmtUSDShort(v1IdleUsd)} <span style="opacity:.55">${(v1IdleUsd / allocGrandTotal * 100).toFixed(1)}%</span></span>
+        <span class="alloc-pct" style="color:var(--text-3)">${fmtUSD(v1IdleUsd)} <span style="opacity:.55">${(v1IdleUsd / allocGrandTotal * 100).toFixed(1)}%</span></span>
         <span class="alloc-meta"><span class="alloc-collateral">Undeployed cash</span></span>
       </div>` : '') +
       (allocs.length > 3 ? `<div style="font-size:10px;color:var(--text-3);margin-top:3px;padding-left:15px">+${allocs.length - 3} more · hover chart for all</div>` : '');
@@ -7779,12 +7779,12 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
           <div class="metric">
             <div class="metric-label">${t('labelAvailLiq')}</div>
             <div class="metric-value ${hasLiqAlert ? 'alert' : ''}">
-              ${fmtUSDShort(liquidity)}
+              ${fmtUSD(liquidity)}
               ${hasLiqAlert ? `<span class="alert-chip chip-red">${t('labelLow')}</span>` : ''}
             </div>
             <div style="font-size:10px;color:var(--text-3);margin-top:4px;display:inline-grid;grid-template-columns:max-content max-content;column-gap:6px;row-gap:1px">${(() => {
               const bd = getV1LiquidityBreakdown(vault);
-              const row = (label, val) => `<span style="opacity:.6">${label}</span><span style="font-variant-numeric:tabular-nums">${fmtUSDShort(val)}</span>`;
+              const row = (label, val) => `<span style="opacity:.6">${label}</span><span style="font-variant-numeric:tabular-nums">${fmtUSD(val)}</span>`;
               return row('Market', bd.marketLiq) + row('Idle', bd.idleLiq);
             })()}</div>
           </div>
@@ -7869,7 +7869,7 @@ function renderPositions(positions, marketPositions = [], withdrawnPositions = [
               </div>
               <div class="metric">
                 <div class="metric-label">${t('labelVaultTvl')}</div>
-                <div class="metric-value" style="color:var(--text-3)">${fmtUSDShort(totalUsd)}</div>
+                <div class="metric-value" style="color:var(--text-3)">${fmtUSD(totalUsd)}</div>
               </div>
               ${pnlUsd !== 0 ? `<div class="metric">
                 <div class="metric-label">${t('labelHistoricalPnl')}</div>
@@ -8333,11 +8333,11 @@ function renderRecCard(x) {
       </div>
       <div>
         <div class="rec-metric-label">${t('recLiquidity')}</div>
-        <div class="rec-metric-value">${fmtUSDShort(liq)}</div>
+        <div class="rec-metric-value">${fmtUSD(liq)}</div>
       </div>
       <div>
         <div class="rec-metric-label">TVL</div>
-        <div class="rec-metric-value">${fmtUSDShort(v.state?.totalAssetsUsd || 0)}</div>
+        <div class="rec-metric-value">${fmtUSD(v.state?.totalAssetsUsd || 0)}</div>
       </div>
     </div>
     ${compBar}
@@ -8360,12 +8360,12 @@ function renderRecCard(x) {
       const recTooltipItems = recAllocs.map((a, i) => ({
         color: ALLOC_COLORS[i % ALLOC_COLORS.length],
         name: a.market?.collateralAsset?.symbol || t('noCollateral'),
-        usd: fmtUSDShort(a.supplyAssetsUsd || 0),
+        usd: fmtUSD(a.supplyAssetsUsd || 0),
         pct: ((a.supplyAssetsUsd || 0) / recGrandTotal * 100).toFixed(1),
         sub: (() => { const la = a.market?.loanAsset?.symbol||'?'; const ll = a.market?.lltv?(parseFloat(a.market.lltv)>1?(parseFloat(a.market.lltv)/1e18*100).toFixed(0):(parseFloat(a.market.lltv)*100).toFixed(0)):'?'; return `${la} LLTV:${ll}%`; })(),
         util: parseFloat(((a.market?.state?.utilization || 0) * 100).toFixed(1))
       }));
-      if (recIdleUsd > 0) recTooltipItems.push({ color: '#94a3b8', name: 'Idle', usd: fmtUSDShort(recIdleUsd), pct: (recIdleUsd / recGrandTotal * 100).toFixed(1), sub: 'Undeployed cash', util: undefined });
+      if (recIdleUsd > 0) recTooltipItems.push({ color: '#94a3b8', name: 'Idle', usd: fmtUSD(recIdleUsd), pct: (recIdleUsd / recGrandTotal * 100).toFixed(1), sub: 'Undeployed cash', util: undefined });
       const recTooltipData = { items: recTooltipItems, more: 0 };
       const recDonut = buildDonutSVG(recSlices, 52, recTooltipData);
       // Top 3 displayed rows
@@ -8379,7 +8379,7 @@ function renderRecCard(x) {
         return `<div class="alloc-item" style="font-size:11px">
           <div class="alloc-dot" style="background:${ALLOC_COLORS[i % ALLOC_COLORS.length]}"></div>
           <span class="alloc-name" style="font-size:11px">${col}</span>
-          <span class="alloc-pct" style="font-size:11px">${fmtUSDShort(usd)} <span style="opacity:.55">${pct}%</span></span>
+          <span class="alloc-pct" style="font-size:11px">${fmtUSD(usd)} <span style="opacity:.55">${pct}%</span></span>
           <span class="alloc-meta">
             <span class="util-pill" style="background:${utilColor}22;color:${utilColor};font-size:10px">${util}%</span>
           </span>
@@ -8387,7 +8387,7 @@ function renderRecCard(x) {
       }).join('') + (recIdleUsd > 0 && recAllocsDisplay.length < 3 ? `<div class="alloc-item" style="font-size:11px">
           <div class="alloc-dot" style="background:#94a3b8"></div>
           <span class="alloc-name" style="font-size:11px;color:var(--text-3)">Idle</span>
-          <span class="alloc-pct" style="font-size:11px;color:var(--text-3)">${fmtUSDShort(recIdleUsd)} <span style="opacity:.55">${(recIdleUsd / recGrandTotal * 100).toFixed(1)}%</span></span>
+          <span class="alloc-pct" style="font-size:11px;color:var(--text-3)">${fmtUSD(recIdleUsd)} <span style="opacity:.55">${(recIdleUsd / recGrandTotal * 100).toFixed(1)}%</span></span>
           <span class="alloc-meta"><span style="font-size:10px;color:var(--text-3)">Undeployed cash</span></span>
         </div>` : '') +
         (recAllocs.length > 3 ? `<div style="font-size:10px;color:var(--text-3);margin-top:3px;padding-left:15px">+${recAllocs.length - 3} more · hover chart</div>` : '');
@@ -8678,7 +8678,7 @@ async function renderYieldChart() {
     </div>
     <div class="chart-summary-item">
       <div class="chart-summary-label">${t('yieldPortfolio')}</div>
-      <div class="chart-summary-value">${fmtUSDShort(totalUsd)}</div>
+      <div class="chart-summary-value">${fmtUSD(totalUsd)}</div>
     </div>
   `;
 
@@ -9039,16 +9039,16 @@ async function renderExposureTab() {
               <span class="expo-metric__v" style="color:${sharePct == null ? 'var(--text-3)' : sharePct >= EXPO_SHARE_WARN * 100 ? 'var(--yellow)' : 'var(--text-1)'}">
                 ${sharePct == null ? '—' : sharePct.toFixed(2) + '%'}
               </span>
-              <span class="expo-metric__s">${r.tvl ? escHtml(t('expoOfTvl', { tvl: fmtUSDShort(r.tvl) })) : escHtml(t('expoNoTvl'))}</span>
+              <span class="expo-metric__s">${r.tvl ? escHtml(t('expoOfTvl', { tvl: fmtUSD(r.tvl) })) : escHtml(t('expoNoTvl'))}</span>
             </div>
             <div class="expo-metric">
               <span class="label">${escHtml(t('expoExitable'))}</span>
               <span class="expo-metric__v">${fmtUSD(r.exitable)}</span>
               ${r.breakdown ? `<span class="expo-metric__s mono-dim">${
                 escHtml(t('expoBreakdown', {
-                  a: fmtUSDShort(r.breakdown.adapterLiq ?? r.breakdown.marketLiq ?? 0),
-                  i: fmtUSDShort(r.breakdown.idleLiq ?? 0),
-                  d: fmtUSDShort(r.breakdown.deallocatableLiq ?? 0),
+                  a: fmtUSD(r.breakdown.adapterLiq ?? r.breakdown.marketLiq ?? 0),
+                  i: fmtUSD(r.breakdown.idleLiq ?? 0),
+                  d: fmtUSD(r.breakdown.deallocatableLiq ?? 0),
                 }))}</span>` : ''}
             </div>
           </div>
@@ -10087,6 +10087,13 @@ function showToast(type, msg) {
 // ────────────────────────────────────────────
 // Formatters
 // ────────────────────────────────────────────
+// 全站唯一的美元格式化：≥1B → $X.XXB，≥1M → $X.XXM，否则两位小数全额。
+//
+// 原来这里有两份**逐字节相同**的实现（fmtUSD 和 fmtUSDShort），24 处调用后者、
+// 38 处调用前者。名字在撒谎 —— fmtUSD 一样会缩写。大概是先有 fmtUSD 不缩写、
+// 后加 fmtUSDShort 做缩写，再某轮把缩写抄回 fmtUSD 而没删掉另一份。
+// 已合并成这一个；以后真需要「不带小数」的口径，就新写一个名字说得清的函数，
+// 不要再靠 Short/Long 这种分不出差别的后缀。
 function fmtUSD(n) {
   if (n === null || n === undefined || n === 0) return '$0.00';
   const abs = Math.abs(n);
@@ -10094,18 +10101,7 @@ function fmtUSD(n) {
   const fmt2 = (v) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (abs >= 1e9) return sign + '$' + fmt2(abs / 1e9) + 'B';
   if (abs >= 1e6) return sign + '$' + fmt2(abs / 1e6) + 'M';
-  return (n < 0 ? '-$' : '$') + fmt2(abs);
-}
-
-// Abbreviated display for large numbers: ≥1B → $X.XXB, ≥1M → $X.XXM, else full
-function fmtUSDShort(n) {
-  if (n === null || n === undefined || n === 0) return '$0.00';
-  const abs = Math.abs(n);
-  const sign = n < 0 ? '-' : '';
-  const fmt2 = (v) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  if (abs >= 1e9) return sign + '$' + fmt2(abs / 1e9) + 'B';
-  if (abs >= 1e6) return sign + '$' + fmt2(abs / 1e6) + 'M';
-  return (n < 0 ? '-$' : '$') + fmt2(abs);
+  return sign + '$' + fmt2(abs);   // sign 上面已经算过，原来这行又内联重推了一遍
 }
 
 function formatCountdown(seconds) {
